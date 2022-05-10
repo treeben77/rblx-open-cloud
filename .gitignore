@@ -1,1 +1,4 @@
 experiment.py
+__pycache__/
+experiment.rbxl
+experiment.rbxl.lock
