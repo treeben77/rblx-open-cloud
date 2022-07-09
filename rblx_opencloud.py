@@ -224,3 +224,17 @@ class DataStoreService():
     
     def getDataStore(self, name:str, scope:str="global") -> DataStore:
         return DataStore(name, self.universe, None, scope)
+
+class MessagingService():
+    def __init__(self, universe:int):
+        self.universe = universe
+    
+    def publish(self, topic:str, data:str):
+        response = requests.post(f"https://apis.roblox.com/messaging-service/v1/universes/{self.universe}/topics/{topic}",
+            headers={"x-api-key": api_key}, json={"message": data})
+        if response.status_code == 200: return
+        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
+        elif response.status_code == 404: raise NotFound(f"The place does not exist.")
+        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
+        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")  
