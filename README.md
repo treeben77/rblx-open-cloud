@@ -7,7 +7,7 @@ Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-c
 ### Generating an API key and Preparing the library
 
 1. Create an API key from the [Creator Dashboard](https://create.roblox.com/credentials). Read [Managing API Keys](https://create.roblox.com/docs/open-cloud/managing-api-keys) if you need help.
-2. Copy the code in `rblx-open-cloud.py`, paste it in a new file and save it in the same directory as your project. (I'll work out how to add it to PyPi later.)
+2. Copy the code in `rblx-open-cloud.py`, paste it in a new file and save it in the same directory as your project.
 3. Add the following lines to your code and replace `api-key-from-step-1` with the key you generated in step 1. *Tip you should add your api key to an enviroment variable.*
     ```py
     import rblx_opencloud

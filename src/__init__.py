@@ -81,7 +81,7 @@ class DataStore():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
-    def increment(self, key:str, increment:Union[str, dict, list, int, float], users:list=None, metadata:dict={}) -> str:
+    def increment(self, key:str, increment:Union[int, float], users:list=None, metadata:dict={}) -> str:
         if users == None: users = []
 
         response = requests.post(f"{base_url}/{self.universe}/standard-datastores/datastore/entries/entry/increment?datastoreName={self.name}&scope={self.scope}&entryKey={key}&incrementBy={increment}",
@@ -152,7 +152,7 @@ class DataStore():
             try: metadata = json.loads(response.headers["roblox-entry-attributes"])
             except(KeyError): metadata = {}
             try: userids = json.loads(response.headers["roblox-entry-userids"])
-            except(KeyError): userids = {}
+            except(KeyError): userids = []
             
             return json.loads(response.text), {
                 "version": response.headers["roblox-entry-version"],
