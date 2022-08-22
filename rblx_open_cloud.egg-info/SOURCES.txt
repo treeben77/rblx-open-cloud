@@ -1,0 +1,10 @@
+LICENSE
+README.md
+setup.cfg
+setup.py
+rblx_open_cloud.egg-info/PKG-INFO
+rblx_open_cloud.egg-info/SOURCES.txt
+rblx_open_cloud.egg-info/dependency_links.txt
+rblx_open_cloud.egg-info/requires.txt
+rblx_open_cloud.egg-info/top_level.txt
+rblxopencloud/__init__.py

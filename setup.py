@@ -1,11 +1,18 @@
 from setuptools import setup, find_packages
 
+with open("README.md", "r") as file:
+    long_description = file.read()
+
 setup(
     name='rblx-open-cloud',
-    version='0.0.2',
+    version='0.0.7',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     license='MIT',
     author="TreeBen77",
-    package_dir={'': 'src'},
+    packages=[
+        'rblxopencloud'
+    ],
     url='https://github.com/TreeBen77/rblx-open-cloud',
     keywords='roblox, datastores, opencloud',
     install_requires=[
