@@ -2,76 +2,99 @@
  
 Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-cloud/index).
 
-> Note: this is in open beta and the code is subject to breaking changes. Thank you for using my library anyways :D
+**docs hopefully coming soon.**
 
 ## Quickstart
 
-### Generating an API key and Preparing the library
+### Getting Started
 
-1. Install the library with pip using your terminal.
+1. Install the library with pip in your terminal.
     ```console
     pip install rblx-open-cloud
     ```
 
-2. Create an API key from the [Creator Dashboard](https://create.roblox.com/credentials). Read [Managing API Keys](https://create.roblox.com/docs/open-cloud/managing-api-keys) if you need help.
+2. Create an API key from the [Creator Dashboard](https://create.roblox.com/credentials). You can read [Managing API Keys](https://create.roblox.com/docs/open-cloud/managing-api-keys) if you get stuck.
 
-3. Add the following code to your project and replace `api-key-from-step-2` with the key you generated in step 2. *Tip: you should add your api key to an enviroment variable.*
+3. Add the following code to your project and replace `api-key-from-step-2` with the key you generated.
     ```py
-    import rblx_opencloud
-    rblx_opencloud.api_key = "api-key-from-step-2"
+    # create a Universe object with your universe/experience ID and your api key
+    # TODO: replace '13058' with your universe ID
+    universe = rblxopencloud.Universe(13058, api_key="api-key-from-step-2")
     ```
-    **If you want to start by accessing your game's data stores go to [Data Stores](#accessing-data-stores) otherwise, you can go to [Messaging Service](#publishing-to-message-service) or [Place Publishing](#publish-or-save-a-rbxl-file).**
-> **note:** Roblox doesn't support access to ordered data stores via open cloud, yet.
+    If you don't know how to get the universe or place ID read [Publishing Places with API Keys](https://create.roblox.com/docs/open-cloud/publishing-places-with-api-keys#:~:text=Find%20the%20experience,is%206985028626.)
+
+4. If you want to start by accessing your game's data stores go to [Data Stores](#accessing-data-stores) otherwise, you can go to [Messaging Service](#publishing-to-message-service) if you want to publish messages to live game servers, or [Place Publishing](#publish-or-save-a-rbxl-file) if you'd like to upload `.rbxl` files to Roblox.**
 
 ### Accessing Data Stores
-
-If you don't know how to get the universe or place ID read [Publishing Places with API Keys](https://create.roblox.com/docs/open-cloud/publishing-places-with-api-keys#:~:text=Find%20the%20experience,is%206985028626.)
+**NOTE: Roblox doesn't support access to ordered data stores via open cloud at the moment.**
 ```py
-import rblx_opencloud
-rblx_opencloud.api_key = "api-key-from-step-1"
+# get the data store, using the data store name and scope (defaults to global)
+datastore = universe.get_data_store("data-store-name", scope="global")
 
-# create a DataStoreService object with your universe ID
-DataStoreService = rblx_opencloud.DataStoreService(universe="universe-id-here")
+# sets the key 'key-name' to 68 and provides users and metadata
+# DataStore.set does not return the value or an EntryInfo object, instead it returns a EntryVersion object.
+datastore.set("key-name", 68, users=[287113233], metadata={"key": "value"})
 
-# get your data store, scope is default to global
-DataStore = DataStoreService.getDataStore("data-store-name", scope="global")
+# get the value with the key 'number'
+# info is a EntryInfo object which contains data like the version code, metadata, userids and timestamps.
+value, info = datastore.get("key-name")
 
-# gets the value and info (user ids, metadata, created, etc.)
-value, info = DataStore.get("key-name")
+print(value, info)
 
-# sets the value of the key and assigns the user ids list to 287113233
-DataStore.set("key-name", "value", users=[287113233])
+# increments the key 'key-name' by 1 and ensures to keep the old users and metadata
+# DataStore.increment retuens a value and info pair, just like DataStore.get and unlike DataStore.set
+value, info = datastore.increment("key-name", 1, users=info.users, metadata=info.metadata)
 
-# deletes the key now.
-DataStore.remove("key-name")
+print(value, info)
+
+# deletes the key
+datastore.remove("key-name")
 ```
 
 ### Publishing To Message Service
-If you don't know how to get the universe or place ID read [Publishing Places with API Keys](https://create.roblox.com/docs/open-cloud/publishing-places-with-api-keys#:~:text=Find%20the%20experience,is%206985028626.)
+**NOTE: Messages published with Open Cloud only arrive in live game servers and not in Studio, so you'll have to publish the place to test this.**
 ```py
-import rblx_opencloud
-rblx_opencloud.api_key = "api-key-from-step-1"
-
-# create a MessagingService object with your universe ID
-MessagingService = rblx_opencloud.MessagingService(3499447036)
-
-#publish a message to the topic 'topic69420'. Roblox Studio won't recieve this message, only live game servers.
-MessagingService.publish("topic69420", "message")
+# publish a message with the topic 'topic-name'
+universe.publish_message("topic-name", "Hello World!")
 ```
 
 ### Publish or Save a `.rbxl` File
+**NOTE: [Place Publishing](#publish-or-save-a-rbxl-file) isn't included in this example due to it requiring an `.rbxl` file.**
 ```py
-import rblx_opencloud
-rblx_opencloud.api_key = "api-key-from-step-1"
-
-#create a PlacePublishing object with your universe
-PlacePublishing = rblx_opencloud.PlacePublishing(universe="universe-id-here")
-
-#open the .rbxl file as 'rb' and save it to the place
+#open the .rbxl file as read bytes
 with open("path-to/place-file.rbxl", "rb") as file:
-    version = PlacePublishing.savePlace("place-id-here", file)
+    # the first number is the place ID to update, and publish denotes wether to publish or save the place.
+    # TODO: replace '1818' with your place ID
+    universe.upload_place(1818, file, publish=False)
+```
+## Final Result (a.k.a copy and paste section)
+```py
+# create a Universe object with your universe/experience ID and your api key
+# TODO: replace '13058' with your universe ID
+universe = rblxopencloud.Universe(13058, api_key="api-key-from-step-2")
 
-#open the .rbxl file as 'rb' and publishes it to the place
-with open("path-to/place-file.rbxl", "rb") as file:
-    version = PlacePublishing.publishPlace("place-id-here", file)
+# get the data store, using the data store name and scope (defaults to global)
+datastore = universe.get_data_store("data-store-name", scope="global")
+
+# sets the key 'key-name' to 68 and provides users and metadata
+# DataStore.set does not return the value or an EntryInfo object, instead it returns a EntryVersion object.
+datastore.set("key-name", 68, users=[287113233], metadata={"key": "value"})
+
+# get the value with the key 'number'
+# info is a EntryInfo object which contains data like the version code, metadata, userids and timestamps.
+value, info = datastore.get("key-name")
+
+print(value, info)
+
+# increments the key 'key-name' by 1 and ensures to keep the old users and metadata
+# DataStore.increment retuens a value and info pair, just like DataStore.get and unlike DataStore.set
+value, info = datastore.increment("key-name", 1, users=info.users, metadata=info.metadata)
+
+print(value, info)
+
+# deletes the key
+datastore.remove("key-name")
+
+# publish a message with the topic 'topic-name'
+universe.publish_message("topic-name", "Hello World!")
 ```

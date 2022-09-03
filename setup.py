@@ -1,11 +1,12 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 with open("README.md", "r") as file:
     long_description = file.read()
 
 setup(
     name='rblx-open-cloud',
-    version='0.0.7',
+    description='API wrapper for Roblox Open Cloud',
+    version='0.1.0',
     long_description=long_description,
     long_description_content_type="text/markdown",
     license='MIT',
@@ -14,9 +15,8 @@ setup(
         'rblxopencloud'
     ],
     url='https://github.com/TreeBen77/rblx-open-cloud',
-    keywords='roblox, datastores, opencloud',
+    keywords='roblox, open-cloud, data-store, place-publishing, mesageing-service',
     install_requires=[
-        'python-dateutil',
         'requests'
     ]
 )
