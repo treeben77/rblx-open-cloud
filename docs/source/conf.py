@@ -2,9 +2,9 @@
 
 # -- Project information
 
-project = 'Lumache'
-copyright = '2021, Graziella'
-author = 'Graziella'
+project = 'rblx-open-cloud'
+copyright = '2022, TreeBen77'
+author = 'TreeBen77'
 
 release = '0.1'
 version = '0.1.0'
