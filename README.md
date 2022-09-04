@@ -2,7 +2,7 @@
  
 Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-cloud/index).
 
-**docs hopefully coming soon.**
+**Documentation: https://rblx-open-cloud.readthedocs.io**
 
 ## Quickstart
 

@@ -166,7 +166,7 @@ class DataStore():
             except(KeyError): userids = []
             
             return json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
-    response.headers["roblox-entry-version-created-time"], userids, metadata)
+                response.headers["roblox-entry-version-created-time"], userids, metadata)
         elif response.status_code == 204: return None
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
