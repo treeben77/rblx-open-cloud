@@ -31,13 +31,24 @@ Universe
    
    .. method:: list_data_stores(prefix="")
 
-         Lists all :class:`rblx-open-cloud.DataStore` in the experience with :attr:`rblx-open-cloud.DataStore.created`.
-
          Lua equivalent: `DataStoreService:ListDataStoresAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#ListDataStoresAsync>`__
 
-         :param str name: The name of the data store
-         :param str scope: A string specifying the scope.
-         :returns: list[:class:`rblx-open-cloud.DataStore`]
+         Returns an Iterable of all class:`rblx-open-cloud.DataStore` in the Universe which includes :attr:`rblx-open-cloud.DataStore.created`, optionally matching a prefix.
+
+        The example below would list all versions, along with their value.
+                
+        .. code:: py
+
+            for datastore in universe.list_data_stores():
+                print(datastore.key)
+        
+        You can simply convert it to a list by putting it in the list function:
+
+        .. code:: py
+
+            list(universe.list_data_stores())
+
+         :returns: Iterable[:class:`rblx-open-cloud.DataStore`]
          :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data stores.
          :raises rblx-open-cloud.NotFound: *This shouldn't be raised for this method.*
          :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.

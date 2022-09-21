@@ -31,22 +31,32 @@ Data Store
    
     .. method:: list_keys(prefix="")
 
-        Lists all keys in the datastore.
+        Returns an Iterable of keys in the database, optionally matching a prefix.
+
+        The example below would list all versions, along with their value.
+                
+        .. code:: py
+
+            for entry in datastore.list_keys("key-name"):
+                print(entry.key, entry.scope)
+        
+        You can simply convert it to a list by putting it in the list function:
+
+        .. code:: py
+
+            list(datastore.list_versions("key-name"))
 
         Lua equivalent: `DataStore:ListKeysAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStore#ListKeysAsync>`__
 
         :param str prefix: Only return keys that start with this prefix.
         
-        :returns: list[:class:`str`]
+        :returns: Iterable[:class:`ListedEntry`]
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data store keys.
         :raises rblx-open-cloud.NotFound: The datastore does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
 
-        .. note::
-
-            This function may take a long time on large datebases
         
     .. method:: get(key)
 
@@ -124,7 +134,20 @@ Data Store
     
     .. method:: list_versions(key, after, before, descending)
 
-        Lists previous versions of a key.
+        Returns an Iterable of previous versions of a key.
+
+        The example below would list all versions, along with their value.
+                
+        .. code:: py
+
+            for version in datastore.list_versions("key-name"):
+                print(version, version.get_value())
+        
+        You can simply convert it to a list by putting it in the list function:
+
+        .. code:: py
+
+            list(datastore.list_versions("key-name"))
 
         Lua equivalent: `DataStore:ListVersionsAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStore#ListVersionsAsync>`__
 
@@ -133,16 +156,12 @@ Data Store
         :param datetime.datetime before: Only find versions before this datetime
         :param bool descending: Wether the versions should be sorted by date ascending or descending.
 
-        :returns: list[:class:`EntryVersion`]
+        :returns: Iterable[:class:`EntryVersion`]
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to remove data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
-
-        .. note::
-
-            This function may take a long time if the key is modified a lot
     
     .. method:: get_version(key, version)
 
@@ -229,3 +248,34 @@ Data Store
         The time when the key was created
 
         :type: datetime.datetime
+    
+    .. method:: get_value()
+
+        Gets the value of this versions. Shortcut for :meth:`DataStore.get_version`
+        
+        :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
+        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to get data store keys.
+        :raises rblx-open-cloud.NotFound: The datastore or key does not exist
+        :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+        :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+        :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+
+.. class:: ListedEntry
+
+    Object which contains a entry's key and scope.
+
+    .. warning::
+
+        This class is not designed to be created by users. It is returned by :meth:`DataStore.list_keys`.
+
+    .. attribute:: key 
+
+        The Entry's key
+
+        :type: str
+    
+    .. attribute:: scope
+
+        The Entry's scope
+
+        :type: str
