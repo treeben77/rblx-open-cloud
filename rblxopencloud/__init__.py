@@ -65,6 +65,7 @@ class DataStore():
                 headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
                 "scope": self.scope,
+                "AllScopes": not self.scope,
                 "limit": 100,
                 "prefix": prefix,
                 "cursor": nextcursor if nextcursor else None
@@ -82,10 +83,14 @@ class DataStore():
             if not nextcursor: break
     
     def get(self, key: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+        except(ValueError):
+            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
-                "scope": self.scope,
+                "scope": self.scope if self.scope else scope,
                 "entryKey": key
             })
 
@@ -105,6 +110,10 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
     def set(self, key: str, value: Union[str, dict, list, int, float], users:list=None, metadata:dict={}) -> EntryVersion:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+        except(ValueError):
+            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         if users == None: users = []
         data = json.dumps(value)
 
@@ -112,7 +121,7 @@ class DataStore():
             headers={"x-api-key": self.__api_key, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata),
             "content-md5": base64.b64encode(hashlib.md5(data.encode()).digest())}, data=data, params={
                 "datastoreName": self.name,
-                "scope": self.scope,
+                "scope": self.scope if self.scope else scope,
                 "entryKey": key
             })
         
@@ -125,12 +134,16 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
     def increment(self, key: str, increment: Union[int, float], users:list=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+        except(ValueError):
+            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         if users == None: users = []
 
         response = requests.post(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry/increment",
             headers={"x-api-key": self.__api_key, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)}, params={
                 "datastoreName": self.name,
-                "scope": self.scope,
+                "scope": self.scope if self.scope else scope,
                 "entryKey": key,
                 "incrementBy": increment
             })
@@ -139,7 +152,7 @@ class DataStore():
             try: metadata = json.loads(response.headers["roblox-entry-attributes"])
             except(KeyError): metadata = {}
             try: userids = json.loads(response.headers["roblox-entry-userids"])
-            except(KeyError): userids = {}
+            except(KeyError): userids = []
             
             return json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
     response.headers["roblox-entry-version-created-time"], userids, metadata)
@@ -149,10 +162,14 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
     def remove(self, key: str) -> None:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+        except(ValueError):
+            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         response = requests.delete(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
-                "scope": self.scope,
+                "scope": self.scope if self.scope else scope,
                 "entryKey": key
             })
 
@@ -164,12 +181,16 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
     def list_versions(self, key: str, after: datetime.datetime=None, before: datetime.datetime=None, descending: bool=True) -> Iterable[EntryVersion]:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+        except(ValueError):
+            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         nextcursor = ""
         while True:
             response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry/versions",
                 headers={"x-api-key": self.__api_key}, params={
                     "datastoreName": self.name,
-                    "scope": self.scope,
+                    "scope": self.scope if self.scope else scope,
                     "entryKey": key,
                     "limit": 100,
                     "sortOrder": "Descending" if descending else "Ascending",
@@ -191,10 +212,14 @@ class DataStore():
             if not nextcursor: break
 
     def get_version(self, key: str, version: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+        except(ValueError):
+            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.") 
         response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry/versions/version",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
-                "scope": self.scope,
+                "scope": self.scope if self.scope else scope,
                 "entryKey": key,
                 "versionId": version
             })
@@ -222,10 +247,10 @@ class Universe():
     def __repr__(self) -> str:
         return f"rblxopencloud.Universe({self.id})"
     
-    def get_data_store(self, name: str, scope: str="global") -> DataStore:
+    def get_data_store(self, name: str, scope: Union[str, None]="global") -> DataStore:
         return DataStore(name, self, self.__api_key, None, scope)
 
-    def list_data_stores(self, prefix: str="") -> list[DataStore]:
+    def list_data_stores(self, prefix: str="", scope: str="global") -> list[DataStore]:
         nextcursor = ""
         while True:
             response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.id}/standard-datastores",
@@ -242,7 +267,7 @@ class Universe():
             
             data = response.json()
             for datastore in data["datastores"]:
-                yield DataStore(datastore["name"], self, self.__api_key, datastore["createdTime"], "global")
+                yield DataStore(datastore["name"], self, self.__api_key, datastore["createdTime"], scope)
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
     

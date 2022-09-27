@@ -17,7 +17,7 @@ Data Store
 
     .. attribute:: scope 
 
-        :type: str
+        :type: Union[str, None]
     
     .. attribute:: universe 
 
@@ -31,7 +31,7 @@ Data Store
    
     .. method:: list_keys(prefix="")
 
-        Returns an Iterable of keys in the database, optionally matching a prefix.
+        Returns an Iterable of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if :attr:`scope` is ``None``.
 
         The example below would list all versions, along with their value.
                 
@@ -67,6 +67,7 @@ Data Store
         :param str key: The key to find.
         
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
+        :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to get data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
@@ -85,6 +86,7 @@ Data Store
         :param dict metadata: a dictionary, just like the lua equivalent `DataStoreSetOptions:SetMetadata() <https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata>`__
 
         :returns: :class:`EntryVersion`
+        :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to set data store keys.
         :raises rblx-open-cloud.NotFound: The datastore does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
@@ -107,6 +109,7 @@ Data Store
         :param dict metadata: a dictionary of user-defind metadata, just like the lua equivalent `DataStoreSetOptions:SetMetadata() <https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata>`__
 
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
+        :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to increment data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
@@ -126,6 +129,7 @@ Data Store
         :param str key: The key to remove.
 
         :returns: None
+        :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to remove data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
@@ -173,6 +177,7 @@ Data Store
         :param str version: The version ID to get.
         
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
+        :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to get data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
