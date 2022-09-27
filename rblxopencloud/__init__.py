@@ -20,7 +20,7 @@ class EntryInfo():
         return f"rblxopencloud.EntryInfo(\"{self.version}\", users={self.users}, metadata={self.metadata})"
 
 class EntryVersion():
-    def __init__(self, version, deleted, content_length, created, key_created, datastore, key) -> None:
+    def __init__(self, version, deleted, content_length, created, key_created, datastore, key, scope) -> None:
         self.version = version
         self.deleted = deleted
         self.content_length = content_length
@@ -30,7 +30,10 @@ class EntryVersion():
         self.__key = key
     
     def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
-        return self.__datastore.get_version(self.__key, self.version)
+        if self.__datastore.scope:
+            return self.__datastore.get_version(self.__key, self.version)
+        else:
+            return self.__datastore.get_version(f"{self.__scope}/{self.__key}", self.version)
 
     def __repr__(self) -> str:
         return f"rblxopencloud.EntryVersion(\"{self.version}\", content_length={self.content_length})"
@@ -127,7 +130,7 @@ class DataStore():
         
         if response.status_code == 200:
             data = json.loads(response.text)
-            return EntryVersion(data["version"], data["deleted"], data["contentLength"], data["createdTime"], data["objectCreatedTime"], self, key)
+            return EntryVersion(data["version"], data["deleted"], data["contentLength"], data["createdTime"], data["objectCreatedTime"], self, key, self.scope if self.scope else scope)
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
@@ -207,7 +210,7 @@ class DataStore():
 
             data = response.json()
             for version in data["versions"]:
-                yield EntryVersion(version["version"], version["deleted"], version["contentLength"], version["createdTime"], version["objectCreatedTime"], self, key)
+                yield EntryVersion(version["version"], version["deleted"], version["contentLength"], version["createdTime"], version["objectCreatedTime"], self, key, self.scope if self.scope else scope)
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
 

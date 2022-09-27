@@ -33,16 +33,16 @@ Universe
    
    .. method:: list_data_stores(prefix="", scope="global")
 
-         Lua equivalent: `DataStoreService:ListDataStoresAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#ListDataStoresAsync>`__
-
          Returns an Iterable of all :class:`rblx-open-cloud.DataStore` in the Universe which includes :attr:`rblx-open-cloud.DataStore.created`, optionally matching a prefix.
 
-         The example below would list all versions, along with their value.
+         Lua equivalent: `DataStoreService:ListDataStoresAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#ListDataStoresAsync>`__
+
+         The example below would iterate through every datastore
                 
          .. code:: py
 
             for datastore in universe.list_data_stores():
-                print(datastore.key)
+                print(datastore.name)
         
          You can simply convert it to a list by putting it in the list function:
 
@@ -51,7 +51,7 @@ Universe
             list(universe.list_data_stores())
          
          :param str prefix: Only Iterates datastores with that start with this string
-         :param Union[str, None] scope: The scope the :class:`rblx-open-cloud.DataStore`s will have.
+         :param Union[str, None] scope: The scope the :class:`rblx-open-cloud.DataStore` will have.
 
          :returns: Iterable[:class:`rblx-open-cloud.DataStore`]
          :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data stores.

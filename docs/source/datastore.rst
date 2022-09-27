@@ -33,18 +33,18 @@ Data Store
 
         Returns an Iterable of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if :attr:`scope` is ``None``.
 
-        The example below would list all versions, along with their value.
+        The example below would list all keys, along with their scope.
                 
         .. code:: py
 
-            for entry in datastore.list_keys("key-name"):
+            for entry in datastore.list_keys():
                 print(entry.key, entry.scope)
         
         You can simply convert it to a list by putting it in the list function:
 
         .. code:: py
 
-            list(datastore.list_versions("key-name"))
+            list(datastore.list_keys())
 
         Lua equivalent: `DataStore:ListKeysAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStore#ListKeysAsync>`__
 
@@ -169,7 +169,7 @@ Data Store
     
     .. method:: get_version(key, version)
 
-        Gets the value of a key versions.
+        Gets the value of a key version.
 
         Lua equivalent: `DataStore:GetVersionAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStore#GetVersionAsync>`__
 
