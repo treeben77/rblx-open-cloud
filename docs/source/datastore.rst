@@ -256,7 +256,7 @@ Data Store
     
     .. method:: get_value()
 
-        Gets the value of this versions. Shortcut for :meth:`DataStore.get_version`
+        Gets the value of this version. Shortcut for :meth:`DataStore.get_version`
         
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to get data store keys.

@@ -28,8 +28,10 @@ class EntryVersion():
         self.key_created = datetime.datetime.fromisoformat(key_created[0:26])
         self.__datastore = datastore
         self.__key = key
+        self.__scope = scope
     
     def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        """Gets the value of this version. Shortcut for `DataStore.get_version`"""
         if self.__datastore.scope:
             return self.__datastore.get_version(self.__key, self.version)
         else:
@@ -62,6 +64,18 @@ class DataStore():
         return self.name
 
     def list_keys(self, prefix: str="") -> Iterable[ListedEntry]:
+        """Returns an `Iterable` of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if `DataStore.scope` is `None`. The example below would list all versions, along with their value.
+                
+        ```py
+            for key in datastore.list_keys():
+                print(key.key, key.scope)
+        ```
+
+        You can simply convert it to a list by putting it in the list function:
+
+        ```py
+            list(datastore.list_versions())
+        ```"""
         nextcursor = ""
         while True:
             response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries",
@@ -86,6 +100,7 @@ class DataStore():
             if not nextcursor: break
     
     def get(self, key: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        """Gets the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
@@ -113,6 +128,7 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
     def set(self, key: str, value: Union[str, dict, list, int, float], users:list=None, metadata:dict={}) -> EntryVersion:
+        """Sets the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
@@ -137,6 +153,7 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
     def increment(self, key: str, increment: Union[int, float], users:list=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        """Increments the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
@@ -165,6 +182,7 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
     def remove(self, key: str) -> None:
+        """Removes a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
@@ -184,6 +202,18 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
     def list_versions(self, key: str, after: datetime.datetime=None, before: datetime.datetime=None, descending: bool=True) -> Iterable[EntryVersion]:
+        """Returns an Iterable of previous versions of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`. The example below would list all versions, along with their value.
+                
+        ```py
+            for version in datastore.list_versions("key-name"):
+                print(version, version.get_value())
+        ```
+
+        You can simply convert it to a list by putting it in the list function:
+
+        ```py
+            list(datastore.list_versions("key-name"))
+        ```"""
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
@@ -215,6 +245,7 @@ class DataStore():
             if not nextcursor: break
 
     def get_version(self, key: str, version: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        """Gets the value of a key version. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
@@ -251,9 +282,22 @@ class Universe():
         return f"rblxopencloud.Universe({self.id})"
     
     def get_data_store(self, name: str, scope: Union[str, None]="global") -> DataStore:
+        """Creates a `rblx-open-cloud.DataStore` without `DataStore.created` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes."""
         return DataStore(name, self, self.__api_key, None, scope)
 
     def list_data_stores(self, prefix: str="", scope: str="global") -> list[DataStore]:
+        """Returns an `Iterable` of all `rblx-open-cloud.DataStore` in the Universe which includes `DataStore.created`, optionally matching a prefix. The example below would list all versions, along with their value.
+                
+        ```py
+            for universe in universe.list_data_stores():
+                print(universe)
+        ```
+
+        You can simply convert it to a list by putting it in the list function:
+
+        ```py
+            list(universe.list_data_stores())
+        ```"""
         nextcursor = ""
         while True:
             response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.id}/standard-datastores",
@@ -275,6 +319,9 @@ class Universe():
             if not nextcursor: break
     
     def publish_message(self, topic:str, data:str):
+        """
+        Publishes a message to live game servers that can be recieved with [MessagingService](https://create.roblox.com/docs/reference/engine/classes/MessagingService).
+        """
         response = requests.post(f"https://apis.roblox.com/messaging-service/v1/universes/{self.id}/topics/{topic}",
             headers={"x-api-key": self.__api_key}, json={"message": data})
         if response.status_code == 200: return
@@ -285,6 +332,7 @@ class Universe():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")  
     
     def upload_place(self, place_id:int, file: io.BytesIO, publish:bool = False) -> int:
+        """Updates a place with the `.rbxl` file, optionaly publishing it and returns the place version number."""
         response = requests.post(f"https://apis.roblox.com/universes/v1/{self.id}/places/{place_id}/versions",
             headers={"x-api-key": self.__api_key, 'Content-Type': 'application/octet-stream'}, data=file.read(), params={
                 "versionType": "Published" if publish else "Saved"
