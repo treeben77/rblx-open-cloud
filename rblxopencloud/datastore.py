@@ -25,6 +25,11 @@ class EntryVersion():
         self.__key = key
         self.__scope = scope
     
+    def __eq__(self, object) -> bool:
+        if not isinstance(object, EntryVersion):
+            return NotImplemented
+        return self.__key == object.__key and self.__scope == object.__scope and self.version == object.version
+    
     def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """Gets the value of this version. Shortcut for `DataStore.get_version`"""
         if self.__datastore.scope:
@@ -39,6 +44,11 @@ class ListedEntry():
     def __init__(self, key, scope) -> None:
         self.key = key
         self.scope = scope
+    
+    def __eq__(self, object) -> bool:
+        if not isinstance(object, ListedEntry):
+            return NotImplemented
+        return self.key == object.key and self.scope == object.scope
     
     def __repr__(self) -> str:
         return f"rblxopencloud.ListedEntry(\"{self.key}\", scope=\"{self.scope}\")"
