@@ -84,14 +84,17 @@ Data Store
         :param Union[str, dict, list, int, float] value: The new value
         :param list[int] users: a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
         :param dict metadata: a dictionary, just like the lua equivalent `DataStoreSetOptions:SetMetadata() <https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata>`__
+        :param bool exclusive_create: whether to update the entry if it already has a value. Raises :class:`rblx-open-cloud.PreconditionFailed` if it has a value.
+        :param Union[str, None] previous_version: don't update if the current version is not this value. Raises :class:`rblx-open-cloud.PreconditionFailed` if it has a value.
 
         :returns: :class:`EntryVersion`
-        :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
+        :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key`` or both ``exlcusive_create`` and ``previous_version`` were provided.
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to set data store keys.
         :raises rblx-open-cloud.NotFound: The datastore does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+        :raises rblx-open-cloud.PreconditionFailed: ``exclusive_create`` is ``True`` and the key already has a value or the current version doesnt match ``previous_version``d.
 
         .. warning::
 

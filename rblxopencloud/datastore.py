@@ -132,8 +132,9 @@ class DataStore():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
-    def set(self, key: str, value: Union[str, dict, list, int, float], users:list=None, metadata:dict={}) -> EntryVersion:
+    def set(self, key: str, value: Union[str, dict, list, int, float], users:list=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Union[None, str]=None) -> EntryVersion:
         """Sets the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
+        if previous_version and exclusive_create: raise ValueError("previous_version and exclusive_create can not both be set")
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
@@ -146,7 +147,9 @@ class DataStore():
             "content-md5": base64.b64encode(hashlib.md5(data.encode()).digest())}, data=data, params={
                 "datastoreName": self.name,
                 "scope": self.scope if self.scope else scope,
-                "entryKey": key
+                "entryKey": key,
+                "exclusiveCreate": exclusive_create,
+                "matchVersion": previous_version
             })
         
         if response.status_code == 200:
@@ -155,6 +158,21 @@ class DataStore():
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+        elif response.status_code == 412:
+            try: metadata = json.loads(response.headers["roblox-entry-attributes"])
+            except(KeyError): metadata = {}
+            try: userids = json.loads(response.headers["roblox-entry-userids"])
+            except(KeyError): userids = []
+
+            if exclusive_create:
+                error = "An entry already exists with the provided key and scope"
+            elif previous_version:
+                error = f"The current version is not '{previous_version}'"
+            else:
+                error = "A Precondition Failed"
+
+            raise PreconditionFailed(json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
+    response.headers["roblox-entry-version-created-time"], userids, metadata), error)
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
     def increment(self, key: str, increment: Union[int, float], users:list=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
