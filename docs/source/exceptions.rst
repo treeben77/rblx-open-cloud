@@ -26,3 +26,15 @@ Exceptions
 .. exception:: PreconditionFailed()
 
    ``exclusive_create`` is ``True`` and the key already has a value or the current version doesnt match ``previous_version``. This is currently only raised by :meth:`rblx-open-cloud.DataStore.set`
+
+   .. attribute:: value 
+
+         The key's current value
+
+         :type: str
+   
+   .. attribute:: info 
+
+         The key metadata.
+
+         :type: :class:`rblx-open-cloud.EntryInfo`

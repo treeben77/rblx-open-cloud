@@ -94,7 +94,7 @@ Data Store
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
-        :raises rblx-open-cloud.PreconditionFailed: ``exclusive_create`` is ``True`` and the key already has a value or the current version doesnt match ``previous_version``d.
+        :raises rblx-open-cloud.PreconditionFailed: ``exclusive_create`` is ``True`` and the key already has a value or the current version doesnt match ``previous_version``.
 
         .. warning::
 
