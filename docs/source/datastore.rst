@@ -49,6 +49,7 @@ Data Store
         Lua equivalent: `DataStore:ListKeysAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStore#ListKeysAsync>`__
 
         :param str prefix: Only return keys that start with this prefix.
+        :param Union[None, int] limit: Will not return more keys than this number. Set to ``None`` for no limit.
         
         :returns: Iterable[:class:`ListedEntry`]
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data store keys.
@@ -161,6 +162,7 @@ Data Store
         :param str key: The key to find versions for.
         :param datetime.datetime after: Only find versions after this datetime
         :param datetime.datetime before: Only find versions before this datetime
+        :param Union[None, int] limit: Will not return more versions than this number. Set to ``None`` for no limit.
         :param bool descending: Wether the versions should be sorted by date ascending or descending.
 
         :returns: Iterable[:class:`EntryVersion`]

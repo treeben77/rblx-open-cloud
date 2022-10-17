@@ -51,6 +51,7 @@ Universe
             list(universe.list_data_stores())
          
          :param str prefix: Only Iterates datastores with that start with this string
+         :param Union[None, int] limit: Will not return more datastores than this number. Set to ``None`` for no limit.
          :param Union[str, None] scope: The scope the :class:`rblx-open-cloud.DataStore` will have.
 
          :returns: Iterable[:class:`rblx-open-cloud.DataStore`]
