@@ -15,7 +15,7 @@ class Universe():
         """Creates a `rblx-open-cloud.DataStore` without `DataStore.created` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes."""
         return DataStore(name, self, self.__api_key, None, scope)
 
-    def list_data_stores(self, prefix: str="", scope: str="global") -> list[DataStore]:
+    def list_data_stores(self, prefix: str="", limit: Union[None, int]=None, scope: str="global") -> list[DataStore]:
         """Returns an `Iterable` of all `rblx-open-cloud.DataStore` in the Universe which includes `DataStore.created`, optionally matching a prefix. The example below would list all versions, along with their value.
                 
         ```py
@@ -29,10 +29,10 @@ class Universe():
             list(universe.list_data_stores())
         ```"""
         nextcursor = ""
-        while True:
+        yields = 0
+        while limit == None or yields < limit:
             response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.id}/standard-datastores",
                 headers={"x-api-key": self.__api_key}, params={
-                    "limit": 100,
                     "prefix": prefix,
                     "cursor": nextcursor if nextcursor else None
                 })
@@ -44,7 +44,9 @@ class Universe():
             
             data = response.json()
             for datastore in data["datastores"]:
+                yields += 1
                 yield DataStore(datastore["name"], self, self.__api_key, datastore["createdTime"], scope)
+                if limit == None or yields >= limit: break
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
     

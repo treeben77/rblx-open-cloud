@@ -68,7 +68,7 @@ class DataStore():
     def __str__(self) -> str:
         return self.name
 
-    def list_keys(self, prefix: str="") -> Iterable[ListedEntry]:
+    def list_keys(self, prefix: str="", limit: Union[None, int]=None) -> Iterable[ListedEntry]:
         """Returns an `Iterable` of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if `DataStore.scope` is `None`. The example below would list all versions, along with their value.
                 
         ```py
@@ -82,13 +82,13 @@ class DataStore():
             list(datastore.list_versions())
         ```"""
         nextcursor = ""
-        while True:
+        yields = 0
+        while limit == None or yields < limit:
             response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries",
                 headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
                 "scope": self.scope,
                 "AllScopes": not self.scope,
-                "limit": 100,
                 "prefix": prefix,
                 "cursor": nextcursor if nextcursor else None
             })
@@ -100,7 +100,9 @@ class DataStore():
             
             data = response.json()
             for key in data["keys"]:
+                yields += 1
                 yield ListedEntry(key["key"], key["scope"])
+                if limit == None or yields >= limit: break
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
     
@@ -224,7 +226,7 @@ class DataStore():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
-    def list_versions(self, key: str, after: datetime.datetime=None, before: datetime.datetime=None, descending: bool=True) -> Iterable[EntryVersion]:
+    def list_versions(self, key: str, after: datetime.datetime=None, before: datetime.datetime=None, limit: Union[None, int]=None, descending: bool=True) -> Iterable[EntryVersion]:
         """Returns an Iterable of previous versions of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`. The example below would list all versions, along with their value.
                 
         ```py
@@ -242,13 +244,13 @@ class DataStore():
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         nextcursor = ""
-        while True:
+        yields = 0
+        while limit == None or yields < limit:
             response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry/versions",
                 headers={"x-api-key": self.__api_key}, params={
                     "datastoreName": self.name,
                     "scope": self.scope if self.scope else scope,
                     "entryKey": key,
-                    "limit": 100,
                     "sortOrder": "Descending" if descending else "Ascending",
                     "cursor": nextcursor if nextcursor else None,
                     "startTime": after.isoformat() if after else None,
@@ -263,7 +265,9 @@ class DataStore():
 
             data = response.json()
             for version in data["versions"]:
+                yields += 1
                 yield EntryVersion(version["version"], version["deleted"], version["contentLength"], version["createdTime"], version["objectCreatedTime"], self, key, self.scope if self.scope else scope)
+                if limit == None or yields >= limit: break
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
 
