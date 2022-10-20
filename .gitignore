@@ -1,7 +1,5 @@
-experiment.py
+experiment.*
 __pycache__/
-experiment.rbxl
-experiment.rbxl.lock
 rblx_open_cloud.egg-info/
 dist/
 rblxopencloud/__pycache__/
