@@ -6,7 +6,7 @@ with open("README.md", "r") as file:
 setup(
     name='rblx-open-cloud',
     description='API wrapper for Roblox Open Cloud',
-    version='0.3.2',
+    version='0.4.0',
     long_description=long_description,
     long_description_content_type="text/markdown",
     license='MIT',
@@ -17,6 +17,8 @@ setup(
     url='https://github.com/TreeBen77/rblx-open-cloud',
     keywords='roblox, open-cloud, data-store, place-publishing, mesageing-service',
     install_requires=[
-        'requests'
+        'requests',
+        'python-magic',
+        'python-magic-bin'
     ]
 )

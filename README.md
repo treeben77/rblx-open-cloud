@@ -1,3 +1,70 @@
+## **IMPORTANT**
+
+**The Assets API is an alpha API subject to breaking changes and it is not avaliable to everyone. DO NOT try to use it unless you have access. You might be looking for [main](https://github.com/TreeBen77/rblx-open-cloud/tree/main).**
+
+## If you understand the above:
+
+Installing:
+```console
+pip install git+https://github.com/TreeBen77/rblx-open-cloud/tree/assetsapi
+```
+there's no documantation yet. but here's a cheat sheet
+```py
+import rblxopencloud
+
+# to upload to your own account, use Creator - insert your user ID and api key
+creator = rblxopencloud.Creator(287113233, "api-key-here")
+# to upload to your group, use GroupCreator - insert your group ID and api key
+creator = rblxopencloud.GroupCreator(9697297, "api-key-here")
+
+# let's start with decals. open the file as read bytes.
+with open("experiment.png", "rb") as file:
+    # call the create_decal object, name is the item name and description is the item description
+    asset = creator.create_decal(file, "name", "description")
+    # asset will be either Asset or PendingAsset. Asset contains it's ID and version number
+    # PendingAsset means roblox hasn't finnished processing it. This will have a fetch_status method
+    # and that's it. the fetch status method will check if it's ready yet, it will return None or Asset.
+
+    # here's a method that will wait until the decal is ready
+    if isinstance(asset, rblxopencloud.Asset):
+        # if it's already been processed, then print the asset.
+        print(asset)
+    else:
+        # otherwise, we'll go into a loop that continuosly loops through that.
+        while True:
+            # this will try to check if the asset has been processed yet
+            status = asset.fetch_status()
+            if status:
+                # if it has been print it then stop the loop.
+                print(status)
+                break
+
+# now for audio. it's the same as above but with audio
+# there's a bug with audio and groups preventing it from uploading right now.
+with open("experiment.mp3", "rb") as file:
+    # call the create_decal object, name is the item name and description is the item description
+    asset = creator.create_audio(file, "name", "description")
+    # for simplicity, i won't include the asset fetch_status part above here but it also works.
+
+    # please note that you can only upload 10 audios a month and if you're ID verified that's 100.
+
+# and finally for .fbx files. it's the same as above but with a model
+with open("experiment.fbx", "rb") as file:
+    # call the create_decal object, name is the item name and description is the item description
+    asset = creator.create_fbx(file, "name", "description")
+    # for simplicity, i won't include the asset fetch_status part above here but it also works.
+    # you're post likely going to recieve a PendingAsset with models because roblox has to render them which takes time
+
+# you can also update uploaded fbx files:
+with open("experiment.2.fbx", "rb") as file:
+    # the first number is the fbx asset you want to update
+    asset = creator.create_fbx(11326252443, file)
+    # for simplicity, i won't include the asset fetch_status part above here but it also works.
+    # you're post likely going to recieve a PendingAsset with models because roblox has to render them which takes time
+
+```
+**IMPORTANT:** This code is also subject to breaking changes. Don't use it in production code!
+
 # rblx-open-cloud
  
 Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-cloud/index).

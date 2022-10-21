@@ -8,3 +8,4 @@ class PreconditionFailed(rblx_opencloudException):
         self.value = value
         self.info = info
         super().__init__(*args)
+class InvalidAsset(rblx_opencloudException): pass
