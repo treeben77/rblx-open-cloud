@@ -1,7 +1,7 @@
 from .exceptions import *
 import requests, json, io
 from typing import *
-import urllib3, magic
+import urllib3, mimetypes
 
 class Asset():
     def __init__(self,  id, version) -> None:
@@ -38,7 +38,6 @@ class Creator():
         return f"rblxopencloud.Creator({self.id})"
     
     def create_decal(self, file: io.BytesIO, name: str, description: str) -> Union[Asset, PendingAsset]:
-        read = file.read()
         body, contentType = urllib3.encode_multipart_formdata({
             "request": json.dumps({
                 "targetType": "Decal",
@@ -51,7 +50,7 @@ class Creator():
                     }
                 }
             }),
-            "fileContent": (magic.from_buffer(read, mime=True), read)
+            "fileContent": (mimetypes.guess_type(file.name)[0], file.read())
         })
         response = requests.post(f"https://apis.roblox.com/assets/v1/create",
             headers={"x-api-key": self.__api_key, "content-type": contentType}, data=body)
@@ -75,7 +74,6 @@ class Creator():
                 return Asset(info["result"]["assetInfo"]["assetId"], info["result"]["assetInfo"]["assetVersionNumber"])
 
     def create_audio(self, file: io.BytesIO, name: str, description: str) -> Union[Asset, PendingAsset]:
-        read = file.read()
         body, contentType = urllib3.encode_multipart_formdata({
             "request": json.dumps({
                 "targetType": "Audio",
@@ -88,7 +86,7 @@ class Creator():
                     }
                 }
             }),
-            "fileContent": (magic.from_buffer(read, mime=True), read)
+            "fileContent": (mimetypes.guess_type(file.name)[0], file.read())
         })
         response = requests.post(f"https://apis.roblox.com/assets/v1/create",
             headers={"x-api-key": self.__api_key, "content-type": contentType}, data=body)
@@ -112,7 +110,6 @@ class Creator():
                 return Asset(info["result"]["assetInfo"]["assetId"], info["result"]["assetInfo"]["assetVersionNumber"])
 
     def create_fbx(self, file: io.BytesIO, name: str, description: str) -> Union[Asset, PendingAsset]:
-        read = file.read()
         body, contentType = urllib3.encode_multipart_formdata({
             "request": json.dumps({
                 "targetType": "ModelFromFbx",
@@ -126,7 +123,7 @@ class Creator():
                     "assetId": "11326252443"
                 }
             }),
-            "fileContent": (magic.from_buffer(read, mime=True), read)
+            "fileContent": (mimetypes.guess_type(file.name)[0], file.read())
         })
         response = requests.post(f"https://apis.roblox.com/assets/v1/create",
             headers={"x-api-key": self.__api_key, "content-type": contentType}, data=body)
@@ -150,7 +147,6 @@ class Creator():
                 return Asset(info["result"]["assetInfo"]["assetId"], info["result"]["assetInfo"]["assetVersionNumber"])
 
     def update_fbx(self, id: int, file: io.BytesIO) -> Union[Asset, PendingAsset]:
-        read = file.read()
         body, contentType = urllib3.encode_multipart_formdata({
             "request": json.dumps({
                 "targetType": "ModelFromFbx",
@@ -164,7 +160,7 @@ class Creator():
                     "assetId": id
                 }
             }),
-            "fileContent": (magic.from_buffer(read, mime=True), read)
+            "fileContent": (mimetypes.guess_type(file.name)[0], file.read())
         })
         response = requests.post(f"https://apis.roblox.com/assets/v1/create",
             headers={"x-api-key": self.__api_key, "content-type": contentType}, data=body)
