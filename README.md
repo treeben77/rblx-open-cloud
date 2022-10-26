@@ -58,7 +58,7 @@ with open("experiment.fbx", "rb") as file:
 # you can also update uploaded fbx files:
 with open("experiment.2.fbx", "rb") as file:
     # the first number is the fbx asset you want to update
-    asset = creator.create_fbx(11326252443, file)
+    asset = creator.update_fbx(11326252443, file)
     # for simplicity, i won't include the asset fetch_status part above here but it also works.
     # you're post likely going to recieve a PendingAsset with models because roblox has to render them which takes time
 
