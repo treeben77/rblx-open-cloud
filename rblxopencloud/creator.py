@@ -47,7 +47,7 @@ class Creator():
                     "assetDescription": description,
                     "creator": {
                         "creatorType": self.__creator_type,
-                        "creatorId": self.id
+                        "creatorId": str(self.id)
                     }
                 }
             }),
@@ -84,7 +84,7 @@ class Creator():
                     "assetDescription": description,
                     "creator": {
                         "creatorType": self.__creator_type,
-                        "creatorId": self.id
+                        "creatorId": str(self.id)
                     }
                 }
             }),
@@ -121,7 +121,7 @@ class Creator():
                     "assetDescription": description,
                     "creator": {
                         "creatorType": self.__creator_type,
-                        "creatorId": self.id
+                        "creatorId": str(self.id)
                     },
                     "assetId": "11326252443"
                 }
