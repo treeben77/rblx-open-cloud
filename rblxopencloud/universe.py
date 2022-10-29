@@ -1,7 +1,11 @@
 from .exceptions import *
 import requests, io
-from typing import *
+from typing import Union
 from .datastore import DataStore
+
+__all__ = (
+    "Universe",
+)
 
 class Universe():
     def __init__(self, id: int, api_key: str):

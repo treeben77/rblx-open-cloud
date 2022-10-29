@@ -1,3 +1,6 @@
 from .universe import *
-from .exceptions import *
 from .datastore import *
+from .exceptions import *
+
+VERSION = "0.4.1"
+VERSION_INFO = "final"

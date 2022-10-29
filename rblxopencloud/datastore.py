@@ -1,7 +1,14 @@
 from .exceptions import *
 import requests, json, datetime
-from typing import *
+from typing import Union, Iterable
 import base64, hashlib
+
+__all__ = (
+    "EntryInfo",
+    "EntryVersion",
+    "ListedEntry",
+    "DataStore"
+)
 
 class EntryInfo():
     def __init__(self, version, created, updated, users, metadata) -> None:
