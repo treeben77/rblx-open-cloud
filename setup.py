@@ -6,7 +6,7 @@ with open("README.md", "r") as file:
 setup(
     name='rblx-open-cloud',
     description='API wrapper for Roblox Open Cloud',
-    version="4.0.1", # don't forget to update version here and in __init__.py!
+    version="0.4.1", # don't forget to update version here and in __init__.py!
     long_description=long_description,
     long_description_content_type="text/markdown",
     license='MIT',
