@@ -11,6 +11,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     license='MIT',
+    python_requires='>=3.9',
     author="TreeBen77",
     packages=[
         'rblxopencloud'
