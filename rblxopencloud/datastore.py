@@ -13,8 +13,8 @@ __all__ = (
 class EntryInfo():
     def __init__(self, version, created, updated, users, metadata) -> None:
         self.version = version
-        self.created = datetime.datetime.fromisoformat(created[0:26])
-        self.updated = datetime.datetime.fromisoformat(updated[0:26])
+        self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
+        self.updated = datetime.datetime.fromisoformat((updated.split("Z")[0]+"0"*6)[0:26])
         self.users = users
         self.metadata = metadata
     
@@ -26,8 +26,9 @@ class EntryVersion():
         self.version = version
         self.deleted = deleted
         self.content_length = content_length
-        self.created = datetime.datetime.fromisoformat(created[0:26])
-        self.key_created = datetime.datetime.fromisoformat(key_created[0:26])
+        self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
+        print(key_created)
+        self.key_created = datetime.datetime.fromisoformat((key_created.split("Z")[0]+"0"*6)[0:26])
         self.__datastore = datastore
         self.__key = key
         self.__scope = scope
@@ -66,7 +67,7 @@ class DataStore():
         self.__api_key = api_key
         self.scope = scope
         self.universe = universe
-        if created: self.created = datetime.datetime.fromisoformat(created[0:26])
+        if created: self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
         else: self.created = None
     
     def __repr__(self) -> str:
