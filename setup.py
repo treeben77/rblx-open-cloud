@@ -1,4 +1,5 @@
 from setuptools import setup
+import rblxopencloud
 
 with open("README.md", "r") as file:
     long_description = file.read()
@@ -6,7 +7,7 @@ with open("README.md", "r") as file:
 setup(
     name='rblx-open-cloud',
     description='API wrapper for Roblox Open Cloud',
-    version="0.4.2", # don't forget to update version here and in __init__.py!
+    version=rblxopencloud.VERSION,
     long_description=long_description,
     long_description_content_type="text/markdown",
     license='MIT',
