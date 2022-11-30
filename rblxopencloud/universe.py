@@ -1,7 +1,7 @@
 from .exceptions import *
 import requests, io
 from typing import Union
-from .datastore import DataStore
+from .datastore import DataStore, OrderedDataStore
 
 __all__ = (
     "Universe",
@@ -18,6 +18,9 @@ class Universe():
     def get_data_store(self, name: str, scope: Union[str, None]="global") -> DataStore:
         """Creates a `rblx-open-cloud.DataStore` without `DataStore.created` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes."""
         return DataStore(name, self, self.__api_key, None, scope)
+    
+    def get_ordered_data_store(self, name: str, scope: Union[str, None]="global") -> OrderedDataStore:
+        return OrderedDataStore(name, self, self.__api_key, scope)
 
     def list_data_stores(self, prefix: str="", limit: Union[None, int]=None, scope: str="global") -> list[DataStore]:
         """Returns an `Iterable` of all `rblx-open-cloud.DataStore` in the Universe which includes `DataStore.created`, optionally matching a prefix. The example below would list all versions, along with their value.
