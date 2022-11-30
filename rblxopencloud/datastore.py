@@ -9,6 +9,7 @@ __all__ = (
     "ListedEntry",
     "DataStore",
     "SortedEntry",
+    "SortFilter",
     "OrderedDataStore"
 )
 
@@ -324,6 +325,37 @@ class SortedEntry():
     def __repr__(self) -> str:
         return f"rblxopencloud.SortedEntry(\"{self.key}\", value=\"{self.value}\")"
 
+class SortFilter():
+    def __init__(self, min: Union[int, None], max: Union[int, None]) -> None:
+        self.min: Union[int, None] = min
+        self.max: Union[int, None] = max
+    
+    def __eq__(self, object) -> bool:
+        if not isinstance(object, SortFilter):
+            return NotImplemented
+        return self.min == object.min and self.max == object.max
+    
+    def __repr__(self) -> str:
+        return f"rblxopencloud.SortFilter(min=\"{self.min}\", max=\"{self.max}\")"\
+        
+    # @classmethod
+    # def from_range(cls, min: Union[int, None], max: Union[int, None]):
+    #     return cls(min=min, max=max)
+    
+    def to_str(self) -> Union[str, None]:
+        if self.min and self.max:
+            if self.min > self.max:
+                raise ValueError("minimum must not be greater than max.")
+            return f"entry >= {self.min} AND entry <= {self.max}"
+
+        if self.min:
+            return f"entry >= {self.min}"
+
+        if self.min:
+            return f"entry <= {self.max}"
+        
+        return None
+
 class OrderedDataStore():
     def __init__(self, name, universe, api_key, scope):
         self.name = name
@@ -337,7 +369,7 @@ class OrderedDataStore():
     def __str__(self) -> str:
         return self.name
     
-    def sort_keys(self, descending: bool=True, limit: Union[None, int]=None) -> Iterable[SortedEntry]:
+    def sort_keys(self, descending: bool=True, filter: Union[SortFilter, None]=None, limit: Union[None, int]=None) -> Iterable[SortedEntry]:
         if not self.scope:
             raise ValueError("")
         nextcursor = ""
@@ -347,7 +379,8 @@ class OrderedDataStore():
                 headers={"x-api-key": self.__api_key}, params={
                 "max_page_size": limit if limit and limit < 100 else 100,
                 "order_by": "desc" if descending else None,
-                "page_token": nextcursor if nextcursor else None
+                "page_token": nextcursor if nextcursor else None,
+                "filter": filter.to_str() if filter else None
             })
             if response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
             elif response.status_code == 404: raise NotFound("The datastore you're trying to access does not exist.")
