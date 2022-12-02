@@ -27,7 +27,6 @@ class EntryVersion():
         self.deleted = deleted
         self.content_length = content_length
         self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
-        print(key_created)
         self.key_created = datetime.datetime.fromisoformat((key_created.split("Z")[0]+"0"*6)[0:26])
         self.__datastore = datastore
         self.__key = key
