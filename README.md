@@ -4,6 +4,8 @@ Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-c
 
 **Documentation: https://rblx-open-cloud.readthedocs.io**
 
+**Discord Server: https://discord.gg/gEBdHNAR46**
+
 ## Quickstart
 
 ### Getting Started
