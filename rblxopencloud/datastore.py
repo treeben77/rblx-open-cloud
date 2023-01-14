@@ -61,11 +61,11 @@ class ListedEntry():
         return f"rblxopencloud.ListedEntry(\"{self.key}\", scope=\"{self.scope}\")"
 
 class DataStore():
-    def __init__(self, name, universe, api_key, created, scope):
+    def __init__(self, name, experience, api_key, created, scope):
         self.name = name
         self.__api_key = api_key
         self.scope = scope
-        self.universe = universe
+        self.experience = experience
         if created: self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
         else: self.created = None
     
@@ -91,7 +91,7 @@ class DataStore():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries",
+            response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries",
                 headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
                 "scope": self.scope,
@@ -119,7 +119,7 @@ class DataStore():
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry",
+        response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
                 "scope": self.scope if self.scope else scope,
@@ -151,7 +151,7 @@ class DataStore():
         if users == None: users = []
         data = json.dumps(value)
 
-        response = requests.post(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry",
+        response = requests.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata),
             "content-md5": base64.b64encode(hashlib.md5(data.encode()).digest())}, data=data, params={
                 "datastoreName": self.name,
@@ -192,7 +192,7 @@ class DataStore():
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         if users == None: users = []
 
-        response = requests.post(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry/increment",
+        response = requests.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/increment",
             headers={"x-api-key": self.__api_key, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)}, params={
                 "datastoreName": self.name,
                 "scope": self.scope if self.scope else scope,
@@ -219,7 +219,7 @@ class DataStore():
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        response = requests.delete(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry",
+        response = requests.delete(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
                 "scope": self.scope if self.scope else scope,
@@ -253,7 +253,7 @@ class DataStore():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry/versions",
+            response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions",
                 headers={"x-api-key": self.__api_key}, params={
                     "datastoreName": self.name,
                     "scope": self.scope if self.scope else scope,
@@ -284,7 +284,7 @@ class DataStore():
             if not self.scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.") 
-        response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.universe.id}/standard-datastores/datastore/entries/entry/versions/version",
+        response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions/version",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
                 "scope": self.scope if self.scope else scope,

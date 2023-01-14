@@ -4,33 +4,33 @@ from typing import Union
 from .datastore import DataStore
 
 __all__ = (
-    "Universe",
+    "Experience",
 )
 
-class Universe():
+class Experience():
     def __init__(self, id: int, api_key: str):
         self.id = id
         self.__api_key = api_key
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.Universe({self.id})"
+        return f"rblxopencloud.Experience({self.id})"
     
     def get_data_store(self, name: str, scope: Union[str, None]="global") -> DataStore:
         """Creates a `rblx-open-cloud.DataStore` without `DataStore.created` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes."""
         return DataStore(name, self, self.__api_key, None, scope)
 
     def list_data_stores(self, prefix: str="", limit: Union[None, int]=None, scope: str="global") -> list[DataStore]:
-        """Returns an `Iterable` of all `rblx-open-cloud.DataStore` in the Universe which includes `DataStore.created`, optionally matching a prefix. The example below would list all versions, along with their value.
+        """Returns an `Iterable` of all `rblx-open-cloud.DataStore` in the Experience which includes `DataStore.created`, optionally matching a prefix. The example below would list all versions, along with their value.
                 
         ```py
-            for universe in universe.list_data_stores():
-                print(universe)
+            for datastore in experience.list_data_stores():
+                print(datastore)
         ```
 
         You can simply convert it to a list by putting it in the list function:
 
         ```py
-            list(universe.list_data_stores())
+            list(experience.list_data_stores())
         ```"""
         nextcursor = ""
         yields = 0

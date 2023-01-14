@@ -1,18 +1,18 @@
-Universe
+Experience
 =============================
 
 .. currentmodule:: rblx-open-cloud
 
-.. class:: Universe(id, api_key)
+.. class:: Experience(id, api_key)
 
-   Class for interacting with the API for a specific universe.
+   Class for interacting with the API for a specific experience.
 
-   :param int id: A Universe ID. Read How to find yours here: `Publishing Places with API Keys <https://create.roblox.com/docs/open-cloud/publishing-places-with-api-keys>`__
+   :param int id: A Experience ID. Read How to find yours here: `Publishing Places with API Keys <https://create.roblox.com/docs/open-cloud/publishing-places-with-api-keys>`__
    :param str api_key: An API key created from `Creator Dashboard <https://create.roblox.com/credentials>`__. *this should be kept safe, as anyone with the key can use it!*
 
    .. attribute:: id 
 
-      The universe's ID
+      The Experience's ID
 
       :type: int
    
@@ -33,7 +33,7 @@ Universe
    
    .. method:: list_data_stores(prefix="", scope="global")
 
-         Returns an Iterable of all :class:`rblx-open-cloud.DataStore` in the Universe which includes :attr:`rblx-open-cloud.DataStore.created`, optionally matching a prefix.
+         Returns an Iterable of all :class:`rblx-open-cloud.DataStore` in the Experience which includes :attr:`rblx-open-cloud.DataStore.created`, optionally matching a prefix.
 
          Lua equivalent: `DataStoreService:ListDataStoresAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#ListDataStoresAsync>`__
 
@@ -41,14 +41,14 @@ Universe
                 
          .. code:: py
 
-            for datastore in universe.list_data_stores():
+            for datastore in experience.list_data_stores():
                 print(datastore.name)
         
          You can simply convert it to a list by putting it in the list function:
 
          .. code:: py
 
-            list(universe.list_data_stores())
+            list(experience.list_data_stores())
          
          :param str prefix: Only Iterates datastores with that start with this string
          :param Union[None, int] limit: Will not return more datastores than this number. Set to ``None`` for no limit.

@@ -6,7 +6,7 @@ Table of Contents
 
 .. toctree::
 
-   universe
+   experience
    datastore
    exceptions
 
@@ -29,16 +29,16 @@ Getting Started
 3. Add the following code to your project and replace
    ``api-key-from-step-2`` with the key you generated.
 
-   If you don't know how to get the universe or place ID read
+   If you don't know how to get the experience or place ID read
    `Publishing Places with API
    Keys <https://create.roblox.com/docs/open-cloud/publishing-places-with-api-keys#:~:text=Find%20the%20experience,is%206985028626.>`__
 
 .. code:: py
 
    import rblxopencloud
-   # create a Universe object with your universe/experience ID and your api key
-   # TODO: replace '13058' with your universe ID
-   universe = rblxopencloud.Universe(13058, api_key="api-key-from-step-2")`
+   # create an Experience object with your experience ID and your api key
+   # TODO: replace '13058' with your experience ID
+   experience = rblxopencloud.Experience(13058, api_key="api-key-from-step-2")`
 
 4. If you want to start by accessing your game's data stores go to `Data
    Stores <#accessing-data-stores>`__ otherwise, you can go to
@@ -56,7 +56,7 @@ cloud at the moment.**
 .. code:: py
 
    # get the data store, using the data store name and scope (defaults to global)
-   datastore = universe.get_data_store("data-store-name", scope="global")
+   datastore = experience.get_data_store("data-store-name", scope="global")
 
    # sets the key 'key-name' to 68 and provides users and metadata
    # DataStore.set does not return the value or an EntryInfo object, instead it returns a EntryVersion object.
@@ -87,7 +87,7 @@ this.**
 .. code:: py
 
    # publish a message with the topic 'topic-name'
-   universe.publish_message("topic-name", "Hello World!")
+   experience.publish_message("topic-name", "Hello World!")
 
 Publish or Save a ``.rbxl`` File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -101,19 +101,19 @@ included in this example due to it requiring an ``.rbxl`` file.**
    with open("path-to/place-file.rbxl", "rb") as file:
        # the first number is the place ID to update, and publish denotes wether to publish or save the place.
        # TODO: replace '1818' with your place ID
-       universe.upload_place(1818, file, publish=False)
+       experience.upload_place(1818, file, publish=False)
 
 Final Result (a.k.a copy and paste section)
 -------------------------------------------
 
 .. code:: py
 
-   # create a Universe object with your universe/experience ID and your api key
-   # TODO: replace '13058' with your universe ID
-   universe = rblxopencloud.Universe(13058, api_key="api-key-from-step-2")
+   # create a Experience object with your experience ID and your api key
+   # TODO: replace '13058' with your experience ID
+   experience = rblxopencloud.Experience(13058, api_key="api-key-from-step-2")
 
    # get the data store, using the data store name and scope (defaults to global)
-   datastore = universe.get_data_store("data-store-name", scope="global")
+   datastore = experience.get_data_store("data-store-name", scope="global")
 
    # sets the key 'key-name' to 68 and provides users and metadata
    # DataStore.set does not return the value or an EntryInfo object, instead it returns a EntryVersion object.
@@ -135,4 +135,4 @@ Final Result (a.k.a copy and paste section)
    datastore.remove("key-name")
 
    # publish a message with the topic 'topic-name'
-   universe.publish_message("topic-name", "Hello World!")
+   experience.publish_message("topic-name", "Hello World!")
