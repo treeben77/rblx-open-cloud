@@ -29,7 +29,7 @@ Experience
          :returns: :class:`rblx-open-cloud.DataStore`
 
          .. note::
-            Roblox does not support accessing OrderedDataStores with Open Cloud.
+            Ordered DataStores are still in alpha, to use them you must `sign up for the beta <https://devforum.roblox.com/t/opencloud-ordered-datastores/2062532>`__ and then `install the beta library <https://github.com/TreeBen77/rblx-open-cloud/tree/orderedapi>__`
    
    .. method:: list_data_stores(prefix="", scope="global")
 
@@ -85,7 +85,7 @@ Experience
       
          :param int place_id: The place ID to update
          :param io.BytesIO file: The file to send. should be opened as bytes.
-         :param publish bool: Wether to publish the place or just save it.
+         :param bool publish: Wether to publish the place or just save it.
          :returns: :class:`int`
          :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to upload places.
          :raises rblx-open-cloud.NotFound: The place ID is invalid
