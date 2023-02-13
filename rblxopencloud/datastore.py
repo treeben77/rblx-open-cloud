@@ -109,7 +109,7 @@ class DataStore():
             for key in data["keys"]:
                 yields += 1
                 yield ListedEntry(key["key"], key["scope"])
-                if limit == None or yields >= limit: break
+                if limit != None and yields >= limit: break
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
     
