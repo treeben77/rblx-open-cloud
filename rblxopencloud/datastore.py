@@ -1,7 +1,7 @@
 from .exceptions import *
 import requests, json, datetime
 from typing import Union, Iterable
-import base64, hashlib
+import base64, hashlib, urllib.parse
 
 __all__ = (
     "EntryInfo",
@@ -30,7 +30,6 @@ class EntryVersion():
         self.deleted = deleted
         self.content_length = content_length
         self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
-        print(key_created)
         self.key_created = datetime.datetime.fromisoformat((key_created.split("Z")[0]+"0"*6)[0:26])
         self.__datastore = datastore
         self.__key = key
@@ -323,7 +322,7 @@ class SortedEntry():
         return self.key == object.key and self.scope == object.scope and self.value == object.value
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.SortedEntry(\"{self.key}\", value=\"{self.value}\")"
+        return f"rblxopencloud.SortedEntry(\"{self.key}\", value={self.value})"
 
 class SortFilter():
     def __init__(self, min: Union[int, None], max: Union[int, None]) -> None:
@@ -337,16 +336,12 @@ class SortFilter():
     
     def __repr__(self) -> str:
         return f"rblxopencloud.SortFilter(min=\"{self.min}\", max=\"{self.max}\")"\
-        
-    # @classmethod
-    # def from_range(cls, min: Union[int, None], max: Union[int, None]):
-    #     return cls(min=min, max=max)
-    
+            
     def to_str(self) -> Union[str, None]:
         if self.min and self.max:
             if self.min > self.max:
                 raise ValueError("minimum must not be greater than max.")
-            return f"entry >= {self.min} AND entry <= {self.max}"
+            return f"entry >= {self.min} && entry <= {self.max}"
 
         if self.min:
             return f"entry >= {self.min}"
@@ -357,25 +352,24 @@ class SortFilter():
         return None
 
 class OrderedDataStore():
-    def __init__(self, name, universe, api_key, scope):
+    def __init__(self, name, experince, api_key, scope):
         self.name = name
         self.__api_key = api_key
         self.scope = scope
-        self.universe = universe
+        self.experince = experince
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.OrderedDataStore(\"{self.name}\", scope=\"{self.scope}\", universe={repr(self.universe)})"
+        return f"rblxopencloud.OrderedDataStore(\"{self.name}\", scope=\"{self.scope}\", experince={repr(self.experince)})"
     
     def __str__(self) -> str:
         return self.name
     
     def sort_keys(self, descending: bool=True, filter: Union[SortFilter, None]=None, limit: Union[None, int]=None) -> Iterable[SortedEntry]:
-        if not self.scope:
-            raise ValueError("")
+        if not self.scope: raise ValueError("A scope is required to list keys on OrderedDataStore.")
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = requests.get(f"https://apis.roblox.com/datastores/v2/universes/{self.universe.id}/orderedDatastores/{base64.b64encode(self.name.encode()).decode()}/scopes/{base64.b64encode(self.scope.encode()).decode()}/entries",
+            response = requests.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(self.scope)}/entries",
                 headers={"x-api-key": self.__api_key}, params={
                 "max_page_size": limit if limit and limit < 100 else 100,
                 "order_by": "desc" if descending else None,
@@ -391,7 +385,7 @@ class OrderedDataStore():
             data = response.json()
             for key in data["entries"]:
                 yields += 1
-                yield SortedEntry(key["target"], key["value"], self.scope)
+                yield SortedEntry(key["path"], key["value"], self.scope)
                 if limit != None and yields >= limit: break
             nextcursor = data.get("lastEvaluatedKey")
             if not nextcursor: break
@@ -399,10 +393,10 @@ class OrderedDataStore():
     def get(self, key: str) -> int:
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
-        scope = base64.b64encode(self.scope.encode() if self.scope else scope.encode()).decode()
-        response = requests.get(f"https://apis.roblox.com/datastores/v2/universes/{self.universe.id}/orderedDatastores/{base64.b64encode(self.name.encode()).decode()}/scopes/{scope}/entries/{base64.b64encode(key.encode()).decode()}",
+            else: scope = self.scope
+        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+
+        response = requests.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
             headers={"x-api-key": self.__api_key})
         
         if response.status_code == 200: return int(response.json()["value"])
@@ -412,27 +406,25 @@ class OrderedDataStore():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
         
-    def set(self, key: str, value: int, exclusive_create: bool=False, previous_value: Union[int, None]=None) -> int:
-        if previous_value and exclusive_create: raise ValueError("previous_version and exclusive_create can not both be set")
-
+    def set(self, key: str, value: int, exclusive_create: bool=False) -> int:
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
-        
-        scope = base64.b64encode(self.scope.encode() if self.scope else scope.encode()).decode()
+            else: scope = self.scope
+        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
 
         if not exclusive_create:
-            response = requests.patch(f"https://apis.roblox.com/datastores/v2/universes/{self.universe.id}/orderedDatastores/{base64.b64encode(self.name.encode()).decode()}/scopes/{scope}/entries/{base64.b64encode(key.encode()).decode()}",
-                headers={"x-api-key": self.__api_key}, params={
-                    "eTag": str(previous_value),
-                    "allow_missing": not previous_value
-                }, data=str(value))
+            response = requests.patch(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+                headers={"x-api-key": self.__api_key}, params={"allow_missing": True}, json={
+                    "value": value
+                })
         else:
-            response = requests.post(f"https://apis.roblox.com/datastores/v2/universes/{self.universe.id}/orderedDatastores/{base64.b64encode(self.name.encode()).decode()}/scopes/{scope}/entries/{base64.b64encode(key.encode()).decode()}",
-                headers={"x-api-key": self.__api_key}, data=str(value))
+            response = requests.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
+                headers={"x-api-key": self.__api_key}, json={
+                    "path": key,
+                    "value": value
+                })
         
-        if response.status_code == 400 and response.json()["errorDetails"][0].get("datastoreErrorCode") == "EntryAlreadyExists":
+        if exclusive_create and response.status_code == 400 and response.json()["code"] == 3:
             raise PreconditionFailed(None, None, f"An entry already exists with the provided key and scope")
 
         if response.status_code == 200: return int(response.json()["value"])
@@ -440,8 +432,6 @@ class OrderedDataStore():
         elif response.status_code in [404, 409]:
             if exclusive_create:
                 error = "An entry already exists with the provided key and scope"
-            elif previous_value:
-                error = f"The current value is not {previous_value}"
             else:
                 error = "A Precondition Failed"
 
@@ -449,22 +439,38 @@ class OrderedDataStore():
         if response.status_code == 429: raise RateLimited("You're being rate limited.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
-  
+    
+    def increment(self, key: str, increment: int) -> None:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            else: scope = self.scope
+        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+
+        response = requests.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}:increment",
+            headers={"x-api-key": self.__api_key}, json={
+                "amount": increment
+            })
+        
+        if response.status_code == 200: return int(response.json()["value"])
+        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
+        elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
+        elif response.status_code == 409 and response.json()["code"] == 10: raise ValueError("New value can't be less than 0.")
+        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
+        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+
     def remove(self, key: str) -> None:
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
-        
-        scope = base64.b64encode(self.scope.encode() if self.scope else scope.encode()).decode()
-        response = requests.delete(f"https://apis.roblox.com/datastores/v2/universes/{self.universe.id}/orderedDatastores/{base64.b64encode(self.name.encode()).decode()}/scopes/{scope}/entries/{base64.b64encode(key.encode()).decode()}",
+            else: scope = self.scope
+        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+
+        response = requests.delete(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
             headers={"x-api-key": self.__api_key})
         
-        if response.status_code == 204: return None
+        if response.status_code == 200: return None
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
-
-"https://apis.roblox.com/datastores/v2/universes/:universe/orderedDatastores/:datastore/scopes/:scope/entries/:entry"
