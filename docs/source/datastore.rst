@@ -208,7 +208,7 @@ Data Store
     
     .. attribute:: experince 
 
-        :type: rblx-open-cloud.Experince
+        :type: :meth:`rblx-open-cloud.Experince`
     
     .. method:: sort_keys(descending=True, filter=None, limit=None)
 
@@ -243,7 +243,7 @@ Data Store
 
     .. note::
 
-        Unlike :meth:`DataStore.list_keys`, this function is unable to work without a scope. This is an Open Cloud limitation. You can still use other functions with the normal ``scope/key`` when scope is ``None``.
+        Unlike :meth:`DataStore.list_keys`, this function is unable to work without a scope. This is an Open Cloud limitation. You can still use other functions with the normal ``scope/key`` syntax when scope is ``None``.
 
     .. method:: get(key)
 
@@ -261,7 +261,7 @@ Data Store
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
     
-    .. method:: set(key, value, exclusive_create)
+    .. method:: set(key, value, exclusive_create=False, exclusive_update=False)
 
         Sets the value of a key.
 
@@ -270,15 +270,16 @@ Data Store
         :param str key: The key to create/update.
         :param int value: The new integer value. Must be positive.
         :param bool exclusive_create: Wether to fail if the key already has a value.
+        :param bool exclusive_update: Wether to fail if the key does not have a value.
         
         :returns: int
-        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
+        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key`` or both ``exclusive_create`` and ``exclusive_update`` are ``True``.
         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to write data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
-        :raises rblx-open-cloud.PreconditionFailed: ``exclusive_create`` is ``True`` and the key already has a value.
+        :raises rblx-open-cloud.PreconditionFailed: ``exclusive_create`` is ``True`` and the key already has a value, or ``exclusive_update`` is ``True`` and there is no pre-existing value.
     
     .. method:: increment(key, increment)
 
@@ -296,8 +297,7 @@ Data Store
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
-        :raises rblx-open-cloud.PreconditionFailed: ``exclusive_create`` is ``True`` and the key already has a value.
-    
+
     .. method:: remove(key)
 
         Removes a key.

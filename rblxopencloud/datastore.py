@@ -406,15 +406,16 @@ class OrderedDataStore():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
         
-    def set(self, key: str, value: int, exclusive_create: bool=False) -> int:
+    def set(self, key: str, value: int, exclusive_create: bool=False, exclusive_update: bool=False) -> int:
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
         except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+        if exclusive_create and exclusive_update: raise ValueError("exclusive_create and exclusive_updated can not both be True")
 
         if not exclusive_create:
             response = requests.patch(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
-                headers={"x-api-key": self.__api_key}, params={"allow_missing": True}, json={
+                headers={"x-api-key": self.__api_key}, params={"allow_missing": not exclusive_update}, json={
                     "value": value
                 })
         else:
@@ -432,6 +433,8 @@ class OrderedDataStore():
         elif response.status_code in [404, 409]:
             if exclusive_create:
                 error = "An entry already exists with the provided key and scope"
+            elif exclusive_update:
+                error = "There is no pre-existing entry with the provided key"
             else:
                 error = "A Precondition Failed"
 
