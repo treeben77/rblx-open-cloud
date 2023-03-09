@@ -57,7 +57,6 @@ Data Store
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
-
         
     .. method:: get(key)
 
@@ -189,6 +188,159 @@ Data Store
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
 
+.. class:: OrderedDataStore
+
+    Class for interacting with the Ordered DataStore API for a specific Ordered DataStore.
+
+    .. versionadded:: 1.1
+
+    .. warning::
+
+        This class is not designed to be created by users. It is returned by :meth:`Universe.get_ordered_data_store`.
+
+    .. attribute:: name 
+
+        :type: str
+
+    .. attribute:: scope 
+
+        :type: Union[str, None]
+    
+    .. attribute:: experince 
+
+        :type: rblx-open-cloud.Experince
+    
+    .. method:: sort_keys(descending=True, filter=None, limit=None)
+
+        Returns a list of keys and their values.
+
+        The example below would list all keys, along with their value.
+                
+        .. code:: py
+
+            for key in datastore.sort_keys():
+                print(key.name, key.value)
+        
+        You can simply convert it to a list by putting it in the list function:
+
+        .. code:: py
+
+            list(datastore.sort_keys())
+
+        Lua equivalent: `OrderedDataStore:GetSortedAsync() <https://create.roblox.com/docs/reference/engine/classes/OrderedDataStore#GetSortedAsync>`__
+
+        :param bool descending: Wether the largest number should be first, or the smallest.
+        :param rblx-open-cloud.SortFilter filter: Minimum and maximum requirements for numbers.
+        :param bool limit: Max number of entries to loop through.
+        
+        :returns: Iterable[:class:`SortedEntry`]
+        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
+        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to read data store keys.
+        :raises rblx-open-cloud.NotFound: The datastore or key does not exist
+        :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+        :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+        :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+
+    .. note::
+
+        Unlike :meth:`DataStore.list_keys`, this function is unable to work without a scope. This is an Open Cloud limitation. You can still use other functions with the normal ``scope/key`` when scope is ``None``.
+
+    .. method:: get(key)
+
+        Gets the value of a key.
+
+        Lua equivalent: `OrderedDataStore:GetAsync() <https://create.roblox.com/docs/reference/engine/classes/OrderedDataStore#GetAsync>`__
+
+        :param str key: The key to find.
+        
+        :returns: int
+        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
+        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to read data store keys.
+        :raises rblx-open-cloud.NotFound: The datastore or key does not exist
+        :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+        :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+        :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+    
+    .. method:: set(key, value, exclusive_create)
+
+        Sets the value of a key.
+
+        Lua equivalent: `OrderedDataStore:SetAsync() <https://create.roblox.com/docs/reference/engine/classes/OrderedDataStore#SetAsync>`__
+
+        :param str key: The key to create/update.
+        :param int value: The new integer value. Must be positive.
+        :param bool exclusive_create: Wether to fail if the key already has a value.
+        
+        :returns: int
+        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
+        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to write data store keys.
+        :raises rblx-open-cloud.NotFound: The datastore or key does not exist
+        :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+        :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+        :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+        :raises rblx-open-cloud.PreconditionFailed: ``exclusive_create`` is ``True`` and the key already has a value.
+    
+    .. method:: increment(key, increment)
+
+        Increments the value of a key.
+
+        Lua equivalent: `OrderedDataStore:IncrementAsync() <https://create.roblox.com/docs/reference/engine/classes/OrderedDataStore#IncrementAsync>`__
+
+        :param str key: The key to increment.
+        :param int increment: The amount to increment the key by. You can use negative numbers to decrease the value.
+        
+        :returns: int
+        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
+        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to write data store keys.
+        :raises rblx-open-cloud.NotFound: The datastore or key does not exist
+        :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+        :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+        :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+        :raises rblx-open-cloud.PreconditionFailed: ``exclusive_create`` is ``True`` and the key already has a value.
+    
+    .. method:: remove(key)
+
+        Removes a key.
+
+        Lua equivalent: `OrderedDataStore:RemoveAsync() <https://create.roblox.com/docs/reference/engine/classes/OrderedDataStore#RemoveAsync>`__
+
+        :param str key: The key to remove.
+
+        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
+        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to write data store keys.
+        :raises rblx-open-cloud.NotFound: The datastore or key does not exist
+        :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+        :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+        :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+
+.. class:: SortFilter
+
+    Filter object for :meth:`OrderedDataStore.sort_keys`
+
+    :param Union[int, None] min: Minimum entry value to retrieve
+    :param Union[int, None] max: Maximum entry value to retrieve
+
+    .. versionadded:: 1.1
+
+    .. attribute:: min 
+
+        Minimum entry value to retrieve
+
+        :type: Union[int, None]
+    
+    .. attribute:: max
+
+        Maximum entry value to retrieve
+
+        :type: Union[int, None]
+    
+    .. meth:: to_str
+
+        Generates a string which is usually used internally for the API.
+
+        :returns: Union[str, None]
+        :raises ValueError: ``min`` is greater than ``max``.
+
 .. class:: EntryInfo
 
     Contains data about an entry such as version ID, timestamps, users and metadata.
@@ -272,7 +424,7 @@ Data Store
 
 .. class:: ListedEntry
 
-    Object which contains a entry's key and scope.
+    Object which contains an entry's key and scope.
 
     .. warning::
 
@@ -289,3 +441,31 @@ Data Store
         The Entry's scope
 
         :type: str
+
+.. class:: SortedEntry
+
+    Object which contains a sorted entry's key, scope, and value.
+
+    .. versionadded:: 1.1
+
+    .. warning::
+
+        This class is not designed to be created by users. It is returned by :meth:`OrderedDataStore.sort_keys`.
+
+    .. attribute:: key 
+
+        The Entry's key
+
+        :type: str
+    
+    .. attribute:: scope
+
+        The Entry's scope
+
+        :type: str
+
+    .. attribute:: value
+
+        The Entry's value
+
+        :type: int
