@@ -1,7 +1,10 @@
-from .exceptions import *
+from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable, PreconditionFailed
 import requests, json, datetime
-from typing import Union, Iterable
+from typing import Union, Optional, Iterable, TYPE_CHECKING
 import base64, hashlib
+
+if TYPE_CHECKING:
+    from .experience import Experience
 
 __all__ = (
     "EntryInfo",
@@ -12,22 +15,22 @@ __all__ = (
 
 class EntryInfo():
     def __init__(self, version, created, updated, users, metadata) -> None:
-        self.version = version
-        self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
-        self.updated = datetime.datetime.fromisoformat((updated.split("Z")[0]+"0"*6)[0:26])
-        self.users = users
-        self.metadata = metadata
+        self.version: str = version
+        self.created: datetime.date = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
+        self.updated: datetime.date = datetime.datetime.fromisoformat((updated.split("Z")[0]+"0"*6)[0:26])
+        self.users: list[int] = users
+        self.metadata: dict = metadata
     
     def __repr__(self) -> str:
         return f"rblxopencloud.EntryInfo(\"{self.version}\", users={self.users}, metadata={self.metadata})"
 
 class EntryVersion():
     def __init__(self, version, deleted, content_length, created, key_created, datastore, key, scope) -> None:
-        self.version = version
-        self.deleted = deleted
-        self.content_length = content_length
-        self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
-        self.key_created = datetime.datetime.fromisoformat((key_created.split("Z")[0]+"0"*6)[0:26])
+        self.version: str = version
+        self.deleted: bool = deleted
+        self.content_length: int = content_length
+        self.created: datetime.datetime = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
+        self.key_created: datetime.datetime = datetime.datetime.fromisoformat((key_created.split("Z")[0]+"0"*6)[0:26])
         self.__datastore = datastore
         self.__key = key
         self.__scope = scope
@@ -49,8 +52,8 @@ class EntryVersion():
 
 class ListedEntry():
     def __init__(self, key, scope) -> None:
-        self.key = key
-        self.scope = scope
+        self.key: str = key
+        self.scope: str = scope
     
     def __eq__(self, object) -> bool:
         if not isinstance(object, ListedEntry):
@@ -62,10 +65,10 @@ class ListedEntry():
 
 class DataStore():
     def __init__(self, name, experience, api_key, created, scope):
-        self.name = name
-        self.__api_key = api_key
-        self.scope = scope
-        self.experience = experience
+        self.name: str = name
+        self.__api_key: str = api_key
+        self.scope: str = scope
+        self.experience: Experience = experience
         if created: self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
         else: self.created = None
     
@@ -75,7 +78,7 @@ class DataStore():
     def __str__(self) -> str:
         return self.name
 
-    def list_keys(self, prefix: str="", limit: Union[None, int]=None) -> Iterable[ListedEntry]:
+    def list_keys(self, prefix: str="", limit: Optional[int]=None) -> Iterable[ListedEntry]:
         """Returns an `Iterable` of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if `DataStore.scope` is `None`. The example below would list all versions, along with their value.
                 
         ```py
@@ -141,7 +144,7 @@ class DataStore():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
-    def set(self, key: str, value: Union[str, dict, list, int, float], users:list=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Union[None, str]=None) -> EntryVersion:
+    def set(self, key: str, value: Union[str, dict, list, int, float], users:list=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Optional[str]=None) -> EntryVersion:
         """Sets the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         if previous_version and exclusive_create: raise ValueError("previous_version and exclusive_create can not both be set")
         try:
@@ -233,7 +236,7 @@ class DataStore():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
-    def list_versions(self, key: str, after: datetime.datetime=None, before: datetime.datetime=None, limit: Union[None, int]=None, descending: bool=True) -> Iterable[EntryVersion]:
+    def list_versions(self, key: str, after: datetime.datetime=None, before: datetime.datetime=None, limit: Optional[int]=None, descending: bool=True) -> Iterable[EntryVersion]:
         """Returns an Iterable of previous versions of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`. The example below would list all versions, along with their value.
                 
         ```py
