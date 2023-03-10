@@ -73,7 +73,7 @@ class DataStore():
         else: self.created = None
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.DataStore(\"{self.name}\", scope=\"{self.scope}\", universe={repr(self.universe)})"
+        return f"rblxopencloud.DataStore(\"{self.name}\", scope=\"{self.scope}\", universe={repr(self.experience)})"
     
     def __str__(self) -> str:
         return self.name
@@ -119,13 +119,14 @@ class DataStore():
     def get(self, key: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """Gets the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            scope = self.scope
+            if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
-                "scope": self.scope if self.scope else scope,
+                "scope": scope,
                 "entryKey": key
             })
 
@@ -137,18 +138,18 @@ class DataStore():
             
             return json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
     response.headers["roblox-entry-version-created-time"], userids, metadata)
-        elif response.status_code == 204: return None
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
-    def set(self, key: str, value: Union[str, dict, list, int, float], users:list=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Optional[str]=None) -> EntryVersion:
+    def set(self, key: str, value: Union[str, dict, list, int, float], users:Optional[list[int]]=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Optional[str]=None) -> EntryVersion:
         """Sets the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         if previous_version and exclusive_create: raise ValueError("previous_version and exclusive_create can not both be set")
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            scope = self.scope
+            if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         if users == None: users = []
@@ -158,7 +159,7 @@ class DataStore():
             headers={"x-api-key": self.__api_key, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata),
             "content-md5": base64.b64encode(hashlib.md5(data.encode()).digest())}, data=data, params={
                 "datastoreName": self.name,
-                "scope": self.scope if self.scope else scope,
+                "scope": scope,
                 "entryKey": key,
                 "exclusiveCreate": exclusive_create,
                 "matchVersion": previous_version
@@ -187,10 +188,11 @@ class DataStore():
     response.headers["roblox-entry-version-created-time"], userids, metadata), error)
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
-    def increment(self, key: str, increment: Union[int, float], users:list=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+    def increment(self, key: str, increment: Union[int, float], users:Optional[list[int]]=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """Increments the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            scope = self.scope
+            if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         if users == None: users = []
@@ -198,7 +200,7 @@ class DataStore():
         response = requests.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/increment",
             headers={"x-api-key": self.__api_key, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)}, params={
                 "datastoreName": self.name,
-                "scope": self.scope if self.scope else scope,
+                "scope": scope,
                 "entryKey": key,
                 "incrementBy": increment
             })
@@ -219,13 +221,14 @@ class DataStore():
     def remove(self, key: str) -> None:
         """Removes a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            scope = self.scope
+            if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         response = requests.delete(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
-                "scope": self.scope if self.scope else scope,
+                "scope": scope,
                 "entryKey": key
             })
 
@@ -236,7 +239,7 @@ class DataStore():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
-    def list_versions(self, key: str, after: datetime.datetime=None, before: datetime.datetime=None, limit: Optional[int]=None, descending: bool=True) -> Iterable[EntryVersion]:
+    def list_versions(self, key: str, after: Optional[datetime.datetime]=None, before: Optional[datetime.datetime]=None, limit: Optional[int]=None, descending: bool=True) -> Iterable[EntryVersion]:
         """Returns an Iterable of previous versions of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`. The example below would list all versions, along with their value.
                 
         ```py
@@ -250,7 +253,8 @@ class DataStore():
             list(datastore.list_versions("key-name"))
         ```"""
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            scope = self.scope
+            if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         nextcursor = ""
@@ -259,7 +263,7 @@ class DataStore():
             response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions",
                 headers={"x-api-key": self.__api_key}, params={
                     "datastoreName": self.name,
-                    "scope": self.scope if self.scope else scope,
+                    "scope": scope,
                     "entryKey": key,
                     "sortOrder": "Descending" if descending else "Ascending",
                     "cursor": nextcursor if nextcursor else None,
@@ -284,13 +288,14 @@ class DataStore():
     def get_version(self, key: str, version: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """Gets the value of a key version. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            scope = self.scope
+            if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.") 
         response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions/version",
             headers={"x-api-key": self.__api_key}, params={
                 "datastoreName": self.name,
-                "scope": self.scope if self.scope else scope,
+                "scope": scope,
                 "entryKey": key,
                 "versionId": version
             })
@@ -303,7 +308,6 @@ class DataStore():
             
             return json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
                 response.headers["roblox-entry-version-created-time"], userids, metadata)
-        elif response.status_code == 204: return None
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
