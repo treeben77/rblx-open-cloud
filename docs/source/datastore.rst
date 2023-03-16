@@ -210,7 +210,7 @@ Data Store
 
         :type: :meth:`rblx-open-cloud.Experince`
     
-    .. method:: sort_keys(descending=True, filter=None, limit=None)
+    .. method:: sort_keys(descending=True, limit=None, min=None, max=None)
 
         Returns a list of keys and their values.
 
@@ -230,8 +230,9 @@ Data Store
         Lua equivalent: `OrderedDataStore:GetSortedAsync() <https://create.roblox.com/docs/reference/engine/classes/OrderedDataStore#GetSortedAsync>`__
 
         :param bool descending: Wether the largest number should be first, or the smallest.
-        :param rblx-open-cloud.SortFilter filter: Minimum and maximum requirements for numbers.
         :param bool limit: Max number of entries to loop through.
+        :param int min: Minimum entry value to retrieve
+        :param int max: Maximum entry value to retrieve.
         
         :returns: Iterable[:class:`SortedEntry`]
         :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
@@ -312,34 +313,6 @@ Data Store
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
-
-.. class:: SortFilter
-
-    Filter object for :meth:`OrderedDataStore.sort_keys`
-
-    :param Union[int, None] min: Minimum entry value to retrieve
-    :param Union[int, None] max: Maximum entry value to retrieve
-
-    .. versionadded:: 1.1
-
-    .. attribute:: min 
-
-        Minimum entry value to retrieve
-
-        :type: Union[int, None]
-    
-    .. attribute:: max
-
-        Maximum entry value to retrieve
-
-        :type: Union[int, None]
-    
-    .. meth:: to_str
-
-        Generates a string which is usually used internally for the API.
-
-        :returns: Union[str, None]
-        :raises ValueError: ``min`` is greater than ``max``.
 
 .. class:: EntryInfo
 
