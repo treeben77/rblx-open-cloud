@@ -39,7 +39,7 @@ def roblox():
 This will return an `AccessToken` object. This allows you to retrieve all the information about the authorization.
 
 ### Fetching user info
-**NOTE: OpenID is not yet supported. I'm still trying to figure that out.**
+you can use `access.user` if you used the `openid` scope, if you only retrieved the profile scope or `access.user` is somehow None, you can use an API call:
 ```py
 access.fetch_userinfo()
 ```
@@ -72,6 +72,7 @@ You can use the `refresh_token` value from `AccessToken` and store that. Next ti
 oauth2.from_access_token_string(access.token)
 ```
 **NOTE: This returns a `PartialAccessToken`, which is almost identical to an `AccessToken` except for it doesn't have `revoke_refresh_token`, `scope`, `refresh_token`, or `expires_at`.**
+
 ### Revoking tokens
 Once you're finished with an `AccessToken`, you can use the `revoke_token` function to revoke it. Here's how to use it:
 ```py
@@ -81,6 +82,19 @@ You can also revoke tokens from the `AccessToken` object itself:
 ```py
 access.revoke()
 access.revoke_refresh_token()
+```
+
+### Changing the openID certs cache time
+
+By default, certs are cached for 1 hour but this can be modified when creating the `OAuth2App` object. This example will only allow the certs to be stored for 2 minutes (120 seconds)
+```py
+oauth2 = rblxopencloud.OAuth2App(123456789, "app-secert", "http://localhost:9066/roblox", openid_certs_cache_seconds=120)
+```
+
+### Finishing notes
+Don't forget to run the Flask server at the end:
+```py
+app.run("localhost", 9066)
 ```
 If you have any feedback for the beta, or want to report bugs, please join the Discord server: https://discord.gg/gEBdHNAR46, message [TreeBen77](https://devforum.roblox.com/u/TreeBen77) on the DevForum, or message [TreeBen77](https://www.roblox.com/users/287113233) on Roblox (must follow me first).
 ___
