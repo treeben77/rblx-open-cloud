@@ -117,6 +117,7 @@ class OAuth2App():
                 certs = requests.get("https://apis.roblox.com/oauth/v1/certs")
                 if not certs.ok: raise ServiceUnavailable("Failed to retrieve OpenID certs.")
                 self.__openid_certs_cache = convert_certs_to_keys(certs.json()["keys"])
+                self.__openid_certs_cache_updated = time.time()
 
             for cert in self.__openid_certs_cache:
                 try:
