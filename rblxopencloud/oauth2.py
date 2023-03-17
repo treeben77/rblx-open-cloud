@@ -32,6 +32,7 @@ class PartialAccessToken():
         elif response.status_code == 401:
             if response.json()["error"] == "insufficient_scope":
                 raise InsufficientScope(response.json()["scope"], f"The access token does not have the required scope:'{response.json()['scope']}'")
+            raise InvalidKey("The key has expired, been revoked or is invalid.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
@@ -45,9 +46,10 @@ class PartialAccessToken():
         if response.status_code == 401:
             if response.json()["error"] == "insufficient_scope":
                 raise InsufficientScope(response.json()["scope"], f"The access token does not have the required scope:'{response.json()['scope']}'")
+            raise InvalidKey("The key has expired, been revoked or is invalid.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
-        
+
         experiences = []
         for resource in response.json()["resource_infos"]:
             owner = resource["owner"]
