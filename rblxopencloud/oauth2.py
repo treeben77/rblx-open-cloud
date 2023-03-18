@@ -12,8 +12,23 @@ from cryptography.hazmat.backends import default_backend
 __all__ = (
     "OAuth2App",
     "AccessToken",
-    "PartialAccessToken"
+    "PartialAccessToken",
+    "AccessTokenInfo"
 )
+
+class AccessTokenInfo():
+    def __init__(self, data: dict):
+        self.active: bool = data["active"]
+        self.id: str = data["jti"]
+        self.client_id: int = int(data["client_id"])
+        self.user_id = data["sub"]
+        self.scope = data["scope"].split(" ")
+        self.expires_at = datetime.datetime.fromtimestamp(data["exp"])
+        self.issued_at = datetime.datetime.fromtimestamp(data["iat"])
+        self.raw = data
+    
+    def __repr__(self) -> str:
+        return f"rblxopencloud.AccessTokenInfo(id={self.id}, user_id={self.user_id})"
 
 class PartialAccessToken():
     def __init__(self, client, access_token) -> None:
@@ -21,7 +36,7 @@ class PartialAccessToken():
         self.token: str = access_token
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.PartialAccessToken(token={self.token})"
+        return f"rblxopencloud.PartialAccessToken(token={self.token[:15]}...)"
 
     def fetch_userinfo(self) -> User:
         response = requests.get("https://apis.roblox.com/oauth/v1/userinfo", headers={
@@ -60,6 +75,21 @@ class PartialAccessToken():
                     experience.owner = User({"id": owner["id"]})
                 experiences.append(experience)
         return experiences
+
+    def fetch_token_info(self) -> AccessTokenInfo:
+        response = requests.post("https://apis.roblox.com/oauth/v1/token/introspect", data={
+            "token": self.token,
+            "client_id": self.client.id,
+            "client_secret": self.client._OAuth2App__secret
+        })
+        
+        if response.ok: return AccessTokenInfo(response.json())
+        elif response.status_code == 401:
+            if response.json()["error"] == "insufficient_scope":
+                raise InsufficientScope(response.json()["scope"], f"The access token does not have the required scope:'{response.json()['scope']}'")
+            raise InvalidKey("The key has expired, been revoked or is invalid.")
+        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
     def revoke(self):
         self.client.revoke_token(self.token)
@@ -74,7 +104,7 @@ class AccessToken(PartialAccessToken):
         self.id_token: Optional[dict] = id_token
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.AccessToken(token={self.token})"
+        return f"rblxopencloud.AccessToken(token={self.token[:15]}..., user={self.user})"
     
     def revoke_refresh_token(self):
         self.client.revoke_token(self.refresh_token)
@@ -150,7 +180,7 @@ class OAuth2App():
             "client_id": self.id,
             "client_secret": self.__secret
         })
-        if response.ok: return AccessToken(self, response.json())
+        if response.ok: return
         elif response.status_code == 400: raise InvalidKey("The code, client id, client secret, or redirect uri is invalid.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
