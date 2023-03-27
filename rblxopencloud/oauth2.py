@@ -21,11 +21,11 @@ class AccessTokenInfo():
         self.active: bool = data["active"]
         self.id: str = data["jti"]
         self.client_id: int = int(data["client_id"])
-        self.user_id = data["sub"]
-        self.scope = data["scope"].split(" ")
-        self.expires_at = datetime.datetime.fromtimestamp(data["exp"])
-        self.issued_at = datetime.datetime.fromtimestamp(data["iat"])
-        self.raw = data
+        self.user_id: int = data["sub"]
+        self.scope: list[str] = data["scope"].split(" ")
+        self.expires_at: datetime.datetime = datetime.datetime.fromtimestamp(data["exp"])
+        self.issued_at: datetime.datetime = datetime.datetime.fromtimestamp(data["iat"])
+        self.raw: dict = data
     
     def __repr__(self) -> str:
         return f"rblxopencloud.AccessTokenInfo(id={self.id}, user_id={self.user_id})"
