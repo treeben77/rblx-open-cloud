@@ -91,6 +91,20 @@ By default, certs are cached for 1 hour but this can be modified when creating t
 oauth2 = rblxopencloud.OAuth2App(123456789, "app-secert", "http://localhost:9066/roblox", openid_certs_cache_seconds=120)
 ```
 
+### Fetching introspect/Token Info
+```py
+access.fetch_token_info()
+```
+This will return an `AccessTokenInfo` with the following attributes:
+- active - str, wether the token has expired
+- id - str, a unique ID for this token
+- client_id - str, your app's ID
+- user_id - str, the authorized account's user ID
+- scope - list[str], list of authorized scopes
+- expires_at - datetime.datetime, time the token will expire
+- issued_at - datetime.datetime, time the token was generated at
+- raw - dict, the raw date **may be removed**
+
 ### Finishing notes
 Don't forget to run the Flask server at the end:
 ```py
