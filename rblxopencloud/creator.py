@@ -1,9 +1,20 @@
 from .exceptions import *
 import requests, json, io
-from typing import *
+from typing import Union, Optional, TYPE_CHECKING
 import urllib3
 from enum import Enum
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from .user import User
+    from .group import Group
+
+__all__ = (
+    "AssetType",
+    "Asset",
+    "PendingAsset",
+    "Creator"
+)
 
 class AssetType(Enum):
     Unknown = 0
@@ -13,19 +24,19 @@ class AssetType(Enum):
 
 class Asset():
     def __init__(self,  assetObject, creator=None) -> None:
-        self.id = assetObject.get("assetId")
-        self.name = assetObject.get("displayName")
-        self.description = assetObject.get("description")
+        self.id: int = assetObject.get("assetId")
+        self.name: str = assetObject.get("displayName")
+        self.description: str = assetObject.get("description")
         
-        self.creator = creator if creator else None
+        self.creator: Union[User, Group] = creator if creator else None
         
-        self.revision_id = assetObject.get("revisionId")
-        self.revision_time = datetime.fromisoformat(assetObject["revisionCreateTime"][0:26]) if assetObject.get("revisionCreateTime") else None
+        self.revision_id: Optional[int] = assetObject.get("revisionId")
+        self.revision_time: Optional[datetime] = datetime.fromisoformat(assetObject["revisionCreateTime"][0:26]) if assetObject.get("revisionCreateTime") else None
         
-        if assetObject.get("assetType") in ["Decal", "ASSET_TYPE_DECAL"]: self.type = AssetType.Decal
-        elif assetObject.get("assetType") in ["Audio", "ASSET_TYPE_AUDIO"]: self.type = AssetType.Audio
-        elif assetObject.get("assetType") in ["Model", "ASSET_TYPE_MODEL"]: self.type = AssetType.Model
-        else: self.type = AssetType.Unknown
+        if assetObject.get("assetType") in ["Decal", "ASSET_TYPE_DECAL"]: self.type: AssetType = AssetType.Decal
+        elif assetObject.get("assetType") in ["Audio", "ASSET_TYPE_AUDIO"]: self.type: AssetType = AssetType.Audio
+        elif assetObject.get("assetType") in ["Model", "ASSET_TYPE_MODEL"]: self.type: AssetType = AssetType.Model
+        else: self.type: AssetType = AssetType.Unknown
     
     def __repr__(self) -> str:
         return f"rblxopencloud.Asset({self.id}, name=\"{self.name}\", type={self.type})"
@@ -60,7 +71,7 @@ mimetypes = {
 
 class Creator():
     def __init__(self, userid, api_key, type) -> None:
-        self.id = userid
+        self.id: int = userid
         self.__api_key = api_key
         self.__creator_type = type
     
