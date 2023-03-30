@@ -103,7 +103,7 @@ class Creator():
         response = requests.post(f"https://apis.roblox.com/assets/v1/assets",
             headers={"x-api-key": self.__api_key, "content-type": contentType}, data=body)
         
-        if response.status_code == 400: raise InvalidAsset(f"The file is not a decal or is corrupted")
+        if response.status_code == 400: raise InvalidAsset(f"The file is not a supported type, or is corrupted")
         elif response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
