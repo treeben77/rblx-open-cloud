@@ -1,4 +1,5 @@
 from setuptools import setup
+
 import re
 
 with open("rblxopencloud/__init__.py", "r") as file:

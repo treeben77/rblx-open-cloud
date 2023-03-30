@@ -10,6 +10,7 @@ __all__ = (
     "RateLimited",
     "ServiceUnavailable",
     "PreconditionFailed",
+    "InvalidAsset",
 )
 
 class rblx_opencloudException(Exception): pass
@@ -22,3 +23,4 @@ class PreconditionFailed(rblx_opencloudException):
         self.value: Optional[Union[str, dict, list, int, float]] = value
         self.info: Optional[EntryInfo] = info
         super().__init__(*args)
+class InvalidAsset(rblx_opencloudException): pass
