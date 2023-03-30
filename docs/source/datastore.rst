@@ -9,7 +9,7 @@ Data Store
 
     .. warning::
 
-        This class is not designed to be created by users. It is returned by :meth:`Universe.get_data_store` and :meth:`Universe.list_data_stores`.
+        This class is not designed to be created by users. It is returned by :meth:`Experience.get_data_store` and :meth:`Experience.list_data_stores`.
 
     .. attribute:: name 
 
@@ -19,13 +19,13 @@ Data Store
 
         :type: Union[str, None]
     
-    .. attribute:: universe 
+    .. attribute:: experience 
 
-        :type: rblx-open-cloud.Universe
+        :type: rblx-open-cloud.Experience
     
     .. attribute:: created 
 
-        The data store's creation timestamp, could be ``None`` if not retrieved by :meth:`Universe.list_data_stores`.
+        The data store's creation timestamp, could be ``None`` if not retrieved by :meth:`Experience.list_data_stores`.
 
         :type: Union[datetime.datetime, None]
    

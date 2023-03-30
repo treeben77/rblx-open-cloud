@@ -1,9 +1,13 @@
-from .universe import *
-from .exceptions import *
+from .experience import *
 from .datastore import *
+from .exceptions import *
 from .user import *
 from .group import *
 from .creator import *
 
-VERSION = "1.1.1"
-VERSION_INFO = "alpha"
+from typing import Literal
+
+VERSION: str = "1.1.0"
+VERSION_INFO: Literal['alpha', 'beta', 'final'] = "beta"
+
+del Literal
