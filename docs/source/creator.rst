@@ -24,9 +24,10 @@ Creator
         Uploads an asset onto Roblox.
         
         :param io.BytesIO file: The file opened in bytes to be uploaded.
-        :param rblx-open-cloud.AssetType: The type of asset you're uploading.
-        :param str: The name of your asset.
-        :param str: The description of your asset.
+        :param rblx-open-cloud.AssetType asset_type: The type of asset you're uploading.
+        :param str name: The name of your asset.
+        :param str description: The description of your asset.
+        :param str expected_robux_price: The amount of robux expected to upload. Fails if lower than actual price.
 
         :returns: Union[:class:`rblx-open-cloud.Asset`, :class:`rblx-open-cloud.PendingAsset`]
         :raises rblx-open-cloud.InvalidAsset: The file is not a supported, or is corrupted
@@ -37,11 +38,11 @@ Creator
 
         .. danger::
 
-            Assets are uploaded under your name, and can get your account banned! Be very careful what assets you choose to upload.
-
+            Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
+        
         .. note::
             
-            Only `Decal`, `Audio`, and `Model` (as `fbx`) are supported right now.
+            Only ``Decal``, ``Audio``, and ``Model`` (as ``fbx``) are supported right now.
 
     .. method:: update_asset(asset_id, file)
 
@@ -59,11 +60,11 @@ Creator
 
         .. danger::
 
-            Assets are uploaded under your name, and can get your account banned! Be very careful what assets you choose to upload.
+            Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
 
         .. note::
             
-            Only `Model` (as `fbx`) can be updated right now.
+            Only ``Model`` (as ``fbx``) can be updated right now.
 
 .. class:: Asset()
 
@@ -143,9 +144,9 @@ Creator
 
     .. versionadded:: 1.1
 
-    .. attribute:: Unkown 
+    .. attribute:: Unknown 
 
-        An unkown asset type (e.g. an unimplemented type)
+        An unknown asset type (e.g. an unimplemented type)
 
     .. attribute:: Decal 
 
