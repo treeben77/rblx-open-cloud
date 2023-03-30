@@ -1,10 +1,10 @@
 import rblxopencloud
 
-# create a universe object, with the first value being the universe ID and the second being your api key
-universe = rblxopencloud.Experience(3499447036, "api-key-here")
+# create a experience object, with the first value being the experience ID and the second being your api key
+experience = rblxopencloud.Experience(3499447036, "api-key-here")
 
 # create a datastore with the name 'exampleStore' and the scope of 'open-cloud'
-datastore = universe.get_data_store("exampleStore", scope="open-cloud")
+datastore = experience.get_data_store("exampleStore", scope="open-cloud")
 
 # this will get the key for '287113233'
 value, info = datastore.get("287113233")

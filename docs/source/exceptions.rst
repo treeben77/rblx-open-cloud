@@ -38,3 +38,7 @@ Exceptions
          The key metadata.
 
          :type: :class:`rblx-open-cloud.EntryInfo`
+
+.. exception:: InvalidAsset()
+
+   The asset you upload is the wrong type, or is corrupted.

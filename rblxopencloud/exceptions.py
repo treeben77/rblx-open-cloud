@@ -11,6 +11,7 @@ __all__ = (
     "ServiceUnavailable",
     "PreconditionFailed",
     "InsufficientScope",
+    "InvalidAsset",
 )
 
 class rblx_opencloudException(Exception): pass
@@ -27,3 +28,4 @@ class InsufficientScope(InvalidKey):
     def __init__(self, scope, *args: object) -> None:
         self.required_scope: str = scope
         super().__init__(*args)
+class InvalidAsset(rblx_opencloudException): pass

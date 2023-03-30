@@ -12,7 +12,7 @@ class Experience():
         self.id: int = id
         self.owner = None
         self.__api_key: str = api_key
-        self.__key_type: Literal["API_KEY", "BEARER"]
+        self.__key_type: Literal["API_KEY", "BEARER"] = "API_KEY"
     
     def __repr__(self) -> str:
         return f"rblxopencloud.Experience({self.id})"

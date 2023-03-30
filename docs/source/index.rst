@@ -1,15 +1,6 @@
 Welcome to ``rblx-open-cloud``!
 ===============
 
-Table of Contents
-----------
-
-.. toctree::
-
-   experience
-   datastore
-   exceptions
-
 Quickstart
 ----------
 
@@ -136,3 +127,15 @@ Final Result (a.k.a copy and paste section)
 
    # publish a message with the topic 'topic-name'
    experience.publish_message("topic-name", "Hello World!")
+   
+Table of Contents
+----------
+
+.. toctree::
+
+   experience
+   user
+   group
+   datastore
+   creator
+   exceptions
