@@ -134,5 +134,8 @@ Table of Contents
 .. toctree::
 
    experience
+   user
+   group
    datastore
+   creator
    exceptions
