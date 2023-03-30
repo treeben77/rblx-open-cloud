@@ -58,6 +58,11 @@ class PendingAsset():
             info = response.json()
             if not info.get("done"): return None
             return Asset(info["response"], self.__creator)
+        else:
+            if response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
+            elif response.status_code == 429: raise RateLimited("You're being rate limited.")
+            elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
 mimetypes = {
     "mp3": "audio/mpeg",
