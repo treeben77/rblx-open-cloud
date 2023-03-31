@@ -1,7 +1,8 @@
 from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable
 import requests, io
+
 from typing import Optional, Iterable
-from .datastore import DataStore
+from .datastore import DataStore, OrderedDataStore
 
 __all__ = (
     "Experience",
@@ -18,6 +19,9 @@ class Experience():
     def get_data_store(self, name: str, scope: Optional[str]="global") -> DataStore:
         """Creates a `rblx-open-cloud.DataStore` without `DataStore.created` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes."""
         return DataStore(name, self, self.__api_key, None, scope)
+    
+    def get_ordered_data_store(self, name: str, scope: Optional[str]="global") -> OrderedDataStore:
+        return OrderedDataStore(name, self, self.__api_key, scope)
 
     def list_data_stores(self, prefix: str="", limit: Optional[int]=None, scope: str="global") -> Iterable[DataStore]:
         """Returns an `Iterable` of all `rblx-open-cloud.DataStore` in the Experience which includes `DataStore.created`, optionally matching a prefix. The example below would list all versions, along with their value.
