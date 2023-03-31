@@ -9,7 +9,6 @@ __all__ = (
     "ListedEntry",
     "DataStore",
     "SortedEntry",
-    "SortFilter",
     "OrderedDataStore"
 )
 
@@ -367,7 +366,7 @@ class OrderedDataStore():
             data = response.json()
             for key in data["entries"]:
                 yields += 1
-                yield SortedEntry(key["path"], key["value"], self.scope)
+                yield SortedEntry(key["id"], key["value"], self.scope)
                 if limit != None and yields >= limit: break
             nextcursor = data.get("nextPageToken")
             if not nextcursor: break
@@ -402,15 +401,13 @@ class OrderedDataStore():
                 })
         else:
             response = requests.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
-                headers={"x-api-key": self.__api_key}, json={
-                    "path": key,
+                headers={"x-api-key": self.__api_key}, params={"id": key}, json={
                     "value": value
                 })
         
-        if exclusive_create and response.status_code == 400 and response.json()["code"] == 3:
+        if exclusive_create and response.status_code == 400 and response.json()["code"] == "INVALID_ARGUMENT":
             raise PreconditionFailed(None, None, f"An entry already exists with the provided key and scope")
-
-        if response.status_code == 200: return int(response.json()["value"])
+        elif response.status_code == 200: return int(response.json()["value"])
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code in [404, 409]:
             if exclusive_create:
