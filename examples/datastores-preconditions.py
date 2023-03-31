@@ -23,3 +23,14 @@ except(rblxopencloud.PreconditionFailed) as error:
     print(error.value, error.info)
 
 # DataStore.increment and DataStore.remove don't support preconditions.
+
+# you can also use preconditions with ordered data store too
+datastore = universe.get_ordered_data_store("exampleStore", scope="open-cloud")
+
+# it supports exclusive_create to prevent overriding an existing value
+version = datastore.set("287113233", 133, exclusive_create=True)
+# this will raise rblxopencloud.PreconditionFailure if the value already exists.
+
+# but it also supports exclusive_update, to prevent creating a new value
+version = datastore.set("287113233", 133, exclusive_update=True)
+# this will raise rblxopencloud.PreconditionFailure if the key doesn't have a value
