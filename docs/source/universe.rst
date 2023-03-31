@@ -27,9 +27,6 @@ Universe
          :param str name: The name of the data store
          :param Union[str, None] scope: A string specifying the scope, can also be None.
          :returns: :class:`rblx-open-cloud.DataStore`
-
-         .. note::
-            Roblox does not support accessing OrderedDataStores with Open Cloud.
    
    .. method:: list_data_stores(prefix="", scope="global")
 
@@ -60,6 +57,18 @@ Universe
          :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
          :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
          :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+      
+   .. method:: get_ordered_data_store(name, scope="global")
+
+         Creates a :class:`rblx-open-cloud.OrderedDataStore` with the provided name and scope.
+
+         If ``scope`` is ``None`` then keys require to be formatted like ``scope/key`` and :meth:`OrderedDataStore.sort_keys` will not work.
+
+         Lua equivalent: `DataStoreService:GetDataStore() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#GetOrderedDataStore>`__
+
+         :param str name: The name of the data store
+         :param Union[str, None] scope: A string specifying the scope, can also be None.
+         :returns: :class:`rblx-open-cloud.DataStore`
 
    .. method:: publish_message(topic, data)
 

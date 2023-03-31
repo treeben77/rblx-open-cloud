@@ -192,11 +192,11 @@ Data Store
 
     Class for interacting with the Ordered DataStore API for a specific Ordered DataStore.
 
-    .. versionadded:: 1.1
+    .. versionadded:: 1.2
 
     .. warning::
 
-        This class is not designed to be created by users. It is returned by :meth:`Universe.get_ordered_data_store`.
+        This class is not designed to be created by users. It is returned by :meth:`Experince.get_ordered_data_store`.
 
     .. attribute:: name 
 
@@ -204,7 +204,7 @@ Data Store
 
     .. attribute:: scope 
 
-        :type: Union[str, None]
+        :type: Optional[str]
     
     .. attribute:: experince 
 
@@ -235,8 +235,8 @@ Data Store
         :param int max: Maximum entry value to retrieve.
         
         :returns: Iterable[:class:`SortedEntry`]
-        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to read data store keys.
+        :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope.
+        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -244,7 +244,7 @@ Data Store
 
     .. note::
 
-        Unlike :meth:`DataStore.list_keys`, this function is unable to work without a scope. This is an Open Cloud limitation. You can still use other functions with the normal ``scope/key`` syntax when scope is ``None``.
+        Unlike :meth:`DataStore.list_keys`, this function is unable to work without a scope, this is an Open Cloud limitation. You can still use other functions with the normal ``scope/key`` syntax when scope is ``None``.
 
     .. method:: get(key)
 
@@ -419,7 +419,7 @@ Data Store
 
     Object which contains a sorted entry's key, scope, and value.
 
-    .. versionadded:: 1.1
+    .. versionadded:: 1.2
 
     .. warning::
 
