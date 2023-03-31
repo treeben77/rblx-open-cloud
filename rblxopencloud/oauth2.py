@@ -42,11 +42,10 @@ class PartialAccessToken():
         response = requests.get("https://apis.roblox.com/oauth/v1/userinfo", headers={
             "authorization": f"Bearer {self.token}"
         })
-        user = User(response.json().get("id") or response.json().get("sub"), self.token)
+        user = User(response.json().get("id") or response.json().get("sub"), f"Bearer {self.token}")
         user.username: str = response.json().get("preferred_username")
         user.display_name: str = response.json().get("nickname")
         user.created_at: datetime.datetime = datetime.datetime.fromtimestamp(response.json()["created_at"]) if response.json().get("created_at") else None
-        user._User__key_type = "BEARER"
 
         if response.ok: return user
         elif response.status_code == 401:
@@ -74,11 +73,9 @@ class PartialAccessToken():
         for resource in response.json()["resource_infos"]:
             owner = resource["owner"]
             for experience_id in resource["resources"]["universe"]["ids"]:
-                experience = Experience(experience_id, self.token)
-                experience._Experience__key_type = "BEARER"
+                experience = Experience(experience_id, f"Bearer {self.token}")
                 if owner["type"] == "User":
-                    experience.owner = User(owner["id"], self.token)
-                    experience.owner._User__key_type = "BEARER"
+                    experience.owner = User(owner["id"], f"Bearer {self.token}")
                 experiences.append(experience)
         return experiences
 
@@ -108,11 +105,10 @@ class AccessToken(PartialAccessToken):
         self.expires_at: datetime = datetime.datetime.now() + datetime.timedelta(payload["expires_in"])
         self.id_token: Optional[dict] = id_token
         if id_token:
-            self.user: Optional[User] = User(id_token.get("id") or id_token.get("sub"), self.token)
+            self.user: Optional[User] = User(id_token.get("id") or id_token.get("sub"), f"Bearer {self.token}")
             self.user.username: str = id_token.get("preferred_username")
             self.user.display_name: str = id_token.get("nickname")
             self.user.created_at: datetime.datetime = datetime.datetime.fromtimestamp(id_token["created_at"]) if id_token.get("created_at") else None
-            self.user._User__key_type = "BEARER"
         else: self.user: Optional[User] = None
 
     def __repr__(self) -> str:

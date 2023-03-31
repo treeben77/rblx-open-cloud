@@ -1,6 +1,6 @@
 from .creator import Creator
 import datetime
-from typing import Optional, Literal
+from typing import Optional
 
 __all__ = (
     "User",
@@ -12,12 +12,11 @@ class User(Creator):
         self.id: int = id
         self.display_name: Optional[str] = None
         self.profile_uri: str = f"https://roblox.com/users/{self.id}/profile"
-        self.created_at: Optional[datetime.datetime]
+        self.created_at: Optional[datetime.datetime] = None
 
         self.__api_key = api_key
-        self.__key_type: Literal["API_KEY", "BEARER"] = "API_KEY"
 
-        super().__init__(id, api_key, self.__key_type, "User")
+        super().__init__(id, api_key, "User")
     
     def __repr__(self) -> str:
         return f"rblxopencloud.User({self.id})"

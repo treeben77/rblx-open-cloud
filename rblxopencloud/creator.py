@@ -42,10 +42,9 @@ class Asset():
         return f"rblxopencloud.Asset({self.id}, name=\"{self.name}\", type={self.type})"
 
 class PendingAsset():
-    def __init__(self, path, api_key, key_type, creator=None) -> None:
+    def __init__(self, path, api_key, creator=None) -> None:
         self.__path = path
         self.__api_key = api_key
-        self.__key_type = key_type
         self.__creator = creator
     
     def __repr__(self) -> str:
@@ -53,7 +52,7 @@ class PendingAsset():
     
     def fetch_operation(self) -> Union[None, Asset]:
         response = requests.get(f"https://apis.roblox.com/assets/v1/{self.__path}",
-            headers={"x-api-key": self.__api_key} if self.__key_type == "API_KEY" else {"authorization": f"Bearer {self.__api_key}"})
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
         
         if response.ok:
             info = response.json()
@@ -76,10 +75,9 @@ mimetypes = {
 }
 
 class Creator():
-    def __init__(self, userid, api_key, key_type, type) -> None:
+    def __init__(self, userid, api_key, type) -> None:
         self.id: int = userid
         self.__api_key = api_key
-        self.__key_type = "API_KEY"
         self.__creator_type = type
     
     def __repr__(self) -> str:
@@ -103,7 +101,7 @@ class Creator():
             "fileContent": (file.name, file.read(), mimetypes.get(file.name.split(".")[-1]))
         })
         response = requests.post(f"https://apis.roblox.com/assets/v1/assets",
-            headers={"x-api-key": self.__api_key, "content-type": contentType} if self.__key_type == "API_KEY" else {"authorization": f"Bearer {self.__api_key}", "content-type": contentType}, data=body)
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "content-type": contentType}, data=body)
         
         if response.status_code == 400: raise InvalidAsset(f"The file is not a supported type, or is corrupted")
         elif response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
@@ -112,14 +110,14 @@ class Creator():
         elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
         response_op = requests.get(f"https://apis.roblox.com/assets/v1/{response.json()['path']}",
-            headers={"x-api-key": self.__api_key} if self.__key_type == "API_KEY" else {"authorization": f"Bearer {self.__api_key}"})
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
         
         if not response_op.ok:
-            return PendingAsset(response_op.json()['path'], self.__api_key, self.__key_type, self)
+            return PendingAsset(response_op.json()['path'], self.__api_key, self)
         else:
             info = response_op.json()
             if not info.get("done"):
-                return PendingAsset(response_op.json()['path'], self.__api_key, self.__key_type, self)
+                return PendingAsset(response_op.json()['path'], self.__api_key, self)
             else:
                 return Asset(info["response"], self)
     
@@ -131,7 +129,7 @@ class Creator():
             "fileContent": (file.name, file.read(), mimetypes.get(file.name.split(".")[-1]))
         })
         response = requests.patch(f"https://apis.roblox.com/assets/v1/assets/{asset_id}",
-            headers={"x-api-key": self.__api_key, "content-type": contentType} if self.__key_type == "API_KEY" else {"authorization": f"Bearer {self.__api_key}", "content-type": contentType}, data=body)
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "content-type": contentType}, data=body)
         
         if response.status_code == 400: raise InvalidAsset(f"The file is not a decal or is corrupted")
         elif response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
@@ -140,14 +138,14 @@ class Creator():
         elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
         response_op = requests.get(f"https://apis.roblox.com/assets/v1/{response.json()['path']}",
-            headers={"x-api-key": self.__api_key} if self.__key_type == "API_KEY" else {"authorization": f"Bearer {self.__api_key}"})
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
         
         if not response_op.ok:
-            return PendingAsset(response_op.json()['path'], self.__api_key, self.__key_type, self)
+            return PendingAsset(response_op.json()['path'], self.__api_key, self)
         else:
             info = response_op.json()
             if not info.get("done"):
-                return PendingAsset(response_op.json()['path'], self.__api_key, self.__key_type, self)
+                return PendingAsset(response_op.json()['path'], self.__api_key, self)
             else:
                 return Asset(info["response"], self)
         
