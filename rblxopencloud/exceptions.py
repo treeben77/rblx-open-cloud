@@ -24,3 +24,4 @@ class PreconditionFailed(rblx_opencloudException):
         self.info: Optional[EntryInfo] = info
         super().__init__(*args)
 class InvalidAsset(rblx_opencloudException): pass
+class ModeratedText(rblx_opencloudException): pass

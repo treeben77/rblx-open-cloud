@@ -1,4 +1,4 @@
-from .exceptions import *
+from .exceptions import InvalidAsset, InvalidKey, ModeratedText, rblx_opencloudException, RateLimited, ServiceUnavailable
 import requests, json, io
 from typing import Union, Optional, TYPE_CHECKING
 import urllib3
@@ -103,7 +103,11 @@ class Creator():
         response = requests.post(f"https://apis.roblox.com/assets/v1/assets",
             headers={"x-api-key": self.__api_key, "content-type": contentType}, data=body)
         
-        if response.status_code == 400: raise InvalidAsset(f"The file is not a supported type, or is corrupted")
+        print(response.status_code, response.text)
+        
+        if response.status_code == 400 and response.json()["message"] == "\"InvalidImage\"": raise InvalidAsset(f"The file is not a supported type, or is corrupted")
+        elif response.status_code == 400 and response.json()["message"] == "AssetName is moderated.": raise ModeratedText(f"The asset's name was moderated.")
+        elif response.status_code == 400 and response.json()["message"] == "AssetDescription is moderated.": raise ModeratedText(f"The asset's description was moderated.")
         elif response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
@@ -131,7 +135,9 @@ class Creator():
         response = requests.patch(f"https://apis.roblox.com/assets/v1/assets/{asset_id}",
             headers={"x-api-key": self.__api_key, "content-type": contentType}, data=body)
         
-        if response.status_code == 400: raise InvalidAsset(f"The file is not a decal or is corrupted")
+        if response.status_code == 400 and response.json()["message"] == "\"InvalidImage\"": raise InvalidAsset(f"The file is not a supported type, or is corrupted")
+        elif response.status_code == 400 and response.json()["message"] == "AssetName is moderated.": raise ModeratedText(f"The asset's name was moderated.")
+        elif response.status_code == 400 and response.json()["message"] == "AssetDescription is moderated.": raise ModeratedText(f"The asset's description was moderated.")
         elif response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")

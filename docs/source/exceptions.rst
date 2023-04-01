@@ -42,3 +42,7 @@ Exceptions
 .. exception:: InvalidAsset()
 
    The asset you upload is the wrong type, or is corrupted.
+
+.. exception:: ModeratedText()
+
+   Text in the request was filtered by Roblox.
