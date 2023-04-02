@@ -28,4 +28,5 @@ class InsufficientScope(InvalidKey):
     def __init__(self, scope, *args: object) -> None:
         self.required_scope: str = scope
         super().__init__(*args)
+class InvalidCode(InvalidKey): pass
 class InvalidAsset(rblx_opencloudException): pass

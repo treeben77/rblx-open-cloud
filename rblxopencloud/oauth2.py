@@ -1,4 +1,4 @@
-from .exceptions import rblx_opencloudException, InvalidKey, ServiceUnavailable, InsufficientScope
+from .exceptions import rblx_opencloudException, InvalidKey, ServiceUnavailable, InsufficientScope, InvalidCode
 from urllib import parse
 import requests, datetime, time
 from typing import Optional, Union, TYPE_CHECKING
@@ -166,7 +166,8 @@ class OAuth2App():
                 except(Exception): pass
 
         if response.ok: return AccessToken(self, response.json(), id_token)
-        elif response.status_code == 400: raise InvalidKey("The code, client id, client secret, or redirect uri is invalid.")
+        elif response.status_code == 400: raise InvalidKey("The client id, client secret, or redirect uri is invalid.")
+        elif response.status_code == 401: raise InvalidCode("The code is invalid, or has been used.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
