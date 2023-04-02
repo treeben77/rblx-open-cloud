@@ -43,6 +43,10 @@ Exceptions
 
    The asset you upload is the wrong type, or is corrupted.
 
+   .. versionadded:: 1.1
+
 .. exception:: ModeratedText()
 
    Text in the request was filtered by Roblox.
+
+   .. versionadded:: 1.3
