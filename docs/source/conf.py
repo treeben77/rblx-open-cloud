@@ -6,8 +6,8 @@ project = 'rblx-open-cloud'
 copyright = '2022, TreeBen77'
 author = 'TreeBen77'
 
-release = '0.3'
-version = '0.3.1'
+release = '1.2'
+version = '1.2.0'
 
 # -- General configuration
 

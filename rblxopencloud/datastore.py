@@ -1,7 +1,10 @@
 from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable, PreconditionFailed
 import requests, json, datetime
+import base64, hashlib, urllib.parse
 from typing import Union, Optional, Iterable, TYPE_CHECKING
-import base64, hashlib
+
+if TYPE_CHECKING:
+    from .experience import Experience
 
 if TYPE_CHECKING:
     from .experience import Experience
@@ -10,7 +13,9 @@ __all__ = (
     "EntryInfo",
     "EntryVersion",
     "ListedEntry",
-    "DataStore"
+    "DataStore",
+    "SortedEntry",
+    "OrderedDataStore"
 )
 
 class EntryInfo():
@@ -308,6 +313,154 @@ class DataStore():
             
             return json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
                 response.headers["roblox-entry-version-created-time"], userids, metadata)
+        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
+        elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
+        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
+        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+
+class SortedEntry():
+    def __init__(self, key: str, value: int, scope: str="global") -> None:
+        self.key: str = key
+        self.scope: str = scope
+        self.value: int = value
+    
+    def __eq__(self, object) -> bool:
+        if not isinstance(object, SortedEntry):
+            return NotImplemented
+        return self.key == object.key and self.scope == object.scope and self.value == object.value
+    
+    def __repr__(self) -> str:
+        return f"rblxopencloud.SortedEntry(\"{self.key}\", value={self.value})"
+
+class OrderedDataStore():
+    def __init__(self, name, experince, api_key, scope):
+        self.name = name
+        self.__api_key = api_key
+        self.scope = scope
+        self.experince = experince
+    
+    def __repr__(self) -> str:
+        return f"rblxopencloud.OrderedDataStore(\"{self.name}\", scope=\"{self.scope}\", experince={repr(self.experince)})"
+    
+    def __str__(self) -> str:
+        return self.name
+    
+    def sort_keys(self, descending: bool=True, limit: Union[None, int]=None, min=None, max=None) -> Iterable[SortedEntry]:
+        if not self.scope: raise ValueError("A scope is required to list keys on OrderedDataStore.")
+
+        filter = None
+        if min and max:
+            if min > max: raise ValueError("min must not be greater than max.")
+            filter = f"entry >= {min} && entry <= {max}"
+
+        if min: filter = f"entry >= {min}"
+        if max: filter = f"entry <= {max}"
+
+        nextcursor = ""
+        yields = 0
+        while limit == None or yields < limit:
+            response = requests.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(self.scope)}/entries",
+                headers={"x-api-key": self.__api_key}, params={
+                "max_page_size": limit if limit and limit < 100 else 100,
+                "order_by": "desc" if descending else None,
+                "page_token": nextcursor if nextcursor else None,
+                "filter": filter
+            })
+            if response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
+            elif response.status_code == 404: raise NotFound("The datastore you're trying to access does not exist.")
+            elif response.status_code == 429: raise RateLimited("You're being rate limited.")
+            elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+            
+            data = response.json()
+            for key in data["entries"]:
+                yields += 1
+                yield SortedEntry(key["id"], key["value"], self.scope)
+                if limit != None and yields >= limit: break
+            nextcursor = data.get("nextPageToken")
+            if not nextcursor: break
+    
+    def get(self, key: str) -> int:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            else: scope = self.scope
+        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+
+        response = requests.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+            headers={"x-api-key": self.__api_key})
+        
+        if response.status_code == 200: return int(response.json()["value"])
+        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
+        elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
+        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
+        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+        
+    def set(self, key: str, value: int, exclusive_create: bool=False, exclusive_update: bool=False) -> int:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            else: scope = self.scope
+        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+        if exclusive_create and exclusive_update: raise ValueError("exclusive_create and exclusive_updated can not both be True")
+
+        if not exclusive_create:
+            response = requests.patch(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+                headers={"x-api-key": self.__api_key}, params={"allow_missing": not exclusive_update}, json={
+                    "value": value
+                })
+        else:
+            response = requests.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
+                headers={"x-api-key": self.__api_key}, params={"id": key}, json={
+                    "value": value
+                })
+        
+        if exclusive_create and response.status_code == 400 and response.json()["code"] == "INVALID_ARGUMENT":
+            raise PreconditionFailed(None, None, f"An entry already exists with the provided key and scope")
+        elif response.status_code == 200: return int(response.json()["value"])
+        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
+        elif response.status_code in [404, 409]:
+            if exclusive_create:
+                error = "An entry already exists with the provided key and scope"
+            elif exclusive_update:
+                error = "There is no pre-existing entry with the provided key"
+            else:
+                error = "A Precondition Failed"
+
+            raise PreconditionFailed(None, None, error)
+        if response.status_code == 429: raise RateLimited("You're being rate limited.")
+        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+    
+    def increment(self, key: str, increment: int) -> None:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            else: scope = self.scope
+        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+
+        response = requests.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}:increment",
+            headers={"x-api-key": self.__api_key}, json={
+                "amount": increment
+            })
+        
+        if response.status_code == 200: return int(response.json()["value"])
+        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
+        elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
+        elif response.status_code == 409 and response.json()["code"] == 10: raise ValueError("New value can't be less than 0.")
+        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
+        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+
+    def remove(self, key: str) -> None:
+        try:
+            if not self.scope: scope, key = key.split("/", maxsplit=1)
+            else: scope = self.scope
+        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+
+        response = requests.delete(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+            headers={"x-api-key": self.__api_key})
+        
+        if response.status_code == 200: return None
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
         elif response.status_code == 429: raise RateLimited("You're being rate limited.")
