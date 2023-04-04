@@ -3,6 +3,7 @@ from urllib import parse
 import requests, datetime, time
 from typing import Optional, Union, TYPE_CHECKING
 from .user import User
+from .group import Group
 from .experience import Experience
 import requests, base64, jwt
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -30,6 +31,14 @@ class AccessTokenInfo():
     def __repr__(self) -> str:
         return f"rblxopencloud.AccessTokenInfo(id={self.id}, user_id={self.user_id})"
 
+class Resources():
+    def __init__(self, experiences, creators):
+        self.experiences: list[Experience] = experiences
+        self.creators: list[Union[User, Group]] = creators
+    
+    def __repr__(self) -> str:
+        return f"rblxopencloud.Resources(experiences={self.experiences}, creators={self.creators})"
+
 class PartialAccessToken():
     def __init__(self, client, access_token) -> None:
         self.client: OAuth2App = client
@@ -55,7 +64,7 @@ class PartialAccessToken():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
-    def fetch_experiences(self) -> list[Experience]:
+    def fetch_resources(self) -> Resources:
         response = requests.post("https://apis.roblox.com/oauth/v1/token/resources", data={
             "token": self.token,
             "client_id": self.client.id,
@@ -70,14 +79,28 @@ class PartialAccessToken():
         elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
         experiences = []
+        creators = []
+
         for resource in response.json()["resource_infos"]:
             owner = resource["owner"]
             for experience_id in resource["resources"]["universe"]["ids"]:
                 experience = Experience(experience_id, f"Bearer {self.token}")
                 if owner["type"] == "User":
                     experience.owner = User(owner["id"], f"Bearer {self.token}")
+                elif owner["type"] == "Group":
+                    experience.owner = Group(owner["id"], f"Bearer {self.token}")
                 experiences.append(experience)
-        return experiences
+
+            if owner["type"] == "User":
+                for creator_id in resource["resources"]["creator"]["ids"]:
+                    if creator_id == "U":
+                        creators.append(User(owner["id"], f"Bearer {self.token}"))
+                    elif creator_id.startswith("U"):
+                        creators.append(User(creator_id[1:], f"Bearer {self.token}"))
+                    elif creator_id.startswith("G"):
+                        creators.append(Group(creator_id[1:], f"Bearer {self.token}"))
+
+        return Resources(experiences=experiences, creators=creators)
 
     def fetch_token_info(self) -> AccessTokenInfo:
         response = requests.post("https://apis.roblox.com/oauth/v1/token/introspect", data={

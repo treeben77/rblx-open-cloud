@@ -49,15 +49,24 @@ This will return a `User` object with the following attributes:
 - display_name - str, requires `openid` and `profile`
 - profile_uri - int, requires `openid`
 - created_at - datetime, requires `openid` and `profile`
-### Fetching experiences
-If you use a scope that gives experience access, you'll have to fetch the experiences. This will return a list of `Experience` ([this is actually documented!](https://rblx-open-cloud.readthedocs.io/en/latest/experience/#rblx-open-cloud.Experience))
-```py
-experiences = access.fetch_experiences()
-```
+
+### Fetching resources
+If you use a scope that gives experience, group, or user access, you'll have to fetch the resources using `access.fetch_resources`. This will return a Resources object which has two attributes:
+- experiences - list of ([Experience](https://rblx-open-cloud.readthedocs.io/en/latest/experience/#rblx-open-cloud.Experience))
+- creators - list of ([User](https://rblx-open-cloud.readthedocs.io/en/latest/user/#rblx-open-cloud.User)) and ([Group](https://rblx-open-cloud.readthedocs.io/en/latest/group/#rblx-open-cloud.Group))
+*all above types are already documented, because they're in the main library and can also be accessed with api keys!*
+
 Here's an example to publish a message to the first experience in the list:
 ```py
-experiences = access.fetch_experiences()
-experiences[0].publish_message("topic", "string-message")
+resources = access.fetch_resources()
+resources.experiences[0].publish_message("topic", "string-message")
+```
+
+Here's an example to upload an image to the first creator in the list:
+```py
+resources = access.fetch_resources()
+with open("path-to/file-object.png", "rb") as file:
+    resources.creators[0].upload_asset(file, rblxopencloud.AssetType.Decal, "name", "description")
 ```
 
 ### Refreshing a token
