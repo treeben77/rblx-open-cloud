@@ -52,8 +52,9 @@ This will return a `User` object with the following attributes:
 
 ### Fetching resources
 If you use a scope that gives experience, group, or user access, you'll have to fetch the resources using `access.fetch_resources`. This will return a Resources object which has two attributes:
-- experiences - list of ([Experience](https://rblx-open-cloud.readthedocs.io/en/latest/experience/#rblx-open-cloud.Experience))
-- creators - list of ([User](https://rblx-open-cloud.readthedocs.io/en/latest/user/#rblx-open-cloud.User)) and ([Group](https://rblx-open-cloud.readthedocs.io/en/latest/group/#rblx-open-cloud.Group))
+- experiences - list of [Experience](https://rblx-open-cloud.readthedocs.io/en/latest/experience/#rblx-open-cloud.Experience)
+- creators - list of [User](https://rblx-open-cloud.readthedocs.io/en/latest/user/#rblx-open-cloud.User) and [Group](https://rblx-open-cloud.readthedocs.io/en/latest/group/#rblx-open-cloud.Group)
+
 *all above types are already documented, because they're in the main library and can also be accessed with api keys!*
 
 Here's an example to publish a message to the first experience in the list:
