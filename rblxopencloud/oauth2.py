@@ -32,12 +32,12 @@ class AccessTokenInfo():
         return f"rblxopencloud.AccessTokenInfo(id={self.id}, user_id={self.user_id})"
 
 class Resources():
-    def __init__(self, experiences, creators):
+    def __init__(self, experiences, accounts):
         self.experiences: list[Experience] = experiences
-        self.creators: list[Union[User, Group]] = creators
+        self.accounts: list[Union[User, Group]] = accounts
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.Resources(experiences={self.experiences}, creators={self.creators})"
+        return f"rblxopencloud.Resources(experiences={self.experiences}, accounts={self.accounts})"
 
 class PartialAccessToken():
     def __init__(self, client, access_token) -> None:
@@ -79,7 +79,7 @@ class PartialAccessToken():
         elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
         experiences = []
-        creators = []
+        accounts = []
 
         for resource in response.json()["resource_infos"]:
             owner = resource["owner"]
@@ -94,13 +94,13 @@ class PartialAccessToken():
             if owner["type"] == "User":
                 for creator_id in resource["resources"]["creator"]["ids"]:
                     if creator_id == "U":
-                        creators.append(User(owner["id"], f"Bearer {self.token}"))
+                        accounts.append(User(owner["id"], f"Bearer {self.token}"))
                     elif creator_id.startswith("U"):
-                        creators.append(User(creator_id[1:], f"Bearer {self.token}"))
+                        accounts.append(User(creator_id[1:], f"Bearer {self.token}"))
                     elif creator_id.startswith("G"):
-                        creators.append(Group(creator_id[1:], f"Bearer {self.token}"))
+                        accounts.append(Group(creator_id[1:], f"Bearer {self.token}"))
 
-        return Resources(experiences=experiences, creators=creators)
+        return Resources(experiences=experiences, accounts=accounts)
 
     def fetch_token_info(self) -> AccessTokenInfo:
         response = requests.post("https://apis.roblox.com/oauth/v1/token/introspect", data={
