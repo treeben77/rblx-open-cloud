@@ -11,6 +11,7 @@ __all__ = (
     "ServiceUnavailable",
     "PreconditionFailed",
     "InvalidAsset",
+    "ModeratedText"
 )
 
 class rblx_opencloudException(Exception): pass
