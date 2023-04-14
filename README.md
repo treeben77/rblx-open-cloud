@@ -1,8 +1,10 @@
 # rblx-open-cloud
  
-Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-cloud/index).
+Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-cloud/index), it currently has 100% API coverage and I plan to add all new Open Cloud additions to the library.
 
 **Documentation: https://rblx-open-cloud.readthedocs.io**
+
+**Devforum Post: https://devforum.roblox.com/t/1991959**
 
 **Discord Server: https://discord.gg/gEBdHNAR46**
 
@@ -20,7 +22,6 @@ Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-c
 You've got the basics down, below are examples for some of the APIs.
 
 ### Accessing Data Stores
-**NOTE: Roblox doesn't support access to ordered data stores via open cloud yet.**
 ```py
 import rblxopencloud
 
