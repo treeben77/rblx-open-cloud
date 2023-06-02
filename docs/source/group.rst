@@ -22,6 +22,8 @@ Group
 
         Uploads an asset onto Roblox.
 
+        The `asset:read` and `assets:write` scopes are required if authorized via :ref:`OAuth2 <oauth2>`.
+
         .. versionchanged:: 1.3
             It can now raise :class:`rblx-open-cloud.ModeratedText` if the name or description is invalid. It used to raise :class:`rblx-open-cloud.InvalidAsset`.
       
@@ -42,6 +44,8 @@ Group
         .. danger::
 
             Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
+
+            For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`.
         
         .. note::
             

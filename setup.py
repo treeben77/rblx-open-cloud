@@ -23,6 +23,8 @@ setup(
     url='https://github.com/TreeBen77/rblx-open-cloud',
     keywords='roblox, open-cloud, data-store, place-publishing, mesageing-service',
     install_requires=[
-        'requests'
+        'requests',
+        'cryptography',
+        'jwt'
     ]
 )

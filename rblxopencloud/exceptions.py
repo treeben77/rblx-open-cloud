@@ -10,6 +10,7 @@ __all__ = (
     "RateLimited",
     "ServiceUnavailable",
     "PreconditionFailed",
+    "InsufficientScope",
     "InvalidAsset",
     "ModeratedText"
 )
@@ -24,5 +25,10 @@ class PreconditionFailed(rblx_opencloudException):
         self.value: Optional[Union[str, dict, list, int, float]] = value
         self.info: Optional[EntryInfo] = info
         super().__init__(*args)
+class InsufficientScope(InvalidKey):
+    def __init__(self, scope, *args: object) -> None:
+        self.required_scope: str = scope
+        super().__init__(*args)
+class InvalidCode(InvalidKey): pass
 class InvalidAsset(rblx_opencloudException): pass
 class ModeratedText(rblx_opencloudException): pass

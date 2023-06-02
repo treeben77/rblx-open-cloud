@@ -136,6 +136,7 @@ Table of Contents
    experience
    user
    group
+   oauth2
    datastore
    creator
    exceptions

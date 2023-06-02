@@ -1,7 +1,6 @@
 from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable
 import requests, io
-
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Literal
 from .datastore import DataStore, OrderedDataStore
 
 __all__ = (
@@ -11,6 +10,7 @@ __all__ = (
 class Experience():
     def __init__(self, id: int, api_key: str):
         self.id: int = id
+        self.owner = None
         self.__api_key: str = api_key
     
     def __repr__(self) -> str:
@@ -61,9 +61,11 @@ class Experience():
     def publish_message(self, topic:str, data:str):
         """
         Publishes a message to live game servers that can be recieved with [MessagingService](https://create.roblox.com/docs/reference/engine/classes/MessagingService).
+
+        The `universe-messaging-service:publish` scope is required if authentication is from OAuth2.
         """
         response = requests.post(f"https://apis.roblox.com/messaging-service/v1/universes/{self.id}/topics/{topic}",
-            headers={"x-api-key": self.__api_key}, json={"message": data})
+        json={"message": data}, headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
         if response.status_code == 200: return
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 404: raise NotFound(f"The place does not exist.")
