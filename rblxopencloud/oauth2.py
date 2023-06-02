@@ -26,7 +26,6 @@ class AccessTokenInfo():
         self.scope: list[str] = data["scope"].split(" ")
         self.expires_at: datetime.datetime = datetime.datetime.fromtimestamp(data["exp"])
         self.issued_at: datetime.datetime = datetime.datetime.fromtimestamp(data["iat"])
-        self.raw: dict = data
     
     def __repr__(self) -> str:
         return f"rblxopencloud.AccessTokenInfo(id={self.id}, user_id={self.user_id})"
@@ -40,8 +39,8 @@ class Resources():
         return f"rblxopencloud.Resources(experiences={self.experiences}, accounts={self.accounts})"
 
 class PartialAccessToken():
-    def __init__(self, client, access_token) -> None:
-        self.client: OAuth2App = client
+    def __init__(self, app, access_token) -> None:
+        self.app: OAuth2App = app
         self.token: str = access_token
     
     def __repr__(self) -> str:
@@ -67,8 +66,8 @@ class PartialAccessToken():
     def fetch_resources(self) -> Resources:
         response = requests.post("https://apis.roblox.com/oauth/v1/token/resources", data={
             "token": self.token,
-            "client_id": self.client.id,
-            "client_secret": self.client._OAuth2App__secret
+            "client_id": self.app.id,
+            "client_secret": self.app._OAuth2App__secret
         })
 
         if response.status_code == 401:
@@ -105,8 +104,8 @@ class PartialAccessToken():
     def fetch_token_info(self) -> AccessTokenInfo:
         response = requests.post("https://apis.roblox.com/oauth/v1/token/introspect", data={
             "token": self.token,
-            "client_id": self.client.id,
-            "client_secret": self.client._OAuth2App__secret
+            "client_id": self.app.id,
+            "client_secret": self.app._OAuth2App__secret
         })
         
         if response.ok: return AccessTokenInfo(response.json())
@@ -118,15 +117,14 @@ class PartialAccessToken():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
     def revoke(self):
-        self.client.revoke_token(self.token)
+        self.app.revoke_token(self.token)
 
 class AccessToken(PartialAccessToken):
-    def __init__(self, client, payload, id_token) -> None:
-        super().__init__(client, payload["access_token"])
+    def __init__(self, app, payload, id_token) -> None:
+        super().__init__(app, payload["access_token"])
         self.refresh_token: str = payload["refresh_token"]
         self.scope: list[str] = payload["scope"].split(" ")
         self.expires_at: datetime = datetime.datetime.now() + datetime.timedelta(payload["expires_in"])
-        self.id_token: Optional[dict] = id_token
         if id_token:
             self.user: Optional[User] = User(id_token.get("id") or id_token.get("sub"), f"Bearer {self.token}")
             self.user.username: str = id_token.get("preferred_username")
@@ -138,12 +136,12 @@ class AccessToken(PartialAccessToken):
         return f"rblxopencloud.AccessToken(token={self.token[:15]}..., user={self.user})"
     
     def revoke_refresh_token(self):
-        self.client.revoke_token(self.refresh_token)
+        self.app.revoke_token(self.refresh_token)
 
 class OAuth2App():
     def __init__(self, id: int, secret: str, redirect_uri: str, openid_certs_cache_seconds: int = 3600):
         self.id: int = id
-        self.redirect_uri: int = redirect_uri
+        self.redirect_uri: str = redirect_uri
         self.__secret: str = secret
 
         self.openid_certs_cache_seconds: int = openid_certs_cache_seconds
@@ -186,7 +184,7 @@ class OAuth2App():
                 try:
                     id_token = jwt.decode(response.json()["id_token"], cert,  algorithms=['ES256'], audience=str(self.id))
                     break
-                except(Exception): pass
+                except(jwt.exceptions.PyJWTError): pass
 
         if response.ok: return AccessToken(self, response.json(), id_token)
         elif response.status_code == 400: raise InvalidKey("The client id, client secret, or redirect uri is invalid.")

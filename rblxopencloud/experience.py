@@ -61,6 +61,8 @@ class Experience():
     def publish_message(self, topic:str, data:str):
         """
         Publishes a message to live game servers that can be recieved with [MessagingService](https://create.roblox.com/docs/reference/engine/classes/MessagingService).
+
+        The `universe-messaging-service:publish` scope is required if authentication is from OAuth2.
         """
         response = requests.post(f"https://apis.roblox.com/messaging-service/v1/universes/{self.id}/topics/{topic}",
         json={"message": data}, headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})

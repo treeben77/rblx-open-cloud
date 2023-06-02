@@ -9,6 +9,9 @@ User
 
     .. versionadded:: 1.1
 
+    .. versionchanged:: 1.3
+        Added ``username``, ``display_name`` and ``created_at`` attributes which default to ``None``, unless it is from :ref:`OAuth2 <oauth2>`. Added ``profile_uri`` attribute which is always avaliable.
+
     :param int id: Your user ID. It appears in your profile URL
     :param str api_key: An API key created from `Creator Dashboard <https://create.roblox.com/credentials>`__. *this should be kept safe, as anyone with the key can use it!*
 
@@ -18,9 +21,35 @@ User
 
         :type: int
 
+    .. attribute:: username 
+
+        The user's username. This will always be ``None``, unless it is from :ref:`OAuth2 <oauth2>`
+
+        :type: Optional[str]
+
+    .. attribute:: display_name 
+
+        The user's display name. This will always be ``None``, unless it is from :ref:`OAuth2 <oauth2>`
+
+        :type: Optional[str]
+
+    .. attribute:: created_at 
+
+        The time when user's account was created. This will always be ``None``, unless it is from :ref:`OAuth2 <oauth2>`
+
+        :type: datetime.datetime
+
+    .. attribute:: profile_uri 
+
+        A link to the user's profile.
+
+        :type: str
+
     .. method:: upload_asset(file, asset_type, name, description, expected_robux_price=0)
 
         Uploads an asset onto Roblox.
+
+        The `asset:read` and `assets:write` scopes are required if authorized via :ref:`OAuth2 <oauth2>`.
 
         .. versionchanged:: 1.3
             It can now raise :class:`rblx-open-cloud.ModeratedText` if the name or description is invalid. It used to raise :class:`rblx-open-cloud.InvalidAsset`.
@@ -42,6 +71,8 @@ User
         .. danger::
 
             Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
+
+            For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`.
         
         .. note::
             

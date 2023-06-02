@@ -3,3 +3,6 @@ __pycache__/
 rblx_open_cloud.egg-info/
 dist/
 rblxopencloud/__pycache__/
+.vscode/*
+*.env
+tests/
