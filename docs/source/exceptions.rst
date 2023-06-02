@@ -7,7 +7,7 @@ Exceptions
 
    Base exception for the library, raised when the library recieves an unexpected HTTP code.
 
-.. exception:: InvalidToken()
+.. exception:: InvalidKey()
 
    The api key is invalid or doesn't have sufficent permissions to do the requested task.
 
@@ -50,3 +50,21 @@ Exceptions
    Text in the request was filtered by Roblox.
 
    .. versionadded:: 1.3
+
+.. exception:: InvalidCode()
+
+   The oauth2 code/access token/refresh token is invalid.
+
+   .. versionadded:: 1.3
+
+.. exception:: InsufficientScope()
+
+   The oauth2 authorization doesn't have the required scope.
+
+   .. versionadded:: 1.3
+
+   .. attribute:: scope 
+
+         space-seperated string of scopes Roblox expected.
+
+         :type: str
