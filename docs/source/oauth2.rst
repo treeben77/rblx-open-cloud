@@ -22,7 +22,7 @@ OAuth2
       
    .. attribute:: redirect_uri 
 
-      The app's redirect_uri.
+      The app's redirect uri.
 
       :type: str
 
@@ -223,7 +223,7 @@ OAuth2
 
         :type: list[rblx-open-cloud.Experience]
     
-    .. attribute:: experiences
+    .. attribute:: accounts
 
         A list of accounts (users and groups) authorized for the account scopes.
 

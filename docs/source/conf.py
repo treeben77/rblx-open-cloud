@@ -3,11 +3,11 @@
 # -- Project information
 
 project = 'rblx-open-cloud'
-copyright = '2022, TreeBen77'
+copyright = '2022-2023 TreeBen77'
 author = 'TreeBen77'
 
-release = '1.2'
-version = '1.2.0'
+release = '1.3'
+version = '1.3.0'
 
 # -- General configuration
 

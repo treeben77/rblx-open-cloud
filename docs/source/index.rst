@@ -41,9 +41,6 @@ Getting Started
 Accessing Data Stores
 ~~~~~~~~~~~~~~~~~~~~~
 
-**NOTE: Roblox doesn't support access to ordered data stores via open
-cloud at the moment.**
-
 .. code:: py
 
    # get the data store, using the data store name and scope (defaults to global)
@@ -82,9 +79,6 @@ this.**
 
 Publish or Save a ``.rbxl`` File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**NOTE:**\ `Place Publishing <#publish-or-save-a-rbxl-file>`__\ **isn't
-included in this example due to it requiring an ``.rbxl`` file.**
 
 .. code:: py
 

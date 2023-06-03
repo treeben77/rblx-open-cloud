@@ -3,7 +3,7 @@ Group
 
 .. currentmodule:: rblx-open-cloud
 
-.. class:: User()
+.. class:: Group()
 
     Class for interacting with the API for a specific group.
 
@@ -22,7 +22,7 @@ Group
 
         Uploads an asset onto Roblox.
 
-        The `asset:read` and `assets:write` scopes are required if authorized via :ref:`OAuth2 <oauth2>`.
+        The ``asset:read`` and ``assets:write`` scopes are required if authorized via `OAuth2 <oauth2>`__.
 
         .. versionchanged:: 1.3
             It can now raise :class:`rblx-open-cloud.ModeratedText` if the name or description is invalid. It used to raise :class:`rblx-open-cloud.InvalidAsset`.
@@ -45,7 +45,7 @@ Group
 
             Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
 
-            For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`.
+            For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`__.
         
         .. note::
             
@@ -54,6 +54,8 @@ Group
     .. method:: update_asset(asset_id, file)
 
         Updates an existing asset on Roblox.
+
+        The ``asset:read`` and ``assets:write`` scopes are required if authorized via `OAuth2 <oauth2>`__.
 
         .. versionchanged:: 1.3
             It can now raise :class:`rblx-open-cloud.ModeratedText` if the name or description is invalid. It used to raise :class:`rblx-open-cloud.InvalidAsset`.
@@ -72,6 +74,8 @@ Group
         .. danger::
 
             Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
+
+            For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`__.
 
         .. note::
             

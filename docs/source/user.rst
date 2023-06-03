@@ -49,7 +49,7 @@ User
 
         Uploads an asset onto Roblox.
 
-        The `asset:read` and `assets:write` scopes are required if authorized via :ref:`OAuth2 <oauth2>`.
+        The ``asset:read`` and ``assets:write`` scopes are required if authorized via `OAuth2 <oauth2>`__.
 
         .. versionchanged:: 1.3
             It can now raise :class:`rblx-open-cloud.ModeratedText` if the name or description is invalid. It used to raise :class:`rblx-open-cloud.InvalidAsset`.
@@ -72,7 +72,7 @@ User
 
             Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
 
-            For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`.
+            For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`__.
         
         .. note::
             
@@ -81,6 +81,8 @@ User
     .. method:: update_asset(asset_id, file)
 
         Updates an existing asset on Roblox.
+
+        The ``asset:read`` and ``assets:write`` scopes are required if authorized via `OAuth2 <oauth2>`__.
 
         .. versionchanged:: 1.3
             It can now raise :class:`rblx-open-cloud.ModeratedText` if the name or description is invalid. It used to raise :class:`rblx-open-cloud.InvalidAsset`.
@@ -95,6 +97,16 @@ User
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's servers are currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+
+        .. danger::
+
+            Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
+
+            For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`__.
+
+        .. note::
+            
+            Only ``Model`` (as ``fbx``) can be updated right now.
 
         .. danger::
 
