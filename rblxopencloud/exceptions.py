@@ -12,7 +12,7 @@ __all__ = (
     "PreconditionFailed",
     "InsufficientScope",
     "InvalidAsset",
-    "InvalidCode"
+    "InvalidCode",
     "ModeratedText"
 )
 
