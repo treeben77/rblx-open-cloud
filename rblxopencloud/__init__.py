@@ -8,7 +8,7 @@ from .creator import *
 
 from typing import Literal
 
-VERSION: str = "1.3.0"
+VERSION: str = "1.3.1"
 VERSION_INFO: Literal['alpha', 'beta', 'final'] = "final"
 
 del Literal
