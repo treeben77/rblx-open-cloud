@@ -74,7 +74,7 @@ Experience
 
          Publishes a message to live game servers that can be recieved with `MessagingService <https://create.roblox.com/docs/reference/engine/classes/MessagingService>`__.
 
-         The ``universe-messaging-service:publish`` scope is required if authorized via `OAuth2 <oauth2>`__.
+         The ``universe-messaging-service:publish`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
          Lua equivalent: `MessagingService:PublishAsync() <https://create.roblox.com/docs/reference/engine/classes/MessagingService#PublishAsync>`__
 

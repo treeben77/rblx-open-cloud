@@ -22,7 +22,7 @@ Group
 
         Uploads an asset onto Roblox.
 
-        The ``asset:read`` and ``assets:write`` scopes are required if authorized via `OAuth2 <oauth2>`__.
+        The ``asset:read`` and ``asset:write`` scopes are required if authorized via `OAuth2 </oauth2>`__.
 
         .. versionchanged:: 1.3
             It can now raise :class:`rblx-open-cloud.ModeratedText` if the name or description is invalid. It used to raise :class:`rblx-open-cloud.InvalidAsset`.
@@ -55,7 +55,7 @@ Group
 
         Updates an existing asset on Roblox.
 
-        The ``asset:read`` and ``assets:write`` scopes are required if authorized via `OAuth2 <oauth2>`__.
+        The ``asset:read`` and ``asset:write`` scopes are required if authorized via `OAuth2 </oauth2>`__.
 
         .. versionchanged:: 1.3
             It can now raise :class:`rblx-open-cloud.ModeratedText` if the name or description is invalid. It used to raise :class:`rblx-open-cloud.InvalidAsset`.
