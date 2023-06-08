@@ -1,4 +1,6 @@
 from .exceptions import UnknownEventType, UndefinedEventType
+from .user import User
+from .experience import Experience
 
 from typing import Optional, Union, Callable
 import hashlib
@@ -10,7 +12,9 @@ import json
 
 __all__ = (
     "Webhook",
-    "Notification"
+    "Notification",
+    "TestNotification",
+    "RightToErasureRequestNotification"
 )
 
 EVENT_TYPES = {
@@ -19,8 +23,8 @@ EVENT_TYPES = {
 }
 
 class Webhook():
-    def __init__(self, secret: Optional[Union[str, bytes]], api_key=Optional[str]) -> None:
-        self.secret: Optional[bytes] = secret if type(secret) == bytes else secret.encode()
+    def __init__(self, secret: Optional[Union[str, bytes]] = None, api_key: Optional[str]=None) -> None:
+        self.secret: Optional[bytes] = secret if type(secret) == bytes or secret == None else secret.encode()
         self.__api_key: Optional[str] = api_key
         self.__events: list[Callable] = {}
         self.__on_error: Optional[Callable] = None
@@ -45,11 +49,16 @@ class Webhook():
 
         body = json.loads(body)
 
-        notification = Notification(body)
+        notification = Notification(body, self, self.__api_key)
 
         try:
             event_type = EVENT_TYPES.get(body["EventType"])
             if not event_type: raise UnknownEventType(f"Unkown webhook event type '{event_type}'")
+
+            if event_type == "on_test":
+                notification = TestNotification(body, self, self.__api_key)
+            elif event_type == "on_right_to_erasure_request":
+                notification = RightToErasureRequestNotification(body, self, self.__api_key)
 
             function = self.__events.get(event_type)
             if not function: raise UndefinedEventType(f"'{event_type}' is not a defined event.")
@@ -74,6 +83,31 @@ class Webhook():
         return func
 
 class Notification():
-    def __init__(self, body):
+    def __init__(self, body, webhook, api_key):
         self.notification_id: str = body["NotificationId"]
         self.timestamp: datetime = datetime.fromisoformat((body["EventTime"].split("Z")[0]+"0"*6)[0:26])
+        self.webhook: Webhook = webhook
+    
+    def __repr__(self) -> str:
+        return f"Notification(notification_id=\"{self.notification_id}\")"
+
+class TestNotification(Notification):
+    def __init__(self, body, webhook, api_key):
+        super().__init__(body, webhook, api_key)
+        event = body["EventPayload"]
+
+        self.user: User = User(event["UserId"], api_key)
+    
+    def __repr__(self) -> str:
+        return f"TestNotification(notification_id=\"{self.notification_id}\", user={self.user})"
+
+class RightToErasureRequestNotification(Notification):
+    def __init__(self, body, webhook, api_key):
+        super().__init__(body, webhook, api_key)
+        event = body["EventPayload"]
+
+        self.user_id: int = event["UserId"]
+        self.experiences: list[Experience] = [Experience(experience_id, api_key) for experience_id in event["GameIds"]]
+    
+    def __repr__(self) -> str:
+        return f"TestNotification(notification_id=\"{self.notification_id}\", user={self.user})"
