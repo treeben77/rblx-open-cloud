@@ -12,8 +12,10 @@ __all__ = (
     "PreconditionFailed",
     "InsufficientScope",
     "InvalidAsset",
-    "InvalidCode"
-    "ModeratedText"
+    "InvalidCode",
+    "ModeratedText",
+    "UnknownEventType",
+    "UndefinedEventType"
 )
 
 class rblx_opencloudException(Exception): pass
@@ -33,3 +35,6 @@ class InsufficientScope(InvalidKey):
 class InvalidCode(InvalidKey): pass
 class InvalidAsset(rblx_opencloudException): pass
 class ModeratedText(rblx_opencloudException): pass
+
+class UnknownEventType(rblx_opencloudException): pass
+class UndefinedEventType(rblx_opencloudException): pass
