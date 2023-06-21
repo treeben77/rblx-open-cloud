@@ -87,6 +87,7 @@ class Notification():
         self.notification_id: str = body["NotificationId"]
         self.timestamp: datetime = datetime.fromisoformat((body["EventTime"].split("Z")[0]+"0"*6)[0:26])
         self.webhook: Webhook = webhook
+        self.raw_event: dict = body["EventPayload"]
     
     def __repr__(self) -> str:
         return f"Notification(notification_id=\"{self.notification_id}\")"
