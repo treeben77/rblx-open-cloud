@@ -8,6 +8,13 @@ __all__ = (
 )
 
 class Experience():
+    """
+    Represents an experience/game object on Roblox. This class allows interaction with an experience's data stores, messaging service, and uploading place files.
+
+    # Paramaters
+    id: int - The experience's ID (lua syntax: `game.GameId`)
+    api_key: str - The Open Cloud API key with permissions for this experience.
+    """
     def __init__(self, id: int, api_key: str):
         self.id: int = id
         self.owner = None
@@ -17,10 +24,29 @@ class Experience():
         return f"rblxopencloud.Experience({self.id})"
     
     def get_data_store(self, name: str, scope: Optional[str]="global") -> DataStore:
-        """Creates a `rblx-open-cloud.DataStore` without `DataStore.created` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes."""
+        """
+        Creates a `rblx-open-cloud.DataStore` without `DataStore.created` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes.
+        ### Example
+        ```py
+        data_store = Experience.get_data_store(name="playerExperience", scope="global")
+        ```
+        ### Paramaters
+        name: str - The data store name.
+        scope: Optional[str] - The data store scope. Defaults to global, and can be `None` for all scope syntax.
+        """
         return DataStore(name, self, self.__api_key, None, scope)
     
     def get_ordered_data_store(self, name: str, scope: Optional[str]="global") -> OrderedDataStore:
+        """
+        Creates a `rblx-open-cloud.OrderedDataStore` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes.
+        ### Example
+        ```py
+        data_store = Experience.get_ordered_data_store(name="playerWins", scope="global")
+        ```
+        ### Paramaters
+        name: str - The data store name.
+        scope: Optional[str] - The data store scope. Defaults to global, and can be `None` for all scope syntax.
+        """
         return OrderedDataStore(name, self, self.__api_key, scope)
 
     def list_data_stores(self, prefix: str="", limit: Optional[int]=None, scope: str="global") -> Iterable[DataStore]:
