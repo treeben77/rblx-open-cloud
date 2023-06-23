@@ -9,6 +9,7 @@ import requests, base64, jwt
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_der_public_key
 from cryptography.hazmat.backends import default_backend
+import hashlib, string, secrets
 
 __all__ = (
     "OAuth2App",
@@ -28,7 +29,7 @@ class AccessTokenInfo():
         self.issued_at: datetime.datetime = datetime.datetime.fromtimestamp(data["iat"])
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.AccessTokenInfo(id={self.id}, user_id={self.user_id})"
+        return f"rblxopencloud.AccessTokenInfo(id=\"{self.id}\", user_id={self.user_id})"
 
 class Resources():
     def __init__(self, experiences, accounts):
@@ -44,7 +45,7 @@ class PartialAccessToken():
         self.token: str = access_token
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.PartialAccessToken(token={self.token[:15]}...)"
+        return f"rblxopencloud.PartialAccessToken(token=\"{self.token[:15]}...\")"
 
     def fetch_userinfo(self) -> User:
         response = requests.get("https://apis.roblox.com/oauth/v1/userinfo", headers={
@@ -133,7 +134,7 @@ class AccessToken(PartialAccessToken):
         else: self.user: Optional[User] = None
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.AccessToken(token={self.token[:15]}..., user={self.user})"
+        return f"rblxopencloud.AccessToken(token=\"{self.token[:15]}...\", user={self.user})"
     
     def revoke_refresh_token(self):
         self.app.revoke_token(self.refresh_token)
@@ -149,27 +150,33 @@ class OAuth2App():
         self.__openid_certs_cache_updated = None
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.OAuth2App(id={self.id}, redirect_uri={self.redirect_uri})"
+        return f"rblxopencloud.OAuth2App(id={self.id}, redirect_uri=\"{self.redirect_uri}\")"
 
-    def generate_uri(self, scope: Union[str, list[str]], state: Optional[str]=None, generate_code=True) -> str:
+    def generate_code_verifier(self, length: Optional[int]=128):
+        return ''.join(secrets.choice(f"{string.ascii_letters}{string.digits}-._~") for _ in range(length))
+
+    def generate_uri(self, scope: Union[str, list[str]], state: Optional[str]=None, generate_code: Optional[bool]=True, code_verifier: Optional[str] = None) -> str:
         params = {
             "client_id": self.id,
             "scope": " ".join(scope) if type(scope) == list else scope,
             "state": state,
             "redirect_uri": self.redirect_uri,
-            "response_type": "code" if generate_code else "none"
+            "response_type": "code" if generate_code else "none",
+            "code_challenge": base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest()).replace(b"=", b"").decode() if code_verifier else None,
+            "code_challenge_method": "S256" if code_verifier else None
         }
         return f"https://apis.roblox.com/oauth/v1/authorize?{parse.urlencode({key: value for key, value in params.items() if value is not None})}"
 
     def from_access_token_string(self, access_token: str) -> PartialAccessToken:
         return PartialAccessToken(self, access_token)
 
-    def exchange_code(self, code: str) -> AccessToken:
+    def exchange_code(self, code: str, code_verifier: Optional[str]=None) -> AccessToken:
         response = requests.post("https://apis.roblox.com/oauth/v1/token", data={
             "client_id": self.id,
             "client_secret": self.__secret,
             "redirect_uri": self.redirect_uri,
             "grant_type": "authorization_code",
+            "code_verifier": code_verifier,
             "code": code
         })
         id_token = None
@@ -187,8 +194,8 @@ class OAuth2App():
                 except(jwt.exceptions.PyJWTError): pass
 
         if response.ok: return AccessToken(self, response.json(), id_token)
-        elif response.status_code == 400: raise InvalidKey("The client id, client secret, or redirect uri is invalid.")
-        elif response.status_code == 401: raise InvalidCode("The code is invalid, or has been used.")
+        elif response.status_code == 400: raise InvalidKey(response.json().get("error_description", "The client id, client secret, or redirect uri is invalid."))
+        elif response.status_code == 401: raise InvalidCode(response.json().get("error_description", "The code is invalid, or has been used."))
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
@@ -200,7 +207,7 @@ class OAuth2App():
             "refresh_token": refresh_token
         })
         if response.ok: return AccessToken(self, response.json(), None)
-        elif response.status_code == 400: raise InvalidKey("The code, client id, client secret, or redirect uri is invalid.")
+        elif response.status_code == 400: raise InvalidKey(response.json().get("error_description", "The code, client id, client secret, or redirect uri is invalid."))
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
