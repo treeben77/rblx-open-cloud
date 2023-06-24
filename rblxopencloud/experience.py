@@ -1,6 +1,6 @@
 from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable
 import requests, io
-from typing import Optional, Iterable, Literal
+from typing import Optional, Iterable, Literal, Union
 from .datastore import DataStore, OrderedDataStore
 
 __all__ = (
@@ -25,43 +25,53 @@ class Experience():
     
     def get_data_store(self, name: str, scope: Optional[str]="global") -> DataStore:
         """
-        Creates a `rblx-open-cloud.DataStore` without `DataStore.created` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes.
+        Creates a `rblx-open-cloud.DataStore` which allows interaction with a data store from the experience.
+
+        Lua equivalent: [DataStoreService:GetDataStore()](https://create.roblox.com/docs/reference/engine/classes/DataStoreService#GetDataStore)
         ### Example
         ```py
         data_store = Experience.get_data_store(name="playerExperience", scope="global")
         ```
-        ### Paramaters
+        ### Parameters
         name: str - The data store name.
-        scope: Optional[str] - The data store scope. Defaults to global, and can be `None` for all scope syntax.
+        scope: Optional[str] - The data store scope. Defaults to global, and can be `None` for key syntax like `scope/key`.
         """
         return DataStore(name, self, self.__api_key, None, scope)
     
     def get_ordered_data_store(self, name: str, scope: Optional[str]="global") -> OrderedDataStore:
         """
-        Creates a `rblx-open-cloud.OrderedDataStore` with the provided name and scope. If `scope` is `None` then keys require to be formatted like `scope/key` and `DataStore.list_keys` will return keys from all scopes.
+        Creates a `rblx-open-cloud.OrderedDataStore` which allows interaction with an ordered data store from the experience.
+
+        Lua equivalent: [DataStoreService:GetOrderedDataStore()](https://create.roblox.com/docs/reference/engine/classes/DataStoreService#GetOrderedDataStore)
         ### Example
         ```py
         data_store = Experience.get_ordered_data_store(name="playerWins", scope="global")
         ```
-        ### Paramaters
+        ### Parameters
         name: str - The data store name.
-        scope: Optional[str] - The data store scope. Defaults to global, and can be `None` for all scope syntax.
+        scope: Optional[str] - The data store scope. Defaults to global, and can be `None` for key syntax like `scope/key`.
         """
         return OrderedDataStore(name, self, self.__api_key, scope)
 
-    def list_data_stores(self, prefix: str="", limit: Optional[int]=None, scope: str="global") -> Iterable[DataStore]:
-        """Returns an `Iterable` of all `rblx-open-cloud.DataStore` in the Experience which includes `DataStore.created`, optionally matching a prefix. The example below would list all versions, along with their value.
-                
+    def list_data_stores(self, prefix: Optional[str]="", limit: Optional[int]=None, scope: Optional[Union[str, None]]="global") -> Iterable[DataStore]:
+        """
+        Interates rblx-open-cloud.DataStore` for all of the Data Stores in the Experience.
+
+        Lua equivalent: [DataStoreService:ListDataStoresAsync()](https://create.roblox.com/docs/reference/engine/classes/DataStoreService#ListDataStoresAsync)
+        ### Example
         ```py
-            for datastore in experience.list_data_stores():
-                print(datastore)
+        for datastore in experience.list_data_stores():
+            print(datastore)
         ```
-
-        You can simply convert it to a list by putting it in the list function:
-
+        You can get the data stores ina list form like this:
         ```py
-            list(experience.list_data_stores())
-        ```"""
+        list(experience.list_data_stores())
+        ```
+        ### Parameters
+        prefix: Optional[str] - Only returm Data Stores with names starting with this value.
+        limit: Optional[int] - The maximum number of Data Stores to iterate.
+        scope: Optional[Union[str, None]] - The scope for all data stores. Defaults to global, and can be `None` for key syntax like `scope/key`.
+        """
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
@@ -84,11 +94,21 @@ class Experience():
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
     
-    def publish_message(self, topic:str, data:str):
+    def publish_message(self, topic: str, data: str) -> None:
         """
         Publishes a message to live game servers that can be recieved with [MessagingService](https://create.roblox.com/docs/reference/engine/classes/MessagingService).
 
-        The `universe-messaging-service:publish` scope is required if authentication is from OAuth2.
+        The `universe-messaging-service:publish` scope is required for OAuth2 authorization.
+
+        **Messages sent by Open Cloud with only be recieved by live servers. Studio won't recieve thesse messages.**
+
+        ### Example
+        ```py
+        experience.publish_message("exampleTopic", "Hello World!")
+        ```
+        ### Parameters
+        topic: str - The topic to send the message in
+        data: str - The message to send. **Open Cloud does not support sending dictionaries/tables with publishing messages. You'll have to json encode it before sending it, and decode it in Roblox.**
         """
         response = requests.post(f"https://apis.roblox.com/messaging-service/v1/universes/{self.id}/topics/{topic}",
         json={"message": data}, headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
@@ -99,8 +119,21 @@ class Experience():
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")  
     
-    def upload_place(self, place_id:int, file: io.BytesIO, publish:bool = False) -> int:
-        """Updates a place with the `.rbxl` file, optionaly publishing it and returns the place version number."""
+    def upload_place(self, place_id:int, file: io.BytesIO, publish: Optional[bool] = False) -> int:
+        """
+        Uploads the place file to Roblox and returns the new version number.
+
+        ### Example
+        ```py
+        with open("example.rbxl", "rb") as file:
+            experience.upload_place(1234, file, publish=False)
+        ```
+        Where `1234` is the place ID.
+        ### Parameters
+        place_id: int - The place ID to upload the file to.
+        file: io.BytesIO - The file to upload. The file should be opened in bytes.
+        publish: Optional[bool] - Wether to publish the place as well. Defaults to `False`.
+        """
         response = requests.post(f"https://apis.roblox.com/universes/v1/{self.id}/places/{place_id}/versions",
             headers={"x-api-key": self.__api_key, 'Content-Type': 'application/octet-stream'}, data=file.read(), params={
                 "versionType": "Published" if publish else "Saved"
