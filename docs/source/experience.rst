@@ -1,102 +1,104 @@
 Experience
 =============================
 
-.. currentmodule:: rblx-open-cloud
+.. currentmodule:: rblxopencloud
 
 .. class:: Experience(id, api_key)
 
-   Class for interacting with the API for a specific experience.
+      Represents an experience/game object on Roblox. This class allows interaction with an experience's data stores, messaging service, and uploading place files.
 
-   :param int id: A Experience ID. Read How to find yours here: `Publishing Places with API Keys <https://create.roblox.com/docs/open-cloud/publishing-places-with-api-keys>`__
-   :param str api_key: An API key created from `Creator Dashboard <https://create.roblox.com/credentials>`__. *this should be kept safe, as anyone with the key can use it!*
+      :param int id: The experience ID. See `this Roblox documentation <https://create.roblox.com/docs/cloud/open-cloud/data-store-api-handling#universe-id>`__ to get yours.
+      :param str api_key: Your API key created from `Creator Dashboard <https://create.roblox.com/credentials>`__ with access to this experience.
 
-   .. attribute:: id 
+      .. attribute:: id 
 
-      The Experience's ID
+            The experience's ID
 
-      :type: int
+            :type: int
    
-   .. method:: get_data_store(name, scope="global")
+      .. method:: get_data_store(name, scope="global")
 
-         Creates a :class:`rblx-open-cloud.DataStore` without :attr:`DataStore.created` with the provided name and scope.
+            Creates a :class:`rblx-open-cloud.DataStore` which allows interaction with a data store from the experience. :attr:`DataStore.created` will be ``None``.
 
-         If ``scope`` is ``None`` then keys require to be formatted like ``scope/key`` and :meth:`DataStore.list_keys` will return keys from all scopes.
+            Lua equivalent: `DataStoreService:GetDataStore() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#GetDataStore>`__
 
-         Lua equivalent: `DataStoreService:GetDataStore() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#GetDataStore>`__
+            :param str name: The data store name
+            :param Optional[str] scope: The data store scope. Defaults to ``global``, and can be ``None`` for key syntax like ``scope/key``.
+            :returns: :class:`rblx-open-cloud.DataStore`
 
-         :param str name: The name of the data store
-         :param Union[str, None] scope: A string specifying the scope, can also be None.
-         :returns: :class:`rblx-open-cloud.DataStore`
-   
-   .. method:: list_data_stores(prefix="", scope="global")
+      .. method:: get_ordered_data_store(name, scope="global")
 
-         Returns an Iterable of all :class:`rblx-open-cloud.DataStore` in the Experience which includes :attr:`rblx-open-cloud.DataStore.created`, optionally matching a prefix.
+            Creates a :class:`rblx-open-cloud.OrderedDataStore` with the provided name and scope.
 
-         Lua equivalent: `DataStoreService:ListDataStoresAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#ListDataStoresAsync>`__
+            If ``scope`` is ``None`` then keys require to be formatted like ``scope/key`` and :meth:`OrderedDataStore.sort_keys` will not work.
 
-         The example below would iterate through every datastore
-                
-         .. code:: py
+            Lua equivalent: `DataStoreService:GetOrderedDataStore() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#GetOrderedDataStore>`__
 
-            for datastore in experience.list_data_stores():
-                print(datastore.name)
-        
-         You can simply convert it to a list by putting it in the list function:
+            :param str name: The ordered data store name
+            :param Optional[str] scope: The data store scope. Defaults to ``global``, and can be ``None`` for key syntax like ``scope/key``.
+            :returns: :class:`rblx-open-cloud.OrderedDataStore`
 
-         .. code:: py
+      .. method:: list_data_stores(prefix="", limit=None, scope="global")
 
-            list(experience.list_data_stores())
+            Interates :class:`rblx-open-cloud.DataStore` for all of the Data Stores in the experience.
+
+            Lua equivalent: `DataStoreService:ListDataStoresAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#ListDataStoresAsync>`__
+
+            The example below would iterate through every datastore
+                  
+            .. code:: py
+
+                  for datastore in experience.list_data_stores():
+                        print(datastore)
+            
+            You can get the data stores in a list like this:
+
+            .. code:: py
+
+                  list(experience.list_data_stores())
          
-         :param str prefix: Only Iterates datastores with that start with this string
-         :param Union[None, int] limit: Will not return more datastores than this number. Set to ``None`` for no limit.
-         :param Union[str, None] scope: The scope the :class:`rblx-open-cloud.DataStore` will have.
+            :param str prefix: Only return Data Stores with names starting with this value.
+            :param Optional[int] limit: The maximum number of Data Stores to iterate.
+            :param Optional[str] scope: The scope for all data stores. Defaults to global, and can be `None` for key syntax like `scope/key`.
 
-         :returns: Iterable[:class:`rblx-open-cloud.DataStore`]
-         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data stores.
-         :raises rblx-open-cloud.NotFound: *This shouldn't be raised for this method.*
-         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
-         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
-         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
+            :returns: Iterable[:class:`rblx-open-cloud.DataStore`]
+            :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data stores.
+            :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+            :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+            :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
       
-   .. method:: get_ordered_data_store(name, scope="global")
+      .. method:: publish_message(topic, data)
 
-         Creates a :class:`rblx-open-cloud.OrderedDataStore` with the provided name and scope.
+            Publishes a message to live game servers that can be recieved with `MessagingService <https://create.roblox.com/docs/reference/engine/classes/MessagingService>`__.
 
-         If ``scope`` is ``None`` then keys require to be formatted like ``scope/key`` and :meth:`OrderedDataStore.sort_keys` will not work.
+            The ``universe-messaging-service:publish`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
-         Lua equivalent: `DataStoreService:GetDataStore() <https://create.roblox.com/docs/reference/engine/classes/DataStoreService#GetOrderedDataStore>`__
+            Lua equivalent: `MessagingService:PublishAsync() <https://create.roblox.com/docs/reference/engine/classes/MessagingService#PublishAsync>`__
 
-         :param str name: The name of the data store
-         :param Union[str, None] scope: A string specifying the scope, can also be None.
-         :returns: :class:`rblx-open-cloud.DataStore`
+            :param str topic: The topic to send the message in
+            :param str data: The message to send. **Open Cloud does not support sending dictionaries/tables with publishing messages. You'll have to json encode it before sending it, and decode it in Roblox.**
+            :returns: None
+            :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to publish messages.
+            :raises rblx-open-cloud.NotFound: *This shouldn't be raised for this method.*
+            :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+            :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+            :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
 
-   .. method:: publish_message(topic, data)
-
-         Publishes a message to live game servers that can be recieved with `MessagingService <https://create.roblox.com/docs/reference/engine/classes/MessagingService>`__.
-
-         The ``universe-messaging-service:publish`` scope is required if authorized via `OAuth2 </oauth2>`__.
-
-         Lua equivalent: `MessagingService:PublishAsync() <https://create.roblox.com/docs/reference/engine/classes/MessagingService#PublishAsync>`__
-
-         :param str topic: The topic that servers can subscribe to.
-         :param str data: The data to send. Must be a string.
-         :returns: None
-         :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to publish messages.
-         :raises rblx-open-cloud.NotFound: *This shouldn't be raised for this method.*
-         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
-         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
-         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
-
-         .. note::
-            Messages sent by Open Cloud with only be recieved by live servers. Studio won't recieve thesse messages.
+            .. note::
+                  Messages sent by Open Cloud with only be recieved by live servers. Studio won't recieve thesse messages.
 
    .. method:: upload_place(place_id, file, publish=False)
 
-         Updates a place with the ``.rbxl`` file, optionaly publishing it and returns the place version number.
+         Uploads the place file to Roblox and returns the new version number.
+
+         .. code:: py
+
+            with open("example.rbxl", "rb") as file:
+                  experience.upload_place(1234, file, publish=False)
       
-         :param int place_id: The place ID to update
-         :param io.BytesIO file: The file to send. should be opened as bytes.
-         :param bool publish: Wether to publish the place or just save it.
+         :param int place_id: The place ID to upload the file to.
+         :param io.BytesIO file: The file to upload. The file should be opened in bytes.
+         :param Optional[bool] publish: Wether to publish the place as well. Defaults to `False`.
          :returns: :class:`int`
          :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to upload places.
          :raises rblx-open-cloud.NotFound: The place ID is invalid

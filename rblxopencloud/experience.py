@@ -11,10 +11,15 @@ class Experience():
     """
     Represents an experience/game object on Roblox. This class allows interaction with an experience's data stores, messaging service, and uploading place files.
 
-    # Paramaters
-    id: int - The experience's ID (lua syntax: `game.GameId`)
-    api_key: str - The Open Cloud API key with permissions for this experience.
+    ### Example
+    ```py
+    experience = rblxopencloud.Experience(123456789, "your-api-key")
+    ```
+    ### Paramaters
+    id: int - The experience's (aka universe's) ID. See [this Roblox documentation](https://create.roblox.com/docs/cloud/open-cloud/data-store-api-handling#universe-id) to find yours.
+    api_key: str - :param str api_key: Your API key created from [Creator Dashboard](https://create.roblox.com/credentials) with access to this experience.
     """
+
     def __init__(self, id: int, api_key: str):
         self.id: int = id
         self.owner = None
@@ -25,7 +30,7 @@ class Experience():
     
     def get_data_store(self, name: str, scope: Optional[str]="global") -> DataStore:
         """
-        Creates a `rblx-open-cloud.DataStore` which allows interaction with a data store from the experience.
+        Creates a `rblx-open-cloud.DataStore` which allows interaction with a data store from the experience. `DataStore.created` will be `None`.
 
         Lua equivalent: [DataStoreService:GetDataStore()](https://create.roblox.com/docs/reference/engine/classes/DataStoreService#GetDataStore)
         ### Example
@@ -55,7 +60,7 @@ class Experience():
 
     def list_data_stores(self, prefix: Optional[str]="", limit: Optional[int]=None, scope: Optional[Union[str, None]]="global") -> Iterable[DataStore]:
         """
-        Interates rblx-open-cloud.DataStore` for all of the Data Stores in the Experience.
+        Interates `rblx-open-cloud.DataStore` for all of the Data Stores in the experience.
 
         Lua equivalent: [DataStoreService:ListDataStoresAsync()](https://create.roblox.com/docs/reference/engine/classes/DataStoreService#ListDataStoresAsync)
         ### Example
@@ -63,14 +68,14 @@ class Experience():
         for datastore in experience.list_data_stores():
             print(datastore)
         ```
-        You can get the data stores ina list form like this:
+        You can get the data stores in a list like this:
         ```py
         list(experience.list_data_stores())
         ```
         ### Parameters
-        prefix: Optional[str] - Only returm Data Stores with names starting with this value.
+        prefix: Optional[str] - Only return Data Stores with names starting with this value.
         limit: Optional[int] - The maximum number of Data Stores to iterate.
-        scope: Optional[Union[str, None]] - The scope for all data stores. Defaults to global, and can be `None` for key syntax like `scope/key`.
+        scope: Optional[str] - The scope for all data stores. Defaults to global, and can be `None` for key syntax like `scope/key`.
         """
         nextcursor = ""
         yields = 0
@@ -100,7 +105,7 @@ class Experience():
 
         The `universe-messaging-service:publish` scope is required for OAuth2 authorization.
 
-        **Messages sent by Open Cloud with only be recieved by live servers. Studio won't recieve thesse messages.**
+        Messages sent by Open Cloud with only be recieved by live servers. Studio won't recieve thesse messages.
 
         ### Example
         ```py
@@ -108,7 +113,7 @@ class Experience():
         ```
         ### Parameters
         topic: str - The topic to send the message in
-        data: str - The message to send. **Open Cloud does not support sending dictionaries/tables with publishing messages. You'll have to json encode it before sending it, and decode it in Roblox.**
+        data: str - The message to send. Open Cloud does not support sending dictionaries/tables with publishing messages. You'll have to json encode it before sending it, and decode it in Roblox.
         """
         response = requests.post(f"https://apis.roblox.com/messaging-service/v1/universes/{self.id}/topics/{topic}",
         json={"message": data}, headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
@@ -128,7 +133,6 @@ class Experience():
         with open("example.rbxl", "rb") as file:
             experience.upload_place(1234, file, publish=False)
         ```
-        Where `1234` is the place ID.
         ### Parameters
         place_id: int - The place ID to upload the file to.
         file: io.BytesIO - The file to upload. The file should be opened in bytes.
