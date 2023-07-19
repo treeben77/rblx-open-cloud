@@ -37,7 +37,7 @@ Creator
         :returns: Union[:class:`rblx-open-cloud.Asset`, :class:`rblx-open-cloud.PendingAsset`]
         :raises rblx-open-cloud.InvalidAsset: The file is not a supported, or is corrupted
         :raises rblx-open-cloud.ModeratedText: The name or description was moderated by Roblox's chat filter.
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to read and write assets.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to read and write assets.
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's servers are currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
@@ -67,7 +67,7 @@ Creator
         :returns: Union[:class:`rblx-open-cloud.Asset`, :class:`rblx-open-cloud.PendingAsset`]
         :raises rblx-open-cloud.ModeratedText: The name or description was moderated by Roblox's chat filter.
         :raises rblx-open-cloud.InvalidAsset: The file is not a supported, or is corrupted
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to read and write assets.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to read and write assets.
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's servers are currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
@@ -149,7 +149,7 @@ Creator
         Fetches the asset info, if completed processing.
 
         :returns: Optional[:class:`rblx-open-cloud.Asset`]
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to read and write assets.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to read and write assets.
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's servers are currently experiencing downtime.
         :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.

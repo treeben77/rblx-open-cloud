@@ -52,7 +52,7 @@ Data Store
         :param Union[None, int] limit: Will not return more keys than this number. Set to ``None`` for no limit.
         
         :returns: Iterable[:class:`ListedEntry`]
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to list data store keys.
         :raises rblx-open-cloud.NotFound: The datastore does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -68,7 +68,7 @@ Data Store
         
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
         :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to get data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to get data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -89,7 +89,7 @@ Data Store
 
         :returns: :class:`EntryVersion`
         :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key`` or both ``exlcusive_create`` and ``previous_version`` were provided.
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to set data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to set data store keys.
         :raises rblx-open-cloud.NotFound: The datastore does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -113,7 +113,7 @@ Data Store
 
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
         :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to increment data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to increment data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -133,7 +133,7 @@ Data Store
 
         :returns: None
         :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to remove data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to remove data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -165,7 +165,7 @@ Data Store
         :param bool descending: Wether the versions should be sorted by date ascending or descending.
 
         :returns: Iterable[:class:`EntryVersion`]
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to remove data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to remove data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -182,7 +182,7 @@ Data Store
         
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
         :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to get data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to get data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -236,7 +236,7 @@ Data Store
         
         :returns: Iterable[:class:`SortedEntry`]
         :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope.
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to list data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to list data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -256,7 +256,7 @@ Data Store
         
         :returns: int
         :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to read data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to read data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -275,7 +275,7 @@ Data Store
         
         :returns: int
         :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key`` or both ``exclusive_create`` and ``exclusive_update`` are ``True``.
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to write data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to write data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -293,7 +293,7 @@ Data Store
         
         :returns: int
         :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to write data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to write data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -308,7 +308,7 @@ Data Store
         :param str key: The key to remove.
 
         :raises ValueError: The :class:`OrderedDataStore` doesn't have a scope and the key must be formatted as ``scope/key``
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to write data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to write data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
@@ -389,7 +389,7 @@ Data Store
         Gets the value of this version. Shortcut for :meth:`DataStore.get_version`
         
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
-        :raises rblx-open-cloud.InvalidToken: The token is invalid or doesn't have sufficent permissions to get data store keys.
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to get data store keys.
         :raises rblx-open-cloud.NotFound: The datastore or key does not exist
         :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
         :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
