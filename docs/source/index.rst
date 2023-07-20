@@ -24,7 +24,7 @@ Getting Started
    `Publishing Places with API
    Keys <https://create.roblox.com/docs/open-cloud/publishing-places-with-api-keys#:~:text=Find%20the%20experience,is%206985028626.>`__
 
-.. code:: py
+.. code:: python
 
    import rblxopencloud
    # create an Experience object with your experience ID and your api key
@@ -41,7 +41,7 @@ Getting Started
 Accessing Data Stores
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: py
+.. code:: python
 
    # get the data store, using the data store name and scope (defaults to global)
    datastore = experience.get_data_store("data-store-name", scope="global")
@@ -72,7 +72,7 @@ Publishing To Message Service
 servers and not in Studio, so you'll have to publish the place to test
 this.**
 
-.. code:: py
+.. code:: python
 
    # publish a message with the topic 'topic-name'
    experience.publish_message("topic-name", "Hello World!")
@@ -80,7 +80,7 @@ this.**
 Publish or Save a ``.rbxl`` File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: py
+.. code:: python
 
    #open the .rbxl file as read bytes
    with open("path-to/place-file.rbxl", "rb") as file:
@@ -91,7 +91,7 @@ Publish or Save a ``.rbxl`` File
 Final Result (a.k.a copy and paste section)
 -------------------------------------------
 
-.. code:: py
+.. code:: python
 
    # create a Experience object with your experience ID and your api key
    # TODO: replace '13058' with your experience ID

@@ -3,11 +3,11 @@
 # -- Project information
 
 project = 'rblx-open-cloud'
-copyright = '2022-2023 TreeBen77'
-author = 'TreeBen77'
+copyright = '2022-2023 treeben77'
+author = 'treeben77'
 
 release = '1.4'
-version = '1.4.0'
+version = '1.4.1'
 
 # -- General configuration
 
@@ -30,6 +30,3 @@ templates_path = ['_templates']
 # -- Options for HTML output
 
 html_theme = 'sphinx_rtd_theme'
-
-# -- Options for EPUB output
-epub_show_urls = 'footnote'

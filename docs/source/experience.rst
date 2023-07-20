@@ -46,14 +46,14 @@ Experience
 
     The example below would iterate through every datastore
       
-    .. code:: py
+    .. code:: python
 
       for datastore in experience.list_data_stores():
             print(datastore)
 
     You can get the data stores in a list like this:
 
-    .. code:: py
+    .. code:: python
 
         list(experience.list_data_stores())
 
@@ -91,7 +91,7 @@ Experience
 
     Uploads the place file to Roblox and returns the new version number.
 
-    .. code:: py
+    .. code:: python
 
     with open("example.rbxl", "rb") as file:
         experience.upload_place(1234, file, publish=False)

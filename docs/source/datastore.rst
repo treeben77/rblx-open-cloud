@@ -35,14 +35,14 @@ Data Store
 
         The example below would list all keys, along with their scope.
                 
-        .. code:: py
+        .. code:: python
 
             for entry in datastore.list_keys():
                 print(entry.key, entry.scope)
         
         You can simply convert it to a list by putting it in the list function:
 
-        .. code:: py
+        .. code:: python
 
             list(datastore.list_keys())
 
@@ -145,14 +145,14 @@ Data Store
 
         The example below would list all versions, along with their value.
                 
-        .. code:: py
+        .. code:: python
 
             for version in datastore.list_versions("key-name"):
                 print(version, version.get_value())
         
         You can simply convert it to a list by putting it in the list function:
 
-        .. code:: py
+        .. code:: python
 
             list(datastore.list_versions("key-name"))
 
@@ -216,14 +216,14 @@ Data Store
 
         The example below would list all keys, along with their value.
                 
-        .. code:: py
+        .. code:: python
 
             for key in datastore.sort_keys():
                 print(key.name, key.value)
         
         You can simply convert it to a list by putting it in the list function:
 
-        .. code:: py
+        .. code:: python
 
             list(datastore.sort_keys())
 
