@@ -17,12 +17,20 @@ __all__ = (
 )
 
 class AssetType(Enum):
+    """
+    Enum to denote what type an asset is.
+    """
+    
     Unknown = 0
     Decal = 1
     Audio = 2
     Model = 3
 
 class Asset():
+    """
+    Represents an processed asset uploaded to Roblox.
+    """
+    
     def __init__(self,  assetObject, creator=None) -> None:
         self.id: int = assetObject.get("assetId")
         self.name: str = assetObject.get("displayName")
@@ -42,6 +50,10 @@ class Asset():
         return f"rblxopencloud.Asset({self.id}, name=\"{self.name}\", type={self.type})"
 
 class PendingAsset():
+    """
+    Represents an asset uploaded to Roblox, but hasn't been processed yet.
+    """
+
     def __init__(self, path, api_key, creator=None) -> None:
         self.__path = path
         self.__api_key = api_key
@@ -50,7 +62,11 @@ class PendingAsset():
     def __repr__(self) -> str:
         return f"rblxopencloud.PendingAsset()"
     
-    def fetch_operation(self) -> Union[None, Asset]:
+    def fetch_operation(self) -> Optional[Asset]:
+        """
+        Checks if the asset has finished proccessing, if so returns the :class:`rblx-open-cloud.Asset` object.
+        """
+
         response = requests.get(f"https://apis.roblox.com/assets/v1/{self.__path}",
             headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
         
@@ -75,6 +91,10 @@ mimetypes = {
 }
 
 class Creator():
+    """
+    Represents an object that can upload assets, usually a user or a group.
+    """
+
     def __init__(self, userid, api_key, type) -> None:
         self.id: int = userid
         self.__api_key = api_key
@@ -84,6 +104,25 @@ class Creator():
         return f"rblxopencloud.Creator({self.id})"
     
     def upload_asset(self, file: io.BytesIO, asset_type: Union[AssetType, str], name: str, description: str, expected_robux_price: int = 0) -> Union[Asset, PendingAsset]:
+        """
+        Uploads the file onto roblox as an asset with the provided name and description. It will return `rblx-open-cloud.Asset` if the asset is processed instantly, otherwise it will return `rblx-open-cloud.PendingAsset`. The following asset types and file formats are accepted:
+
+        | Asset Type | File Formats |
+        | --- | --- |
+        | `rblx-open-cloud.AssetType.Decal` | `.png`, `.jpeg`, `.bmp`, `.tga` |
+        | `rblx-open-cloud.AssetType.Audio` | `.mp3`, `.ogg` |
+        | `rblx-open-cloud.AssetType.Model` | `.fbx` |
+
+        The ``asset:read`` and ``asset:write`` scopes are required if authorized via `OAuth2 </oauth2>`__.
+
+        ### Parameters
+        file: io.BytesIO -The file opened in bytes to be uploaded.
+        asset_type: rblx-open-cloud.AssetType - The type of asset you're uploading.
+        name: str - The name of your asset.
+        description: str - The description of your asset.
+        expected_robux_price: int - The amount of robux expected to upload. Fails if lower than actual price.
+        """
+
         body, contentType = urllib3.encode_multipart_formdata({
             "request": json.dumps({
                 "assetType": asset_type.name if type(asset_type) == AssetType else asset_type,
@@ -124,6 +163,20 @@ class Creator():
                 return Asset(info["response"], self)
     
     def update_asset(self, asset_id: int, file: io.BytesIO) -> Union[Asset, PendingAsset]:
+        """
+        Updates the file for an existing assest on Roblox. It will return :class:`rblx-open-cloud.Asset` if the asset is processed instantly, otherwise it will return :class:`rblx-open-cloud.PendingAsset`. The following asset types and file formats can be updated:
+
+        | Asset Type | File Formats |
+        | --- | --- |
+        | `rblx-open-cloud.AssetType.Model` | `.fbx` |
+
+        The `asset:read` and `asset:write` scopes are required if authorized via OAuth2.
+
+        ### Parameters
+        asset_id: int - The ID of the asset to update.
+        file: io.BytesIO - The file opened in bytes to be uploaded.
+        """
+
         body, contentType = urllib3.encode_multipart_formdata({
             "request": json.dumps({
                 "assetId": asset_id

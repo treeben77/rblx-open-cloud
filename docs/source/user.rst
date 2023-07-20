@@ -5,15 +5,15 @@ User
 
 .. class:: User()
 
-    Class for interacting with the API for a specific user.
+    Represents a user on Roblox. It is used to provide information about a user in :doc:`oauth2`, and to upload assets to a user.
 
     .. versionadded:: 1.1
 
     .. versionchanged:: 1.3
-        Added ``username``, ``display_name`` and ``created_at`` attributes which default to ``None``, unless it is from :ref:`OAuth2 <oauth2>`. Added ``profile_uri`` attribute which is always avaliable.
+        Added ``username``, ``display_name`` and ``created_at`` attributes which default to ``None``, unless it is from :doc:`oauth2`. Added ``profile_uri`` attribute which is always avaliable.
 
-    :param int id: Your user ID. It appears in your profile URL
-    :param str api_key: An API key created from `Creator Dashboard <https://create.roblox.com/credentials>`__. *this should be kept safe, as anyone with the key can use it!*
+    :param int id: The user's ID.
+    :param str api_key: Your API key created from `Creator Dashboard <https://create.roblox.com/credentials>`__ with access to this user.
 
     .. attribute:: id 
 
@@ -23,19 +23,19 @@ User
 
     .. attribute:: username 
 
-        The user's username. This will always be ``None``, unless it is from :ref:`OAuth2 <oauth2>`
+        The user's username. This will always be ``None``, unless it is from :doc:`oauth2`
 
         :type: Optional[str]
 
     .. attribute:: display_name 
 
-        The user's display name. This will always be ``None``, unless it is from :ref:`OAuth2 <oauth2>`
+        The user's display name. This will always be ``None``, unless it is from :doc:`oauth2`
 
         :type: Optional[str]
 
     .. attribute:: created_at 
 
-        The time when user's account was created. This will always be ``None``, unless it is from :ref:`OAuth2 <oauth2>`
+        The time when user's account was created. This will always be ``None``, unless it is from :doc:`oauth2`
 
         :type: datetime.datetime
 
@@ -47,7 +47,20 @@ User
 
     .. method:: upload_asset(file, asset_type, name, description, expected_robux_price=0)
 
-        Uploads an asset onto Roblox.
+        Uploads the file onto roblox as an asset with the provided name and description. It will return :class:`rblx-open-cloud.Asset` if the asset is processed instantly, otherwise it will return :class:`rblx-open-cloud.PendingAsset`. The following asset types and file formats are accepted:
+
+        .. list-table::
+            :widths: 50 50
+            :header-rows: 1
+
+            * - Asset Type
+              - File Formats
+            * - :attr:`rblx-open-cloud.AssetType.Decal`
+              - ``.png``, ``.jpeg``, ``.bmp``, ``.tga``
+            * - :attr:`rblx-open-cloud.AssetType.Audio`
+              - ``.mp3``, ``.ogg``
+            * - :attr:`rblx-open-cloud.AssetType.Model`
+              - ``.fbx``
 
         The ``asset:read`` and ``asset:write`` scopes are required if authorized via `OAuth2 </oauth2>`__.
 
@@ -70,17 +83,22 @@ User
 
         .. danger::
 
-            Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
+            Assets uploaded with Open Cloud can still get your account moderated if they break the Terms of Service.
 
             For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`__.
-        
-        .. note::
-            
-            Only ``Decal``, ``Audio``, and ``Model`` (as ``fbx``) are supported right now.
 
     .. method:: update_asset(asset_id, file)
 
-        Updates an existing asset on Roblox.
+        Updates the file for an existing assest on Roblox. It will return :class:`rblx-open-cloud.Asset` if the asset is processed instantly, otherwise it will return :class:`rblx-open-cloud.PendingAsset`. The following asset types and file formats can be updated:
+
+        .. list-table::
+            :widths: 50 50
+            :header-rows: 1
+
+            * - Asset Type
+              - File Formats
+            * - :attr:`rblx-open-cloud.AssetType.Model`
+              - ``.fbx``
 
         The ``asset:read`` and ``asset:write`` scopes are required if authorized via `OAuth2 </oauth2>`__.
 
@@ -100,18 +118,6 @@ User
 
         .. danger::
 
-            Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
+            Assets uploaded with Open Cloud can still get your account moderated if they break the Terms of Service.
 
             For OAuth2 applications, please read `this post by Hooksmith <https://devforum.roblox.com/t/public-beta-building-your-applications-with-oauth-20/2401354/36>`__.
-
-        .. note::
-            
-            Only ``Model`` (as ``fbx``) can be updated right now.
-
-        .. danger::
-
-            Assets uploaded with Open Cloud can still get your account banned if they're inappropriate.
-
-        .. note::
-            
-            Only ``Model`` (as ``fbx``) can be updated right now.

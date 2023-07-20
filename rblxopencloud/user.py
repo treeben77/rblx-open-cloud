@@ -7,6 +7,12 @@ __all__ = (
 )
 
 class User(Creator):
+    """
+    Represents a user on Roblox. It is used to provide information about a user in OAuth2, and to upload assets to a user.
+    ### Paramaters
+    id: int - The user's ID.
+    api_key: str - Your API key created from [Creator Dashboard](https://create.roblox.com/credentials) with access to this user.
+    """
     def __init__(self, id: int, api_key: str) -> None:
         self.username: Optional[str] = None
         self.id: int = id
