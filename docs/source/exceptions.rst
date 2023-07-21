@@ -68,3 +68,15 @@ Exceptions
          space-seperated string of scopes Roblox expected.
 
          :type: str
+
+.. exception:: UnknownEventType()
+
+   A recieved webhook event is not supported by the library.
+
+   .. versionadded:: 1.4
+
+.. exception:: UndefinedEventType()
+
+   A recieved webhook event doesnt have a event callback.
+
+   .. versionadded:: 1.4
