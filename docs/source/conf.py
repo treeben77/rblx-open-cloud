@@ -7,7 +7,7 @@ copyright = '2022-2023 treeben77'
 author = 'treeben77'
 
 release = '1.4'
-version = '1.4.1'
+version = '1.4.0'
 
 # -- General configuration
 
