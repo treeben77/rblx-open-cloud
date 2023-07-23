@@ -5,7 +5,7 @@ Data Store
 
 .. class:: DataStore
 
-    Class for interacting with the DataStore API for a specific DataStore.
+    Represents a regular data store in an experience.
 
     .. warning::
 
@@ -49,7 +49,7 @@ Data Store
         Lua equivalent: `DataStore:ListKeysAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStore#ListKeysAsync>`__
 
         :param str prefix: Only return keys that start with this prefix.
-        :param Union[None, int] limit: Will not return more keys than this number. Set to ``None`` for no limit.
+        :param Optional[int] limit: Will not return more keys than this number. Set to ``None`` for no limit.
         
         :returns: Iterable[:class:`ListedEntry`]
         :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to list data store keys.
@@ -64,7 +64,7 @@ Data Store
 
         Lua equivalent: `DataStore:GetAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStore#GetAsync>`__
 
-        :param str key: The key to find.
+        :param str key: The key to find. When :attr:`DataStore.scope` is ``None``, this must include the scope like this ``scope/key``
         
         :returns: tuple[Union[:class:`str`, :class:`dict`, :class:`list`, :class:`int`, :class:`float`], :class:`rblx-open-cloud.EntryInfo`]
         :raises ValueError: The :class:`DataStore` doesn't have a scope and the key must be formatted as ``scope/key``
@@ -80,7 +80,7 @@ Data Store
 
         Lua equivalent: `DataStore:SetAsync() <https://create.roblox.com/docs/reference/engine/classes/DataStore#SetAsync>`__
 
-        :param str key: The key to change.
+        :param str key: The key to set. When :attr:`DataStore.scope` is ``None``, this must include the scope like this ``scope/key``
         :param Union[str, dict, list, int, float] value: The new value
         :param list[int] users: a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
         :param dict metadata: a dictionary, just like the lua equivalent `DataStoreSetOptions:SetMetadata() <https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata>`__

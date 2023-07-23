@@ -20,6 +20,9 @@ __all__ = (
 )
 
 class EntryInfo():
+    """
+    Contains data about an entry such as version ID, timestamps, users and metadata.
+    """
     def __init__(self, version, created, updated, users, metadata) -> None:
         self.version: str = version
         self.created: datetime.date = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
@@ -31,6 +34,9 @@ class EntryInfo():
         return f"rblxopencloud.EntryInfo(\"{self.version}\", users={self.users}, metadata={self.metadata})"
 
 class EntryVersion():
+    """
+    Contains data about a version such as it's ID, timestamps, content length and wether this version is deleted.
+    """
     def __init__(self, version, deleted, content_length, created, key_created, datastore, key, scope) -> None:
         self.version: str = version
         self.deleted: bool = deleted
@@ -57,6 +63,9 @@ class EntryVersion():
         return f"rblxopencloud.EntryVersion(\"{self.version}\", content_length={self.content_length})"
 
 class ListedEntry():
+    """
+    Object which contains an entry's key and scope.
+    """
     def __init__(self, key, scope) -> None:
         self.key: str = key
         self.scope: str = scope
@@ -70,6 +79,10 @@ class ListedEntry():
         return f"rblxopencloud.ListedEntry(\"{self.key}\", scope=\"{self.scope}\")"
 
 class DataStore():
+    """
+    Represents a regular data store in an experience.
+    """
+
     def __init__(self, name, experience, api_key, created, scope):
         self.name: str = name
         self.__api_key: str = api_key
@@ -85,7 +98,10 @@ class DataStore():
         return self.name
 
     def list_keys(self, prefix: str="", limit: Optional[int]=None) -> Iterable[ListedEntry]:
-        """Returns an `Iterable` of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if `DataStore.scope` is `None`. The example below would list all versions, along with their value.
+        """
+        Returns an Iterable of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if :attr:`scope` is ``None``.
+
+        The example below would list all keys, along with their scope.
                 
         ```py
             for key in datastore.list_keys():
@@ -96,7 +112,11 @@ class DataStore():
 
         ```py
             list(datastore.list_versions())
-        ```"""
+        ### Parameters
+        prefix: str - Only return keys that start with this prefix.
+        limit: Optional[int] - Will not return more keys than this number. Set to `None` for no limit.
+        ```
+        """
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
@@ -125,7 +145,11 @@ class DataStore():
             if not nextcursor: break
     
     def get(self, key: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
-        """Gets the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
+        """
+        Gets the value of a key.
+        ### Parameters
+        key: str - The key to find. When `DataStore.scope` is `None`, this must include the scope like this `scope/key`
+        """
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
@@ -155,7 +179,16 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
 
     def set(self, key: str, value: Union[str, dict, list, int, float], users:Optional[list[int]]=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Optional[str]=None) -> EntryVersion:
-        """Sets the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
+        """
+        Sets the value of a key.
+        ### Parameters
+        key: str - The key to find. When `DataStore.scope` is `None`, this must include the scope like this `scope/key`
+        value: Union[str, dict, list, int, float] - The new value
+        users: list[int] - a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
+        metadata: dict - a dictionary, just like the lua equivalent [DataStoreSetOptions:SetMetadata()](https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata)
+        exclusive_create: bool - whether to update the entry if it already has a value. Raises `rblx-open-cloud.PreconditionFailed` if it has a value.
+        previous_version: Optional[str] don't update if the current version is not this value. Raises `rblx-open-cloud.PreconditionFailed` if it has a value.
+        """
         if previous_version and exclusive_create: raise ValueError("previous_version and exclusive_create can not both be set")
         try:
             scope = self.scope
@@ -202,7 +235,14 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
 
     def increment(self, key: str, increment: Union[int, float], users:Optional[list[int]]=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
-        """Increments the value of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
+        """
+        Increments the value of a key.
+        # Parameters
+        key: The key to increment.
+        value: Union[int, float] - The number to increase the value by, use negative numbers to decrease it.
+        users: list[int] - a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
+        metadata: dict - a dictionary of user-defind metadata, just like the lua equivalent [DataStoreSetOptions:SetMetadata()](https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata)
+        """
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
@@ -235,7 +275,11 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
     
     def remove(self, key: str) -> None:
-        """Removes a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
+        """
+        Removes a key.
+        ### Parameters
+        key: str - The key to remove.
+        """
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
@@ -269,7 +313,14 @@ class DataStore():
 
         ```py
             list(datastore.list_versions("key-name"))
-        ```"""
+        ```
+        ### Parameters
+        key: The key to find versions for.
+        after: datetime.datetime - Only find versions after this datetime
+        before: datetime.datetime - Only find versions before this datetime
+        limit: Optional[int] - Will not return more versions than this number. Set to `None` for no limit.
+        descending: bool - Wether the versions should be sorted by date ascending or descending.
+        """
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
@@ -306,7 +357,12 @@ class DataStore():
             if not nextcursor: break
 
     def get_version(self, key: str, version: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
-        """Gets the value of a key version. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`."""
+        """
+        Gets the value of a key version.
+        
+        key: str - The key to find.
+        version: str - The version ID to get.
+        """
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
@@ -341,6 +397,9 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
 
 class SortedEntry():
+    """
+    Object which contains a sorted entry's key, scope, and value.
+    """
     def __init__(self, key: str, value: int, scope: str="global") -> None:
         self.key: str = key
         self.scope: str = scope
@@ -355,6 +414,10 @@ class SortedEntry():
         return f"rblxopencloud.SortedEntry(\"{self.key}\", value={self.value})"
 
 class OrderedDataStore():
+    """
+    Class for interacting with the Ordered DataStore API for a specific Ordered DataStore.
+    """
+
     def __init__(self, name, experince, api_key, scope):
         self.name = name
         self.__api_key = api_key
@@ -368,6 +431,27 @@ class OrderedDataStore():
         return self.name
     
     def sort_keys(self, descending: bool=True, limit: Union[None, int]=None, min=None, max=None) -> Iterable[SortedEntry]:
+        """
+        Returns a list of keys and their values.
+
+        The example below would list all keys, along with their value.
+                
+        ```py
+            for key in datastore.sort_keys():
+                print(key.name, key.value)
+        ```
+
+        You can simply convert it to a list by putting it in the list function:
+
+        ```py
+            list(datastore.sort_keys())
+        ```
+        ### Parameters
+        descending: bool - Wether the largest number should be first, or the smallest.
+        limit: int - Max number of entries to loop through.
+        min: int - Minimum entry value to retrieve
+        max: int - Maximum entry value to retrieve.
+        """
         if not self.scope: raise ValueError("A scope is required to list keys on OrderedDataStore.")
 
         filter = None
@@ -406,6 +490,11 @@ class OrderedDataStore():
             if not nextcursor: break
     
     def get(self, key: str) -> int:
+        """
+        Gets the value of a key.
+        ### Parameters
+        key: str - The key to find.
+        """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
@@ -424,6 +513,14 @@ class OrderedDataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
         
     def set(self, key: str, value: int, exclusive_create: bool=False, exclusive_update: bool=False) -> int:
+        """
+        Sets the value of a key.
+        ### Parameters
+        key: str - The key to create/update.
+        value: int - The new integer value. Must be positive.
+        exclusive_create: - bool Wether to fail if the key already has a value.
+        exclusive_update: - bool Wether to fail if the key does not have a value.
+        """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
@@ -455,6 +552,12 @@ class OrderedDataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
 
     def increment(self, key: str, increment: int) -> None:
+        """
+        Increments the value of a key.
+        ### Parameters
+        key: str - The key to increment.
+        increment: int - The amount to increment the key by. You can use negative numbers to decrease the value.
+        """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
@@ -474,6 +577,12 @@ class OrderedDataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
     def remove(self, key: str) -> None:
+        """
+        Removes a key.
+        ### Parameters
+        key: str - The key to remove.
+        """
+
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
