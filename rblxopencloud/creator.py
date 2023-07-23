@@ -4,6 +4,7 @@ from typing import Union, Optional, TYPE_CHECKING
 import urllib3
 from enum import Enum
 from datetime import datetime
+from . import user_agent
 
 if TYPE_CHECKING:
     from .user import User
@@ -68,7 +69,7 @@ class PendingAsset():
         """
 
         response = requests.get(f"https://apis.roblox.com/assets/v1/{self.__path}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
         
         if response.ok:
             info = response.json()
@@ -140,7 +141,7 @@ class Creator():
             "fileContent": (file.name, file.read(), mimetypes.get(file.name.split(".")[-1]))
         })
         response = requests.post(f"https://apis.roblox.com/assets/v1/assets",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "content-type": contentType}, data=body)
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "content-type": contentType, "user-agent": user_agent}, data=body)
         
         if response.status_code == 400 and response.json()["message"] == "\"InvalidImage\"": raise InvalidAsset(f"The file is not a supported type, or is corrupted")
         elif response.status_code == 400 and response.json()["message"] == "AssetName is moderated.": raise ModeratedText(f"The asset's name was moderated.")
@@ -151,7 +152,7 @@ class Creator():
         elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
         response_op = requests.get(f"https://apis.roblox.com/assets/v1/{response.json()['path']}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
         
         if not response_op.ok:
             return PendingAsset(response_op.json()['path'], self.__api_key, self)
@@ -184,7 +185,7 @@ class Creator():
             "fileContent": (file.name, file.read(), mimetypes.get(file.name.split(".")[-1]))
         })
         response = requests.patch(f"https://apis.roblox.com/assets/v1/assets/{asset_id}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "content-type": contentType}, data=body)
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "content-type": contentType, "user-agent": user_agent}, data=body)
 
         if response.status_code == 400 and response.json()["message"] == "\"InvalidImage\"": raise InvalidAsset(f"The file is not a supported type, or is corrupted")
         elif response.status_code == 400 and response.json()["message"] == "AssetName is moderated.": raise ModeratedText(f"The asset's name was moderated.")
@@ -195,7 +196,7 @@ class Creator():
         elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
 
         response_op = requests.get(f"https://apis.roblox.com/assets/v1/{response.json()['path']}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
+            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
         
         if not response_op.ok:
             return PendingAsset(response_op.json()['path'], self.__api_key, self)

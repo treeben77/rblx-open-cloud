@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_der_public_key
 from cryptography.hazmat.backends import default_backend
 import hashlib, string, secrets
+from . import user_agent
 
 __all__ = (
     "OAuth2App",
@@ -65,7 +66,7 @@ class PartialAccessToken():
         """
 
         response = requests.get("https://apis.roblox.com/oauth/v1/userinfo", headers={
-            "authorization": f"Bearer {self.token}"
+            "authorization": f"Bearer {self.token}", "user-agent": user_agent
         })
         user = User(response.json().get("id") or response.json().get("sub"), f"Bearer {self.token}")
         user.username: str = response.json().get("preferred_username")
@@ -89,7 +90,7 @@ class PartialAccessToken():
             "token": self.token,
             "client_id": self.app.id,
             "client_secret": self.app._OAuth2App__secret
-        })
+        }, headers={"user-agent": user_agent})
 
         if response.status_code == 401:
             if response.json()["error"] == "insufficient_scope":
@@ -131,7 +132,7 @@ class PartialAccessToken():
             "token": self.token,
             "client_id": self.app.id,
             "client_secret": self.app._OAuth2App__secret
-        })
+        }, headers={"user-agent": user_agent})
         
         if response.ok: return AccessTokenInfo(response.json())
         elif response.status_code == 401:
@@ -248,11 +249,11 @@ class OAuth2App():
             "grant_type": "authorization_code",
             "code_verifier": code_verifier,
             "code": code
-        })
+        }, headers={"user-agent": user_agent})
         id_token = None
         if response.json().get("id_token"):
             if not self.__openid_certs_cache or time.time() - self.__openid_certs_cache_updated > self.openid_certs_cache_seconds:
-                certs = requests.get("https://apis.roblox.com/oauth/v1/certs")
+                certs = requests.get("https://apis.roblox.com/oauth/v1/certs", headers={"user-agent": user_agent})
                 if not certs.ok: raise ServiceUnavailable("Failed to retrieve OpenID certs.")
 
                 self.__openid_certs_cache = []
@@ -290,7 +291,7 @@ class OAuth2App():
             "client_secret": self.__secret,
             "grant_type": "refresh_token",
             "refresh_token": refresh_token
-        })
+        }, headers={"user-agent": user_agent})
         if response.ok: return AccessToken(self, response.json(), None)
         elif response.status_code == 400: raise InvalidKey(response.json().get("error_description", "The code, client id, client secret, or redirect uri is invalid."))
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
@@ -306,7 +307,7 @@ class OAuth2App():
             "token": token,
             "client_id": self.id,
             "client_secret": self.__secret
-        })
+        }, headers={"user-agent": user_agent})
         if response.ok: return
         elif response.status_code == 400: raise InvalidKey("The code, client id, client secret, or redirect uri is invalid.")
         elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")

@@ -2,6 +2,7 @@ from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimit
 import requests, io
 from typing import Optional, Iterable, Literal, Union
 from .datastore import DataStore, OrderedDataStore
+from . import user_agent
 
 __all__ = (
     "Experience",
@@ -116,7 +117,7 @@ class Experience():
         data: str - The message to send. Open Cloud does not support sending dictionaries/tables with publishing messages. You'll have to json encode it before sending it, and decode it in Roblox.
         """
         response = requests.post(f"https://apis.roblox.com/messaging-service/v1/universes/{self.id}/topics/{topic}",
-        json={"message": data}, headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key})
+        json={"message": data}, headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
         if response.status_code == 200: return
         elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
         elif response.status_code == 404: raise NotFound(f"The place does not exist.")
@@ -139,7 +140,7 @@ class Experience():
         publish: Optional[bool] - Wether to publish the place as well. Defaults to `False`.
         """
         response = requests.post(f"https://apis.roblox.com/universes/v1/{self.id}/places/{place_id}/versions",
-            headers={"x-api-key": self.__api_key, 'Content-Type': 'application/octet-stream'}, data=file.read(), params={
+            headers={"x-api-key": self.__api_key, 'content-type': 'application/octet-stream', "user-agent": user_agent}, data=file.read(), params={
                 "versionType": "Published" if publish else "Saved"
             })
         if response.status_code == 200:
