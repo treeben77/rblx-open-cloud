@@ -272,6 +272,7 @@ class OAuth2App():
                 try:
                     id_token = jwt.decode(response.json()["id_token"], cert,  algorithms=['ES256'], audience=str(self.id))
                     break
+                except(AttributeError): raise rblx_opencloudException("jwt conflicts with PyJWT. Please uninstall jwt to fix this issue.")
                 except(jwt.exceptions.PyJWTError): pass
 
         if response.ok: return AccessToken(self, response.json(), id_token)

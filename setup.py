@@ -25,6 +25,6 @@ setup(
     install_requires=[
         'requests',
         'cryptography',
-        'jwt'
+        'pyjwt'
     ]
 )
