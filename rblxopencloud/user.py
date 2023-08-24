@@ -1,7 +1,7 @@
 from .exceptions import rblx_opencloudException, InvalidKey, PermissionDenied, NotFound, RateLimited, ServiceUnavailable
 from .creator import Creator
 import datetime
-from typing import Optional, Union
+from typing import Optional, Union, Iterable
 from enum import Enum
 import requests
 from . import user_agent
@@ -188,14 +188,31 @@ class User(Creator):
     def __repr__(self) -> str:
         return f"rblxopencloud.User({self.id})"
 
-    def list_inventory(self, limit: Optional[int]=None, only_collectibles: Optional[bool]=False, assets: Optional[Union[list[InventoryAssetType], list[int], bool]]=False, badges: Optional[Union[list[int], bool]]=False, game_passes: Optional[Union[list[int], bool]]=False, private_servers: Optional[Union[list[int], bool]]=False):
+    def list_inventory(self, limit: Optional[int]=None, only_collectibles: Optional[bool]=False, assets: Optional[Union[list[InventoryAssetType], list[int], bool]]=False, badges: Optional[Union[list[int], bool]]=False, game_passes: Optional[Union[list[int], bool]]=False, private_servers: Optional[Union[list[int], bool]]=False) -> Iterable[Union[InventoryAsset, InventoryBadge, InventoryGamePass, InventoryPrivateServer]]:
         """
-        doc string coming soon 
+        Interates `rblx-open-cloud.InventoryItem` for items in the user's inventory. If `only_collectibles`, `assets`, `badges`, `game_passes`, and `private_servers` are `False`, then all inventory items are returned.
+        
+        The example below would iterate through every item in the user's inventory.
+        
+        ```py
+            for item in user.list_inventory():
+                print(item)
+        ```
+        
+        The `user.inventory-item:read` scope is required if authorized via OAuth2`.
+        ### Parameters
+        limit: Optional[bool] - he maximum number of inventory items to iterate. This can be `None` to return all items.
+        only_collectibles: Optional[bool] - Wether the only inventory assets iterated are collectibles (limited items).
+        assets: Optional[Union[list[InventoryAssetType], list[int], bool]] - If this is `True`, then it will return all assets, if it is a list of IDs, it will only return assets with the provided IDs, and if it is a list of :class:`rblx-open-cloud.InventoryAssetType` then it will only return assets of these types.
+        badges: Optional[Union[list[int], bool]] - If this is `True`, then it will return all badges, but if it is a list of IDs, it will only return badges with the provided IDs.
+        game_passes: Optional[Union[list[int], bool]] - If this is `True`, then it will return all game passes, but if it is a list of IDs, it will only return game passes with the provided IDs.
+        private_servers: Optional[Union[list[int], bool]] - If this is `True`, then it will return all private servers, but if it is a list of IDs, it will only return private servers with the provided IDs.
         """
 
-        filter_dict = {
-            "onlyCollectibles": only_collectibles
-        }
+        filter_dict = {}
+
+        if only_collectibles:
+            filter_dict["onlyCollectibles"] = only_collectibles
 
         if assets == True:
             filter_dict["inventoryItemAssetTypes"] = "*"
