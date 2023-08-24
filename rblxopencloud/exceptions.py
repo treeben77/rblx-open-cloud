@@ -21,6 +21,7 @@ __all__ = (
 class rblx_opencloudException(Exception): pass
 class NotFound(rblx_opencloudException): pass
 class InvalidKey(rblx_opencloudException): pass
+class PermissionDenied(InvalidKey): pass
 class RateLimited(rblx_opencloudException): pass
 class ServiceUnavailable(rblx_opencloudException): pass
 class PreconditionFailed(rblx_opencloudException):

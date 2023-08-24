@@ -1,7 +1,7 @@
 from typing import Literal
 
-VERSION: str = "1.4.0"
-VERSION_INFO: Literal['alpha', 'beta', 'final'] = "final"
+VERSION: str = "1.5.0"
+VERSION_INFO: Literal['alpha', 'beta', 'final'] = "alpha"
 
 user_agent: str = f"rblx-open-cloud/{VERSION} (https://github.com/treeben77/rblx-open-cloud)"
 
