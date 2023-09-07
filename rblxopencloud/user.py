@@ -29,7 +29,7 @@ class User(Creator):
 
         super().__init__(id, api_key, "User")
 
-    def fetch_groups(self, limit: Optional[int]=None) -> Iterable["GroupMember"]:
+    def list_groups(self, limit: Optional[int]=None) -> Iterable["GroupMember"]:
         from .group import GroupMember
 
         filter = None
