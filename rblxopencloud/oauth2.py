@@ -71,6 +71,7 @@ class PartialAccessToken():
         user = User(response.json().get("id") or response.json().get("sub"), f"Bearer {self.token}")
         user.username: str = response.json().get("preferred_username")
         user.display_name: str = response.json().get("nickname")
+        user.headshot_uri: str = response.json().get("picture")
         user.created_at: datetime.datetime = datetime.datetime.fromtimestamp(response.json()["created_at"]) if response.json().get("created_at") else None
 
         if response.ok: return user
@@ -158,6 +159,7 @@ class AccessToken(PartialAccessToken):
             self.user: Optional[User] = User(id_token.get("id") or id_token.get("sub"), f"Bearer {self.token}")
             self.user.username: str = id_token.get("preferred_username")
             self.user.display_name: str = id_token.get("nickname")
+            self.user.headshot_uri: Optional[str] = id_token.get("picture")
             self.user.created_at: datetime.datetime = datetime.datetime.fromtimestamp(id_token["created_at"]) if id_token.get("created_at") else None
         else: self.user: Optional[User] = None
 

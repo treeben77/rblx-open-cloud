@@ -19,11 +19,15 @@ User
 
         The user's ID
 
+        The ``openid`` scope is required if authorized via `OAuth2 </oauth2>`__.
+
         :type: int
 
     .. attribute:: username 
 
         The user's username. This will always be ``None``, unless it is from :doc:`oauth2`
+
+        The ``openid`` and ``profile`` scopes are required if authorized via `OAuth2 </oauth2>`__.
 
         :type: Optional[str]
 
@@ -31,17 +35,31 @@ User
 
         The user's display name. This will always be ``None``, unless it is from :doc:`oauth2`
 
+        The ``openid`` and ``profile`` scopes are required if authorized via `OAuth2 </oauth2>`__.
+
+        :type: Optional[str]
+
+    .. attribute:: headshot_uri 
+
+        The URI of the user's avatar headshot. This will always be ``None``, unless it is from :doc:`oauth2`
+
+        The ``openid`` and ``profile`` scopes are required if authorized via `OAuth2 </oauth2>`__.
+
         :type: Optional[str]
 
     .. attribute:: created_at 
 
         The time when user's account was created. This will always be ``None``, unless it is from :doc:`oauth2`
 
+        The ``openid`` and ``profile`` scopes are required if authorized via `OAuth2 </oauth2>`__.
+
         :type: datetime.datetime
 
     .. attribute:: profile_uri 
 
         A link to the user's profile.
+
+        The ``openid`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
         :type: str
 
