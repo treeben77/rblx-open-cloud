@@ -102,18 +102,19 @@ class PartialAccessToken():
 
         experiences = []
         accounts = []
-
+        
         for resource in response.json()["resource_infos"]:
             owner = resource["owner"]
-            for experience_id in resource["resources"]["universe"]["ids"]:
-                experience = Experience(experience_id, f"Bearer {self.token}")
-                if owner["type"] == "User":
-                    experience.owner = User(owner["id"], f"Bearer {self.token}")
-                elif owner["type"] == "Group":
-                    experience.owner = Group(owner["id"], f"Bearer {self.token}")
-                experiences.append(experience)
+            if resource["resources"].get("universe"):
+                for experience_id in resource["resources"]["universe"]["ids"]:
+                    experience = Experience(experience_id, f"Bearer {self.token}")
+                    if owner["type"] == "User":
+                        experience.owner = User(owner["id"], f"Bearer {self.token}")
+                    elif owner["type"] == "Group":
+                        experience.owner = Group(owner["id"], f"Bearer {self.token}")
+                    experiences.append(experience)
 
-            if owner["type"] == "User":
+            if resource["resources"].get("creator"):
                 for creator_id in resource["resources"]["creator"]["ids"]:
                     if creator_id == "U":
                         accounts.append(User(owner["id"], f"Bearer {self.token}"))
