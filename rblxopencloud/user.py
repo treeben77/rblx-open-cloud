@@ -9,6 +9,7 @@ from . import user_agent
 __all__ = (
     "User",
     "InventoryAssetType",
+    "InventoryItemState",
     "InventoryItem",
     "InventoryAsset",
     "InventoryBadge",
@@ -71,6 +72,11 @@ class InventoryAssetType(Enum):
     CreatedPlace = 51
     PurchasedPlace = 52
 
+class InventoryItemState(Enum):
+    Unknown = 0
+    Available = 1
+    Hold = 2
+
 asset_type_strings = {
     "INVENTORY_ITEM_ASSET_TYPE_UNSPECIFIED": InventoryAssetType.Unknown,
     "CLASSIC_TSHIRT": InventoryAssetType.ClassicTShirt,
@@ -127,6 +133,12 @@ asset_type_strings = {
     "PURCHASED_PLACE": InventoryAssetType.PurchasedPlace
 }
 
+state_type_strings = {
+    "COLLECTIBLE_ITEM_INSTANCE_STATE_UNSPECIFIED": InventoryItemState.Unknown,
+    "AVAILABLE": InventoryItemState.Available,
+    "HOLD": InventoryItemState.Hold
+}
+
 class InventoryItem():
     def __init__(self, id) -> None:
         self.id: int = id
@@ -141,7 +153,10 @@ class InventoryAsset(InventoryItem):
         self.instance_id: int = data["instanceId"]
         self.collectable_item_id: Optional[str] = data.get("collectibleDetails", {}).get("itemId", None)
         self.collectable_instance_id: Optional[str] = data.get("collectibleDetails", {}).get("instanceId", None)
-        self.serial_number: Optional[int] = data.get("serialNumber", None)
+        self.serial_number: Optional[int] = data.get("collectibleDetails", {}).get("serialNumber", None)
+
+        collectable_state = data.get("collectibleDetails", {}).get("instanceState", None)
+        self.collectable_state: Optional[InventoryItemState] = InventoryItemState(state_type_strings.get(collectable_state, InventoryItemState.Unknown)) if collectable_state else None
 
     def __repr__(self) -> str:
         return f"rblxopencloud.InventoryAsset(id={self.id}, type={self.type})"
@@ -188,7 +203,7 @@ class User(Creator):
     def __repr__(self) -> str:
         return f"rblxopencloud.User({self.id})"
 
-    def list_inventory(self, limit: Optional[int]=None, only_collectibles: Optional[bool]=False, assets: Optional[Union[list[InventoryAssetType], list[int], bool]]=False, badges: Optional[Union[list[int], bool]]=False, game_passes: Optional[Union[list[int], bool]]=False, private_servers: Optional[Union[list[int], bool]]=False) -> Iterable[Union[InventoryAsset, InventoryBadge, InventoryGamePass, InventoryPrivateServer]]:
+    def list_inventory(self, limit: Optional[int]=None, only_collectibles: Optional[bool]=False, assets: Optional[Union[list[InventoryAssetType], list[int], bool]]=None, badges: Optional[Union[list[int], bool]]=False, game_passes: Optional[Union[list[int], bool]]=False, private_servers: Optional[Union[list[int], bool]]=False) -> Iterable[Union[InventoryAsset, InventoryBadge, InventoryGamePass, InventoryPrivateServer]]:
         """
         Interates `rblx-open-cloud.InventoryItem` for items in the user's inventory. If `only_collectibles`, `assets`, `badges`, `game_passes`, and `private_servers` are `False`, then all inventory items are returned.
         
@@ -213,6 +228,7 @@ class User(Creator):
 
         if only_collectibles:
             filter_dict["onlyCollectibles"] = only_collectibles
+            if assets == None: assets = True
 
         if assets == True:
             filter_dict["inventoryItemAssetTypes"] = "*"

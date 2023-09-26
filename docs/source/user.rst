@@ -205,6 +205,12 @@ User
 
         :type: int
     
+    .. attribute:: collectable_state
+
+        Wether the collectable is in the holding period or not.
+
+        :type: Optional[InventoryItemState]
+
     .. attribute:: collectable_item_id 
 
         The collectable's asset ID. This is not the same as :attr:`InventoryAsset.id`.
@@ -378,3 +384,17 @@ User
     .. attribute:: CreatedPlace
 
     .. attribute:: PurchasedPlace
+
+.. class:: InventoryItemState()
+
+    Enum to denote wether a collectable is avaliable to be sold or is still in the holding period.
+    
+    .. versionadded:: 1.5
+
+    .. attribute:: Unknown
+
+        The item state is currently unknown.
+
+    .. attribute:: Available
+
+    .. attribute:: Hold
