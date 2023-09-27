@@ -23,6 +23,7 @@ class User(Creator):
         self.id: int = id
         self.display_name: Optional[str] = None
         self.profile_uri: str = f"https://roblox.com/users/{self.id}/profile"
+        self.headshot_uri: Optional[str] = None
         self.created_at: Optional[datetime.datetime] = None
 
         self.__api_key = api_key
