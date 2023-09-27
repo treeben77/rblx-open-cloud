@@ -172,6 +172,30 @@ User
         .. note::
 
             You can access anyone's inventory if it is public. Otherwise, you must use OAuth2 to obtain consent.
+            
+    .. method:: list_groups(limit=None)
+
+        Interates :class:`rblx-open-cloud.GroupMember` for each group the user is in. The API key doesn't need to belong to the user you're querying.
+        
+        The example below would iterate through every group the user is in.
+        
+        .. code:: python
+
+            for member in user.list_groups():
+                print(member)
+        
+        The ``group:read`` scope is required if authorized via `OAuth2 </oauth2>`__.
+
+        .. versionadded:: 1.5
+
+        :param Optional[int] limit: The maximum number of groups to iterate. This can be ``None`` to return all items.
+        
+        :returns: Iterable[:class:`rblx-open-cloud.GroupMember`]
+        :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to access group data.
+        :raises rblx-open-cloud.NotFound: The user could not be found.
+        :raises rblx-open-cloud.RateLimited: You're being rate limited by Roblox. Try again in a minute.
+        :raises rblx-open-cloud.ServiceUnavailable: Roblox's services as currently experiencing downtime.
+        :raises rblx-open-cloud.rblx_opencloudException: Roblox's response was unexpected.
 
 .. class:: InventoryItem()
 
@@ -416,3 +440,4 @@ User
     .. attribute:: Available
 
     .. attribute:: Hold
+    
