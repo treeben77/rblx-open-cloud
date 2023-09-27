@@ -153,7 +153,7 @@ User
         
         The ``user.inventory-item:read`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
-        .. versionadded:: 1.5
+        .. versionadded:: 1.6
 
         :param Optional[int] limit: The maximum number of inventory items to iterate. This can be ``None`` to return all items.
         :param Optional[bool] only_collectibles: Wether the only inventory assets iterated are collectibles (limited items).
@@ -186,7 +186,7 @@ User
         
         The ``group:read`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
-        .. versionadded:: 1.5
+        .. versionadded:: 1.6
 
         :param Optional[int] limit: The maximum number of groups to iterate. This can be ``None`` to return all items.
         
@@ -201,7 +201,7 @@ User
 
     Represents an inventory item.
 
-    .. versionadded:: 1.5
+    .. versionadded:: 1.6
 
     .. warning::
 
@@ -217,7 +217,7 @@ User
 
     Represents an asset in the user's inventory.
     
-    .. versionadded:: 1.5
+    .. versionadded:: 1.6
 
     .. warning::
 
@@ -269,7 +269,7 @@ User
 
     Represents a badge in a user's inventory.
     
-    .. versionadded:: 1.5
+    .. versionadded:: 1.6
 
     .. warning::
 
@@ -285,7 +285,7 @@ User
 
     Represents a gamepass in a user's inventory.
     
-    .. versionadded:: 1.5
+    .. versionadded:: 1.6
 
     .. warning::
 
@@ -301,7 +301,7 @@ User
 
     Represents a private server in a user's inventory.
     
-    .. versionadded:: 1.5
+    .. versionadded:: 1.6
 
     .. warning::
 
@@ -317,7 +317,7 @@ User
 
     Enum to denote what type an asset is.
     
-    .. versionadded:: 1.5
+    .. versionadded:: 1.6
 
     .. attribute:: Unknown
 
@@ -431,7 +431,7 @@ User
 
     Enum to denote wether a collectable is avaliable to be sold or is still in the holding period.
     
-    .. versionadded:: 1.5
+    .. versionadded:: 1.6
 
     .. attribute:: Unknown
 

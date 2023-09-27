@@ -155,7 +155,7 @@ Group
       
       The ``group:read`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
-      .. versionadded:: 1.5
+      .. versionadded:: 1.6
 
       :returns: :class:`rblx-open-cloud.Group`
       :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to access group data.
@@ -170,7 +170,7 @@ Group
 
       The ``group:read`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
-      .. versionadded:: 1.5
+      .. versionadded:: 1.6
 
       :returns: :class:`rblx-open-cloud.GroupShout`
       :raises rblx-open-cloud.InvalidKey: The token is invalid or doesn't have sufficent permissions to access group data.
@@ -192,7 +192,7 @@ Group
         
         The ``group:read`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
-        .. versionadded:: 1.5
+        .. versionadded:: 1.6
 
         :param Optional[int] limit: The maximum number of members to iterate. This can be ``None`` to return all members.
         :param Optional[int] role_id: If present, the api will only provide members with this role.
@@ -211,7 +211,7 @@ Group
         
         The ``group:read`` scope is required if authorized via `OAuth2 </oauth2>`__.
 
-        .. versionadded:: 1.5
+        .. versionadded:: 1.6
 
         :param Optional[int] limit: The maximum number of roles to iterate. This can be ``None`` to return all roles.
         
@@ -226,7 +226,7 @@ Group
 
   Represents a user inside of a group.
 
-  .. versionadded:: 1.5
+  .. versionadded:: 1.6
 
   .. warning::
 
@@ -266,7 +266,7 @@ Group
 
   Represents a role inside of a group.
 
-  .. versionadded:: 1.5
+  .. versionadded:: 1.6
 
   .. warning::
 
@@ -312,7 +312,7 @@ Group
 
   Represents a role's permissions inside of a group.
 
-  .. versionadded:: 1.5
+  .. versionadded:: 1.6
 
   .. warning::
 
@@ -378,12 +378,6 @@ Group
 
       :type: bool
 
-  .. attribute:: exile_members 
-
-      Allows the member to exile members from the group.
-
-      :type: bool
-
   .. attribute:: spend_group_funds 
 
       Allows the member to spend group funds.
@@ -436,7 +430,7 @@ Group
 
   Represents a group shout.
 
-  .. versionadded:: 1.5
+  .. versionadded:: 1.6
 
   .. warning::
 
