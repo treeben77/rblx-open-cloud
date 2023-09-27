@@ -134,8 +134,8 @@ class Group(Creator):
 
         self.name = data["displayName"]
         self.description = data["description"]
-        self.created_at = datetime.datetime.fromisoformat((data["createTime"].split("Z")[0]+"0"*6)[0:26])
-        self.updated_at = datetime.datetime.fromisoformat((data["updateTime"].split("Z")[0]+"0"*6)[0:26])
+        self.created_at = datetime.datetime.fromisoformat((data["createTime"].split("Z")[0]+("." if not "." in data["createTime"] else "")+"0"*6)[0:26])
+        self.updated_at = datetime.datetime.fromisoformat((data["updateTime"].split("Z")[0]+("." if not "." in data["updateTime"] else "")+"0"*6)[0:26])
         self.owner = User(int(data["owner"].split("/")[1]), self.__api_key) if data.get("owner") else None
         self.member_count = data["memberCount"]
         self.public_entry = data["publicEntryAllowed"]
