@@ -11,6 +11,12 @@ Exceptions
 
    The api key is invalid or doesn't have sufficent permissions to do the requested task.
 
+.. exception:: PermissionDenied()
+
+   The client is not allowed to do the requested permissions. This is only returned in instances were the problem is usually not the API key, for example trying to retrieve a private inventory.
+
+   .. versionadded:: 1.5
+
 .. exception:: NotFound()
 
    An item in the request, such as a ``datastore``, ``key``, ``version`` or ``place`` was not found.
