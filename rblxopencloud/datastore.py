@@ -1,8 +1,8 @@
 from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable, PreconditionFailed
-import requests, json, datetime
+import json, datetime
 import base64, hashlib, urllib.parse
 from typing import Union, Optional, Iterable, TYPE_CHECKING
-from . import user_agent
+from . import user_agent, request_session
 
 if TYPE_CHECKING:
     from .experience import Experience
@@ -120,7 +120,7 @@ class DataStore():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries",
+            response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries",
                 headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
                 "datastoreName": self.name,
                 "scope": self.scope,
@@ -155,7 +155,7 @@ class DataStore():
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
+        response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
                 "datastoreName": self.name,
                 "scope": scope,
@@ -198,7 +198,7 @@ class DataStore():
         if users == None: users = []
         data = json.dumps(value)
 
-        response = requests.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
+        response = request_session.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key, "user-agent": user_agent, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata),
             "content-md5": base64.b64encode(hashlib.md5(data.encode()).digest())}, data=data, params={
                 "datastoreName": self.name,
@@ -250,7 +250,7 @@ class DataStore():
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         if users == None: users = []
 
-        response = requests.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/increment",
+        response = request_session.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/increment",
             headers={"x-api-key": self.__api_key, "user-agent": user_agent, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)}, params={
                 "datastoreName": self.name,
                 "scope": scope,
@@ -285,7 +285,7 @@ class DataStore():
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        response = requests.delete(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
+        response = request_session.delete(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
             headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
                 "datastoreName": self.name,
                 "scope": scope,
@@ -329,7 +329,7 @@ class DataStore():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions",
+            response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions",
                 headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
                     "datastoreName": self.name,
                     "scope": scope,
@@ -368,7 +368,7 @@ class DataStore():
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.") 
-        response = requests.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions/version",
+        response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions/version",
             headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
                 "datastoreName": self.name,
                 "scope": scope,
@@ -465,7 +465,7 @@ class OrderedDataStore():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = requests.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(self.scope)}/entries",
+            response = request_session.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(self.scope)}/entries",
                 headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
                 "max_page_size": limit if limit and limit < 100 else 100,
                 "order_by": "desc" if descending else None,
@@ -500,7 +500,7 @@ class OrderedDataStore():
             else: scope = self.scope
         except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
 
-        response = requests.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+        response = request_session.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
             headers={"x-api-key": self.__api_key, "user-agent": user_agent})
         
         if response.status_code == 200: return int(response.json()["value"])
@@ -528,12 +528,12 @@ class OrderedDataStore():
         if exclusive_create and exclusive_update: raise ValueError("exclusive_create and exclusive_updated can not both be True")
 
         if not exclusive_create:
-            response = requests.patch(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+            response = request_session.patch(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
                 headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={"allow_missing": not exclusive_update}, json={
                     "value": value
                 })
         else:
-            response = requests.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
+            response = request_session.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
                 headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={"id": key}, json={
                     "value": value
                 })
@@ -563,7 +563,7 @@ class OrderedDataStore():
             else: scope = self.scope
         except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
 
-        response = requests.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}:increment",
+        response = request_session.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}:increment",
             headers={"x-api-key": self.__api_key, "user-agent": user_agent}, json={
                 "amount": increment
             })
@@ -588,7 +588,7 @@ class OrderedDataStore():
             else: scope = self.scope
         except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
 
-        response = requests.delete(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+        response = request_session.delete(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
             headers={"x-api-key": self.__api_key, "user-agent": user_agent})
         
         if response.status_code in [200, 204]: return None

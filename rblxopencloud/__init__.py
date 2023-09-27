@@ -1,11 +1,14 @@
 from typing import Literal
+import requests
 
-VERSION: str = "1.5.0"
-VERSION_INFO: Literal['alpha', 'beta', 'final'] = "alpha"
+VERSION: str = "1.6.0"
+VERSION_INFO: Literal['alpha', 'beta', 'final'] = "final"
 
 user_agent: str = f"rblx-open-cloud/{VERSION} (https://github.com/treeben77/rblx-open-cloud)"
 
-del Literal
+request_session: requests.Session = requests.Session()
+
+del Literal, requests
 
 from .experience import *
 from .datastore import *

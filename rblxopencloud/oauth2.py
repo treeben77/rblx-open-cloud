@@ -1,16 +1,16 @@
 from .exceptions import rblx_opencloudException, InvalidKey, ServiceUnavailable, InsufficientScope, InvalidCode
 from urllib import parse
-import requests, datetime, time
+import datetime, time
 from typing import Optional, Union, TYPE_CHECKING
 from .user import User
 from .group import Group
 from .experience import Experience
-import requests, base64, jwt
+import base64, jwt
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_der_public_key
 from cryptography.hazmat.backends import default_backend
 import hashlib, string, secrets
-from . import user_agent
+from . import user_agent, request_session
 
 __all__ = (
     "OAuth2App",
@@ -65,12 +65,13 @@ class PartialAccessToken():
         Returns a `rblx-open-cloud.User` object for this authorization. You can use this object to directly access user resources (like uploading files), if it was authorized.
         """
 
-        response = requests.get("https://apis.roblox.com/oauth/v1/userinfo", headers={
+        response = request_session.get("https://apis.roblox.com/oauth/v1/userinfo", headers={
             "authorization": f"Bearer {self.token}", "user-agent": user_agent
         })
         user = User(response.json().get("id") or response.json().get("sub"), f"Bearer {self.token}")
         user.username: str = response.json().get("preferred_username")
         user.display_name: str = response.json().get("nickname")
+        user.headshot_uri: str = response.json().get("picture")
         user.created_at: datetime.datetime = datetime.datetime.fromtimestamp(response.json()["created_at"]) if response.json().get("created_at") else None
 
         if response.ok: return user
@@ -86,7 +87,7 @@ class PartialAccessToken():
         Fetches the authorized accounts (users and groups), and experiences.
         """
 
-        response = requests.post("https://apis.roblox.com/oauth/v1/token/resources", data={
+        response = request_session.post("https://apis.roblox.com/oauth/v1/token/resources", data={
             "token": self.token,
             "client_id": self.app.id,
             "client_secret": self.app._OAuth2App__secret
@@ -101,18 +102,19 @@ class PartialAccessToken():
 
         experiences = []
         accounts = []
-
+        
         for resource in response.json()["resource_infos"]:
             owner = resource["owner"]
-            for experience_id in resource["resources"]["universe"]["ids"]:
-                experience = Experience(experience_id, f"Bearer {self.token}")
-                if owner["type"] == "User":
-                    experience.owner = User(owner["id"], f"Bearer {self.token}")
-                elif owner["type"] == "Group":
-                    experience.owner = Group(owner["id"], f"Bearer {self.token}")
-                experiences.append(experience)
+            if resource["resources"].get("universe"):
+                for experience_id in resource["resources"]["universe"]["ids"]:
+                    experience = Experience(experience_id, f"Bearer {self.token}")
+                    if owner["type"] == "User":
+                        experience.owner = User(owner["id"], f"Bearer {self.token}")
+                    elif owner["type"] == "Group":
+                        experience.owner = Group(owner["id"], f"Bearer {self.token}")
+                    experiences.append(experience)
 
-            if owner["type"] == "User":
+            if resource["resources"].get("creator"):
                 for creator_id in resource["resources"]["creator"]["ids"]:
                     if creator_id == "U":
                         accounts.append(User(owner["id"], f"Bearer {self.token}"))
@@ -128,7 +130,7 @@ class PartialAccessToken():
         Fetches information the token such as the user's id, the authorized scope, and it's expiry time.
         """
 
-        response = requests.post("https://apis.roblox.com/oauth/v1/token/introspect", data={
+        response = request_session.post("https://apis.roblox.com/oauth/v1/token/introspect", data={
             "token": self.token,
             "client_id": self.app.id,
             "client_secret": self.app._OAuth2App__secret
@@ -158,6 +160,7 @@ class AccessToken(PartialAccessToken):
             self.user: Optional[User] = User(id_token.get("id") or id_token.get("sub"), f"Bearer {self.token}")
             self.user.username: str = id_token.get("preferred_username")
             self.user.display_name: str = id_token.get("nickname")
+            self.user.headshot_uri: Optional[str] = id_token.get("picture")
             self.user.created_at: datetime.datetime = datetime.datetime.fromtimestamp(id_token["created_at"]) if id_token.get("created_at") else None
         else: self.user: Optional[User] = None
 
@@ -242,7 +245,7 @@ class OAuth2App():
         code: str - The code from the authorization server.
         code_verifier: Optional[str] - the string for this OAuth2 flow generated by `OAuth2App.generate_code_verifier()`.
         """
-        response = requests.post("https://apis.roblox.com/oauth/v1/token", data={
+        response = request_session.post("https://apis.roblox.com/oauth/v1/token", data={
             "client_id": self.id,
             "client_secret": self.__secret,
             "redirect_uri": self.redirect_uri,
@@ -253,7 +256,7 @@ class OAuth2App():
         id_token = None
         if response.json().get("id_token"):
             if not self.__openid_certs_cache or time.time() - self.__openid_certs_cache_updated > self.openid_certs_cache_seconds:
-                certs = requests.get("https://apis.roblox.com/oauth/v1/certs", headers={"user-agent": user_agent})
+                certs = request_session.get("https://apis.roblox.com/oauth/v1/certs", headers={"user-agent": user_agent})
                 if not certs.ok: raise ServiceUnavailable("Failed to retrieve OpenID certs.")
 
                 self.__openid_certs_cache = []
@@ -287,7 +290,7 @@ class OAuth2App():
         ### Parameters
         refresh_token: str - The refresh token to refresh.
         """
-        response = requests.post("https://apis.roblox.com/oauth/v1/token", data={
+        response = request_session.post("https://apis.roblox.com/oauth/v1/token", data={
             "client_id": self.id,
             "client_secret": self.__secret,
             "grant_type": "refresh_token",
@@ -304,7 +307,7 @@ class OAuth2App():
 
         token: str - The refresh token to refresh.
         """
-        response = requests.post("https://apis.roblox.com/oauth/v1/token/revoke", data={
+        response = request_session.post("https://apis.roblox.com/oauth/v1/token/revoke", data={
             "token": token,
             "client_id": self.id,
             "client_secret": self.__secret
