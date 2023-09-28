@@ -5,3 +5,7 @@
 [![Downloads](https://img.shields.io/pypi/dm/rblx-open-cloud?style=for-the-badge&logo=pypi&logoColor=white&label=PyPi%20Downloads&labelColor=%23006dad&color=%23353535)](https://pypi.org/project/rblx-open-cloud)
 
 rblx-open-cloud is a Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-cloud/index). It supports all experience and creator APIs, OAuth2, and incoming webhooks.
+
+!!! note
+
+    This documentation is NOT done. Everything you see here, is still being baked up. You can provide feedback by opening up a Github Issue, or putting it in the discord server.
