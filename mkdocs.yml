@@ -6,6 +6,15 @@ theme:
     - content.code.copy
   palette:
     scheme: slate
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          import:
+          - url: https://docs.python-requests.org/en/master/objects.inv
+            domains: [std, py]
+          options:
+            show_source: false
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
