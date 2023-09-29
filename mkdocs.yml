@@ -15,6 +15,9 @@ plugins:
             domains: [std, py]
           options:
             show_source: false
+            show_root_toc_entry: false
+            show_root_heading: true
+            members_order: source
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true

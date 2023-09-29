@@ -21,7 +21,17 @@ __all__ = (
 
 class EntryInfo():
     """
-    Contains data about an entry such as version ID, timestamps, users and metadata.
+    Represents a Data Store entry, and contains metadata about the entry.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by `DataStore.get()`, `DataStore.increment()`, and `DataStore.get_version()`.
+
+    Attributes:
+        version (str): The version ID of this entry.
+        created (datetime.datetime): The timestamp the entry was created.
+        updated (datetime.datetime): The timestamp the entry was last modified.
+        users (list[int]): A list of user IDs associated with the entry.
+        metadata (dict): The dictionary of custom metadata.
     """
     def __init__(self, version, created, updated, users, metadata) -> None:
         self.version: str = version
@@ -35,7 +45,17 @@ class EntryInfo():
 
 class EntryVersion():
     """
-    Contains data about a version such as it's ID, timestamps, content length and wether this version is deleted.
+    Represents a Data Store entry version, and contains data about the version.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by `DataStore.set()`, and `DataStore.list_versions()`.
+
+    Attributes:
+        version (str): The version ID of this entry.
+        deleted (bool): Wether this version has been marked as deleted.
+        content_length (int): The number of characters the value is.
+        created (datetime.datetime): The timestamp the version was created.
+        key_created (datetime.datetime): The timestamp the entry was first created.
     """
     def __init__(self, version, deleted, content_length, created, key_created, datastore, key, scope) -> None:
         self.version: str = version
@@ -53,7 +73,12 @@ class EntryVersion():
         return self.__key == object.__key and self.__scope == object.__scope and self.version == object.version
     
     def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
-        """Gets the value of this version. Shortcut for `DataStore.get_version`"""
+        """
+        Gets the value of the current version. This is a shortcut for `DataStore.get_version`
+
+        Returns:
+            A tuple with the value in the first index, and EntryInfo in the second index.
+        """
         if self.__datastore.scope:
             return self.__datastore.get_version(self.__key, self.version)
         else:
@@ -64,7 +89,14 @@ class EntryVersion():
 
 class ListedEntry():
     """
-    Object which contains an entry's key and scope.
+    Represents a Data Store entry when listed with `DataStore.list()`.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by `DataStore.list()`.
+
+    Attributes:
+        key (str): The entry's key.
+        scope (str): The entry's scope.
     """
     def __init__(self, key, scope) -> None:
         self.key: str = key
@@ -81,6 +113,15 @@ class ListedEntry():
 class DataStore():
     """
     Represents a regular data store in an experience.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by `Experience.get_data_store()` and `Experience.list_data_stores()`.
+
+    Attributes:
+        name (str): The data store's name.
+        scope (Optional[str]): The data store's scope. If it is `None`, then it uses the `scope/key` syntax.
+        experience (Experience): The experience the data store belongs to.
+        created (Optional[datetime.datetime]): The time the datetime was created. Only present if returned by `Experience.list_data_stores()`.
     """
 
     def __init__(self, name, experience, api_key, created, scope):
@@ -99,23 +140,32 @@ class DataStore():
 
     def list_keys(self, prefix: str="", limit: Optional[int]=None) -> Iterable[ListedEntry]:
         """
-        Returns an Iterable of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if :attr:`scope` is ``None``.
+        Returns an Iterable of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if the `scope` attribute is `None`.
 
-        The example below would list all keys, along with their scope.
-                
-        ```py
+        Example:
+            This will print every key in the data store. 
+            ```py
             for key in datastore.list_keys():
                 print(key.key, key.scope)
-        ```
+            ```
+            If you'd like the keys in a list, you can use the list method:
+            ```py
+            list(datastore.list_keys())
+            ```
 
-        You can simply convert it to a list by putting it in the list function:
-
-        ```py
-            list(datastore.list_versions())
-        ### Parameters
-        prefix: str - Only return keys that start with this prefix.
-        limit: Optional[int] - Will not return more keys than this number. Set to `None` for no limit.
-        ```
+        Args:
+            prefix: Only return keys that start with this prefix.
+            limit: Will not return more keys than this number. Set to `None` for no limit.
+        
+        Returns:
+            An Iterable of all keys in the data store.
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to list data store keys, or is from an invalid IP address.
+            NotFound: The experience or data store does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
         """
         nextcursor = ""
         yields = 0
@@ -398,7 +448,15 @@ class DataStore():
 
 class SortedEntry():
     """
-    Object which contains a sorted entry's key, scope, and value.
+    Represents an Ordered Data Store entry when listed with `OrderedDataStore.sort_keys()`.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by `OrderedDataStore.sort_keys()`.
+
+    Attributes:
+        key (str): The entry's key.
+        scope (str): The entry's scope.
+        value (int): The value of the entry.
     """
     def __init__(self, key: str, value: int, scope: str="global") -> None:
         self.key: str = key
