@@ -10,6 +10,7 @@ theme:
   features:
     - content.code.copy
     - content.action.edit
+    - navigation.sections
   palette:
     scheme: slate
 plugins:
@@ -47,6 +48,9 @@ nav:
   - Reference:
     - Experience: reference/experience.md
     - User: reference/user.md
+    - Group: reference/group.md
     - OAuth2: reference/oauth2.md
+    - Webhook: reference/webhook.md
     - Data Store: reference/datastore.md
     - Exceptions: reference/exceptions.md
+    - Creator: reference/creator.md

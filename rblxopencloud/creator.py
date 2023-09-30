@@ -19,7 +19,13 @@ __all__ = (
 
 class AssetType(Enum):
     """
-    Enum to denote what type an asset is.
+    Enum denoting what type a [`rblxopencloud.Asset`][rblxopencloud.Asset] is.
+
+    Attributes:
+        Unknown (0): The asset type is unknown.
+        Decal (1):
+        Audio (2):
+        Model (3):
     """
     
     Unknown = 0
@@ -29,7 +35,19 @@ class AssetType(Enum):
 
 class Asset():
     """
-    Represents an processed asset uploaded to Roblox.
+    Represents an uploaded and processed asset on Roblox.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`Creator.upload_asset()`][rblxopencloud.Creator.upload_asset], and [`Creator.update_asset()`][rblxopencloud.Creator.update_asset].
+    
+    Attributes:
+        id (int): The ID of the asset.
+        type (AssetType): The type of the asset.
+        name (str): The asset's name.
+        description (str): The asset's description.
+        creator (Union[User, Group]): The [`rblxopencloud.User`][rblxopencloud.User] and [`rblxopencloud.Group`][rblxopencloud.Group] the asset was uploaded to.
+        revision_id (Optional[int]): The ID of the current revision (only for updatable assets).
+        revision_time (Optional[datetime.datetime]): The timestamp the current revision was made (only for updatable assets).
     """
     
     def __init__(self,  assetObject, creator=None) -> None:
@@ -53,6 +71,9 @@ class Asset():
 class PendingAsset():
     """
     Represents an asset uploaded to Roblox, but hasn't been processed yet.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`Creator.upload_asset()`][rblxopencloud.Creator.upload_asset], and [`Creator.update_asset()`][rblxopencloud.Creator.update_asset].
     """
 
     def __init__(self, path, api_key, creator=None) -> None:
@@ -65,7 +86,16 @@ class PendingAsset():
     
     def fetch_operation(self) -> Optional[Asset]:
         """
-        Checks if the asset has finished proccessing, if so returns the :class:`rblx-open-cloud.Asset` object.
+        Checks if the asset has finished proccessing, if so returns the asset's [`rblxopencloud.Asset`][rblxopencloud.Asset] object.
+
+        Returns:
+            If it has finished processing it'll return the asset's [`rblxopencloud.Asset`][rblxopencloud.Asset] object, otherwise it'll return `None`.
+
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to upload assets, or is from an invalid IP address.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
         """
 
         response = request_session.get(f"https://apis.roblox.com/assets/v1/{self.__path}",
@@ -93,7 +123,13 @@ mimetypes = {
 
 class Creator():
     """
-    Represents an object that can upload assets, usually a user or a group.
+    Represents a base object that assets can be uploaded to, such as users or groups.
+
+    !!! warning
+        This class isn't designed to be created by users. It bases [`rblxopencloud.User()`][rblxopencloud.User], and [`rblxopencloud.Group()`][rblxopencloud.Group].
+
+    Attributes:
+        id (int): The user/group ID.
     """
 
     def __init__(self, userid, api_key, type) -> None:
@@ -106,22 +142,61 @@ class Creator():
     
     def upload_asset(self, file: io.BytesIO, asset_type: Union[AssetType, str], name: str, description: str, expected_robux_price: int = 0) -> Union[Asset, PendingAsset]:
         """
-        Uploads the file onto roblox as an asset with the provided name and description. It will return `rblx-open-cloud.Asset` if the asset is processed instantly, otherwise it will return `rblx-open-cloud.PendingAsset`. The following asset types and file formats are accepted:
+        Uploads the file requested file onto roblox as an asset with the provided name and description. The following asset types and file formats are accepted:
 
         | Asset Type | File Formats |
         | --- | --- |
-        | `rblx-open-cloud.AssetType.Decal` | `.png`, `.jpeg`, `.bmp`, `.tga` |
-        | `rblx-open-cloud.AssetType.Audio` | `.mp3`, `.ogg` |
-        | `rblx-open-cloud.AssetType.Model` | `.fbx` |
+        | [`rblxopencloud.AssetType.Decal`][rblxopencloud.AssetType] | `.png`, `.jpeg`, `.bmp`, `.tga` |
+        | [`rblxopencloud.AssetType.Audio`][rblxopencloud.AssetType] | `.mp3`, `.ogg` |
+        | [`rblxopencloud.AssetType.Model`][rblxopencloud.AssetType] | `.fbx` |
 
-        The ``asset:read`` and ``asset:write`` scopes are required if authorized via `OAuth2 </oauth2>`__.
+        **The `asset:read` and `asset:write` scopes are required for OAuth2 authorization.**
 
-        ### Parameters
-        file: io.BytesIO -The file opened in bytes to be uploaded.
-        asset_type: rblx-open-cloud.AssetType - The type of asset you're uploading.
-        name: str - The name of your asset.
-        description: str - The description of your asset.
-        expected_robux_price: int - The amount of robux expected to upload. Fails if lower than actual price.
+        Example:
+            You can upload a file stored on your computer like this:
+            ```py
+            with open('path-to/file.png', 'rb') as file:
+                creator.upload_asset(file, AssetType.Decal, "Asset Name", "This is the description")
+            
+            if not isinstance(asset, Asset):
+                while True:
+                    status = asset.fetch_status()
+                    if status: 
+                        asset = status
+                        break
+            
+            print(asset)
+            ```
+            If the asset is from hosted from a URL on the internet, you could use this:
+            ```py
+            import requests, io
+
+            response = requests.get('https://example.com/file.png')
+            response.raise_for_status()
+
+            file = io.BytesIO(response.content)
+            file.name = "file.png"
+
+            creator.upload_asset(file, AssetType.Decal, "Asset Name", "This is the description")
+            ```
+
+        Args:
+            file: The file opened in bytes to be uploaded.
+            asset_type: The type of asset you're uploading.
+            name: The name of your asset.
+            description: The description of your asset.
+            expected_robux_price: The amount of robux expected to upload. Fails if lower than actual price.
+
+        Returns:
+            Returns [`rblxopencloud.Asset`][rblxopencloud.Asset] if the asset is processed instantly, otherwise it will return [`rblxopencloud.PendingAsset`][rblxopencloud.PendingAsset]`.
+        
+        Raises:
+            InvalidAsset: The file is either an unsupported type, uploaded as the wrong [`rblxopencloud.AssetType`][rblxopencloud.AssetType], or has been corrupted.
+            ModeratedText: The name or description was moderated by Roblox's text filter.
+            InvalidKey: The API key isn't valid, doesn't have access to upload assets, or is from an invalid IP address.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
         """
 
         body, contentType = urllib3.encode_multipart_formdata({
@@ -165,17 +240,28 @@ class Creator():
     
     def update_asset(self, asset_id: int, file: io.BytesIO) -> Union[Asset, PendingAsset]:
         """
-        Updates the file for an existing assest on Roblox. It will return :class:`rblx-open-cloud.Asset` if the asset is processed instantly, otherwise it will return :class:`rblx-open-cloud.PendingAsset`. The following asset types and file formats can be updated:
+        Uploads the file requested file onto roblox, replacing the existing asset. The following asset types and file formats can be updated:
 
         | Asset Type | File Formats |
         | --- | --- |
-        | `rblx-open-cloud.AssetType.Model` | `.fbx` |
+        | [`rblxopencloud.AssetType.Model`][rblxopencloud.AssetType] | `.fbx` |
 
-        The `asset:read` and `asset:write` scopes are required if authorized via OAuth2.
+        **The `asset:read` and `asset:write` scopes are required for OAuth2 authorization.**
 
-        ### Parameters
-        asset_id: int - The ID of the asset to update.
-        file: io.BytesIO - The file opened in bytes to be uploaded.
+        Args:
+            asset_id: The ID of the asset to update.
+            file: The file opened in bytes to be replace the old one.
+
+        Returns:
+            Returns [`rblxopencloud.Asset`][rblxopencloud.Asset] if the asset is processed instantly, otherwise it will return [`rblxopencloud.PendingAsset`][rblxopencloud.PendingAsset]`.
+        
+        Raises:
+            InvalidAsset: The file is either an unsupported type, uploaded as the wrong [`rblxopencloud.AssetType`][rblxopencloud.AssetType], or has been corrupted.
+            ModeratedText: The name or description was moderated by Roblox's text filter.
+            InvalidKey: The API key isn't valid, doesn't have access to upload assets, or is from an invalid IP address.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
         """
 
         body, contentType = urllib3.encode_multipart_formdata({
