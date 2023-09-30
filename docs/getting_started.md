@@ -28,5 +28,4 @@ experience = Experience(11334231, "test_api_key")
 !!! note
     For styling purposes, we decided to use ``from rblxopencloud import ...`` and not ``import rblxopencloud`` as that is much more viewable then doing ``rblxopencloud.Experience`` for everything. The decision is up to you!
 
-
-APIs can be regened by going through Creator Dashboard. You can find that tutorial [here](https://create.roblox.com/docs/cloud/open-cloud/api-keys#creating-an-api-key) by Roblox.
+API keys can be created in the [Creator Dashboard](https://create.roblox.com/dashboard/credentials). You can find that tutorial [here](https://create.roblox.com/docs/cloud/open-cloud/api-keys#creating-an-api-key) by Roblox.

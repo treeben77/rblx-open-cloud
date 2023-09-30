@@ -25,9 +25,13 @@ EVENT_TYPES = {
 class Webhook():
     """
     Represents a Roblox outgoing webhook. It is used to validate and process webhook events.
-    ### Parameters
-    secret: Optional[Union[str, bytes]] - Random letters only known by Roblox and the server to validate requests.
-    api_key: str - Your API key created from [Creator Dashboard](https://create.roblox.com/credentials) with access to all objects that are generated in events.
+    
+    Args:
+        secret: Random letters only known by Roblox and the server to validate requests.
+        api_key: Your API key created from [Creator Dashboard](https://create.roblox.com/credentials) with access to all objects that are generated in events.
+    
+    Attributes:
+        secret (Optional[bytes]): The webhook secret only known by Roblox and the recieving agent. 
     """
 
     def __init__(self, secret: Optional[Union[str, bytes]] = None, api_key: Optional[str]=None) -> None:
@@ -39,19 +43,33 @@ class Webhook():
     def __repr__(self) -> str:
         return f"rblxopencloud.Webhook()"
 
-    def process_notification(self, body: bytes, secret_header: bytes = None, validate_signature=True) -> tuple[str, int]:
+    def process_notification(self, body: bytes, secret_header: bytes = None, validate_signature: bool=True) -> tuple[str, int]:
         """
-        Processes a HTTP webhook event and returns a response text and status code tuple. Example for Flask:
+        Processes a HTTP webhook event and returns a response text and status code tuple.
         
-        ```py
-            @app.route('/webhook-roblox', methods=["POST"])
-            def webhook_roblox():
-                return webhook.process_notification(body=request.data, secret_header=request.headers["Roblox-Signature"])
-        ```
-        ### Parameters
-        body: bytes - The HTTP raw body.
-        secret_header: bytes - The raw value of the `Roblox-Signature` header.
-        validate_signature: bool - Wether to validate the signature or not. This should not be disabled in production.
+        Example:
+            Since the webhook section of the library was designed specificly for Flask, it is very easy to implement with Flask. Here's an example:
+            ```py
+                @app.route('/webhook-roblox', methods=["POST"])
+                def webhook_roblox():
+                    return webhook.process_notification(body=request.data, secret_header=request.headers["Roblox-Signature"])
+            ```
+            If you're using another framework, it will be slightly more complex to work it out.
+
+        Args:
+            body: The HTTP raw body.
+            secret_header: The raw value of the `Roblox-Signature` header.
+            validate_signature: Wether to validate the signature or not. This should not be disabled in production.
+        
+        Returns:
+            A tuple with the string response in the first index, and the status code in the second index. Designed to be put straight into the return route in Flask.
+        
+        Raises:
+            UnknownEventType: The library recieved a webhook payload for an unknown type.
+            UnhandledEventType: The library recieved a webhook payload that doesn't have any handler function attached.
+        
+        !!! note
+            If an exception is raised in the notification handler, then it will be raised from this method. Therefore, any exception could be raised by this method. 
         """
 
         if validate_signature:
@@ -102,8 +120,16 @@ class Webhook():
 
         | Event Name | Notification Type | Event Description |
         | --- | --- | --- |
-        | `on_test` | `rblx-open-cloud.TestNotification` | Triggers when the user clicks 'Test Response' on the Webhook configuration page |
-        | `on_right_to_erasure_request` | `rblx-open-cloud.RightToErasureRequestNotification` | Triggers when a right to erause request is recieved. |
+        | `on_test` | [`rblxopencloud.TestNotification`][rblxopencloud.TestNotification] | Triggers when the user clicks 'Test Response' on the Webhook configuration page |
+        | `on_right_to_erasure_request` | [`rblxopencloud.RightToErasureRequestNotification`][rblxopencloud.RightToErasureRequestNotification] | Triggers when a right to erause request is recieved. |
+        
+        Example:
+            This will print the user ID and effected experiences for every right to erasure request that is recieved.
+            ```py
+            @webhook.event
+            def on_right_to_erasure_request(notification):
+                print(notification.user_id, notification.experiences)
+            ```
         """
 
         if func.__name__ == "on_error":
@@ -117,7 +143,15 @@ class Webhook():
 
 class Notification():
     """
-    Represents a recieved webhook event.
+    Represents a recieved base webhook event.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by some decorated functions from [`Webhook.event()`][rblxopencloud.Webhook.event].
+    
+    Attributes:
+        notification_id: The notifications unique ID. If an ID is repeated, assume it is a duplicate and ignore it.
+        timestamp: The time the notification was created.
+        webhook: The webhook that the notifcation came from.
     """
 
     def __init__(self, body, webhook, api_key):
@@ -131,6 +165,15 @@ class Notification():
 class TestNotification(Notification):
     """
     Represents a recieved webhook event triggered by the user pressing 'Test Response' on the webhook configuration page.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by some decorated functions from [`Webhook.event()`][rblxopencloud.Webhook.event].
+    
+    Attributes:
+        notification_id (str): The notifications unique ID. If an ID is repeated, assume it is a duplicate and ignore it.
+        timestamp (datetime.datetime): The time the notification was created.
+        webhook (Webhook): The webhook that the notifcation came from.
+        user: The user that clicked the test button.
     """
 
     def __init__(self, body, webhook, api_key):
@@ -145,7 +188,17 @@ class TestNotification(Notification):
 class RightToErasureRequestNotification(Notification):
     """
     Represents a recieved webhook event triggered by a user requesting Roblox to erase all their user data.
-    """
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by some decorated functions from [`Webhook.event()`][rblxopencloud.Webhook.event].
+    
+    Attributes:
+        notification_id (str): The notifications unique ID. If an ID is repeated, assume it is a duplicate and ignore it.
+        timestamp (datetime.datetime): The time the notification was created.
+        webhook (Webhook): The webhook that the notifcation came from.
+        user_id: The ID of the user who requested their data to be erased.
+        experiences: A list of experiences the user potentially has saved data.
+    """    
     
     def __init__(self, body, webhook, api_key):
         super().__init__(body, webhook, api_key)

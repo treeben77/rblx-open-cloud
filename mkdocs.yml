@@ -1,10 +1,32 @@
 site_name: rblx-open-cloud
+copyright: Copyright &copy; treeben77 2022-2023
+repo_name: treeben77/rblx-open-cloud
+repo_url: https://github.com/treeben77/rblx-open-cloud
+edit_uri: tree/main/docs/
 theme:
   name: material
+  icon:
+    repo: fontawesome/brands/github
   features:
     - content.code.copy
+    - content.action.edit
+    - navigation.sections
   palette:
     scheme: slate
+plugins:
+  - autorefs
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          import:
+          - https://docs.python.org/3/objects.inv
+          options:
+            show_source: false
+            show_root_toc_entry: false
+            show_root_heading: true
+            members_order: source
+            inherited_members: true
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -14,8 +36,24 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
   - admonition
+  - footnotes
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+use_directory_urls: false
+nav:
+  - Introduction: index.md
+  - Getting Started: getting_started.md
+  - Guides:
+    - OAuth2: guides/oauth2.md
+  - Reference:
+    - Experience: reference/experience.md
+    - User: reference/user.md
+    - Group: reference/group.md
+    - OAuth2: reference/oauth2.md
+    - Webhook: reference/webhook.md
+    - Data Store: reference/datastore.md
+    - Exceptions: reference/exceptions.md
+    - Creator: reference/creator.md

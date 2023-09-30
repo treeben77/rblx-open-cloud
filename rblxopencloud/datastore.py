@@ -21,7 +21,17 @@ __all__ = (
 
 class EntryInfo():
     """
-    Contains data about an entry such as version ID, timestamps, users and metadata.
+    Represents a Data Store entry, and contains metadata about the entry.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`DataStore.get()`][rblxopencloud.DataStore.get], [`DataStore.increment()`][rblxopencloud.DataStore.increment], and [`DataStore.get_version()`][rblxopencloud.DataStore.get_version].
+
+    Attributes:
+        version (str): The version ID of this entry.
+        created (datetime.datetime): The timestamp the entry was created.
+        updated (datetime.datetime): The timestamp the entry was last modified.
+        users (list[int]): A list of user IDs associated with the entry.
+        metadata (dict): The dictionary of custom metadata.
     """
     def __init__(self, version, created, updated, users, metadata) -> None:
         self.version: str = version
@@ -35,7 +45,17 @@ class EntryInfo():
 
 class EntryVersion():
     """
-    Contains data about a version such as it's ID, timestamps, content length and wether this version is deleted.
+    Represents a Data Store entry version, and contains data about the version.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`DataStore.set()`][rblxopencloud.DataStore.set], and [`DataStore.list_versions()`][rblxopencloud.DataStore.list_versions].
+
+    Attributes:
+        version (str): The version ID of this entry.
+        deleted (bool): Wether this version has been marked as deleted.
+        content_length (int): The number of characters the value is.
+        created (datetime.datetime): The timestamp the version was created.
+        key_created (datetime.datetime): The timestamp the entry was first created.
     """
     def __init__(self, version, deleted, content_length, created, key_created, datastore, key, scope) -> None:
         self.version: str = version
@@ -53,7 +73,12 @@ class EntryVersion():
         return self.__key == object.__key and self.__scope == object.__scope and self.version == object.version
     
     def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
-        """Gets the value of this version. Shortcut for `DataStore.get_version`"""
+        """
+        Gets the value of the current version. This is a shortcut for [`DataStore.get_version()`][rblxopencloud.DataStore.get_version]
+
+        Returns:
+            A tuple with the key's value in the first index, and the key's metadata as an EntryInfo in the second index.
+        """
         if self.__datastore.scope:
             return self.__datastore.get_version(self.__key, self.version)
         else:
@@ -64,7 +89,14 @@ class EntryVersion():
 
 class ListedEntry():
     """
-    Object which contains an entry's key and scope.
+    Represents a Data Store entry iterated by [`DataStore.list_keys()`][rblxopencloud.DataStore.list_keys].
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`DataStore.list_keys()`][rblxopencloud.DataStore.list_keys].
+
+    Attributes:
+        key (str): The entry's key.
+        scope (str): The entry's scope.
     """
     def __init__(self, key, scope) -> None:
         self.key: str = key
@@ -81,6 +113,15 @@ class ListedEntry():
 class DataStore():
     """
     Represents a regular data store in an experience.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`Experience.get_data_store()`][rblxopencloud.Experience.get_data_store] and [`Experience.list_data_stores()`][rblxopencloud.Experience.list_data_stores].
+
+    Attributes:
+        name (str): The data store's name.
+        scope (Optional[str]): The data store's scope. If it is `None`, then it uses the `scope/key` syntax.
+        experience (Experience): The experience the data store belongs to.
+        created (Optional[datetime.datetime]): The time the datetime was created. Only present if returned by `Experience.list_data_stores()`.
     """
 
     def __init__(self, name, experience, api_key, created, scope):
@@ -99,23 +140,32 @@ class DataStore():
 
     def list_keys(self, prefix: str="", limit: Optional[int]=None) -> Iterable[ListedEntry]:
         """
-        Returns an Iterable of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if :attr:`scope` is ``None``.
+        Returns an Iterable of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if the `scope` attribute is `None`.
 
-        The example below would list all keys, along with their scope.
-                
-        ```py
+        Example:
+            This will print every key in the data store. 
+            ```py
             for key in datastore.list_keys():
                 print(key.key, key.scope)
-        ```
+            ```
+            If you'd like the keys in a list, you can use the list method:
+            ```py
+            list(datastore.list_keys())
+            ```
 
-        You can simply convert it to a list by putting it in the list function:
-
-        ```py
-            list(datastore.list_versions())
-        ### Parameters
-        prefix: str - Only return keys that start with this prefix.
-        limit: Optional[int] - Will not return more keys than this number. Set to `None` for no limit.
-        ```
+        Args:
+            prefix: Only return keys that start with this prefix.
+            limit: Will not return more keys than this number. Set to `None` for no limit.
+        
+        Returns:
+            An Iterable of all keys in the data store.
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to list data store keys, or is from an invalid IP address.
+            NotFound: The experience or data store does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
         """
         nextcursor = ""
         yields = 0
@@ -146,9 +196,20 @@ class DataStore():
     
     def get(self, key: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
-        Gets the value of a key.
-        ### Parameters
-        key: str - The key to find. When `DataStore.scope` is `None`, this must include the scope like this `scope/key`
+        Fetches the value of a key.
+
+        Args:
+            key: The key to find. If `scope` is `None`, then the key should use the `scope/key` syntax.
+        
+        Returns:
+            A tuple with the key's value in the first index, and the key's metadata as an [`rblxopencloud.EntryInfo()`][rblxopencloud.EntryInfo] in the second index.
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to get data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or entry does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
         """
         try:
             scope = self.scope
@@ -180,14 +241,30 @@ class DataStore():
 
     def set(self, key: str, value: Union[str, dict, list, int, float], users:Optional[list[int]]=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Optional[str]=None) -> EntryVersion:
         """
-        Sets the value of a key.
-        ### Parameters
-        key: str - The key to find. When `DataStore.scope` is `None`, this must include the scope like this `scope/key`
-        value: Union[str, dict, list, int, float] - The new value
-        users: list[int] - a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
-        metadata: dict - a dictionary, just like the lua equivalent [DataStoreSetOptions:SetMetadata()](https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata)
-        exclusive_create: bool - whether to update the entry if it already has a value. Raises `rblx-open-cloud.PreconditionFailed` if it has a value.
-        previous_version: Optional[str] don't update if the current version is not this value. Raises `rblx-open-cloud.PreconditionFailed` if it has a value.
+        Sets the value of a key with the new data.
+
+        Args:
+            key: The key to set. If `scope` is `None`, then the key should use the `scope/key` syntax.
+            value: The key's new value.
+            users: a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
+            metadata: A dictionary of custom metadata for the entry.
+            exclusive_create: whether to update the entry if it already has a value. Raises `rblx-open-cloud.PreconditionFailed` if it has a value.
+            previous_version: don't update if the current version is not this value. Raises `rblx-open-cloud.PreconditionFailed` if it has a value.
+        
+        Returns:
+            An [`rblxopencloud.EntryInfo()`][rblxopencloud.EntryInfo] object with information about the datastore entry.
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to create/update data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or entry does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            ValueError: `previous_version` and `exclusive_create` are both set, or the `scope/key` syntax wasn't used and `scope` is `None`.
+            PreconditionFailed: A precondition such as `previous_version` or `exclusive_create` failed.
+        
+        !!! warning
+            If `users` and `metadata` parameters are not included, they will be removed from the entry.
         """
         if previous_version and exclusive_create: raise ValueError("previous_version and exclusive_create can not both be set")
         try:
@@ -236,13 +313,29 @@ class DataStore():
 
     def increment(self, key: str, increment: Union[int, float], users:Optional[list[int]]=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
-        Increments the value of a key.
-        # Parameters
-        key: The key to increment.
-        value: Union[int, float] - The number to increase the value by, use negative numbers to decrease it.
-        users: list[int] - a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
-        metadata: dict - a dictionary of user-defind metadata, just like the lua equivalent [DataStoreSetOptions:SetMetadata()](https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata)
+        Increments the value of a key with the provided number. Numbers may be negative to decrement the value.
+
+        Args:
+            key: The key to increment. If `scope` is `None`, then the key should use the `scope/key` syntax.
+            increment: The amount to increment the value. This number can be negative to decrement the value.
+            users: a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
+            metadata: A dictionary of custom metadata for the entry.
+        
+        Returns:
+            A tuple with the key's value in the first index, and the key's metadata as an [`rblxopencloud.EntryInfo()`][rblxopencloud.EntryInfo] in the second index. The same as [`DataStore.get()`][rblxopencloud.DataStore.get].
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to increment data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or entry does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            ValueError: The `scope/key` syntax wasn't used and `scope` is `None`.
+        
+        !!! warning
+            If `users` and `metadata` parameters are not included, they will be removed from the entry.
         """
+
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
@@ -276,9 +369,18 @@ class DataStore():
     
     def remove(self, key: str) -> None:
         """
-        Removes a key.
-        ### Parameters
-        key: str - The key to remove.
+        Removes the key. The key isn't permanently deleted for 30 days after it is removed.
+
+        Args:
+            key: The key to remove. If `scope` is `None`, then the key should use the `scope/key` syntax.
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to remove data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or entry does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            ValueError: The `scope/key` syntax wasn't used and `scope` is `None`.
         """
         try:
             scope = self.scope
@@ -302,24 +404,37 @@ class DataStore():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
     
     def list_versions(self, key: str, after: Optional[datetime.datetime]=None, before: Optional[datetime.datetime]=None, limit: Optional[int]=None, descending: bool=True) -> Iterable[EntryVersion]:
-        """Returns an Iterable of previous versions of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`. The example below would list all versions, along with their value.
-                
-        ```py
+        """
+        Returns an Iterable of versions avaliable for the key. Optionally within a ceartin time period.
+
+        Example:
+            This will print every version avaliable for the key, and fetch their values. 
+            ```py
             for version in datastore.list_versions("key-name"):
                 print(version, version.get_value())
-        ```
-
-        You can simply convert it to a list by putting it in the list function:
-
-        ```py
+            ```
+            If you'd like the versions in a list, you can use the list method:
+            ```py
             list(datastore.list_versions("key-name"))
-        ```
-        ### Parameters
-        key: The key to find versions for.
-        after: datetime.datetime - Only find versions after this datetime
-        before: datetime.datetime - Only find versions before this datetime
-        limit: Optional[int] - Will not return more versions than this number. Set to `None` for no limit.
-        descending: bool - Wether the versions should be sorted by date ascending or descending.
+            ```
+
+        Args:
+            key: The key to find versions for. If `scope` is `None`, then the key should use the `scope/key` syntax.
+            after: Only find versions after this datetime
+            before: Only find versions before this datetime
+            limit: Will not return more versions than this number. Set to `None` for no limit.
+            descending: Wether the versions should be sorted by date ascending or descending.
+        
+        Returns:
+            An Iterable of all versions of the key.
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to list data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or key does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            ValueError: The `scope/key` syntax wasn't used and `scope` is `None`.
         """
         try:
             scope = self.scope
@@ -358,10 +473,24 @@ class DataStore():
 
     def get_version(self, key: str, version: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
-        Gets the value of a key version.
+        Gets the value of a key at a specific version.
+
+        Args:
+            key: The key to find. If `scope` is `None`, then the key should use the `scope/key` syntax.
+            version: The ID of the version to find.
         
-        key: str - The key to find.
-        version: str - The version ID to get.
+        Returns:
+            A tuple with the key's value in the first index, and the key's metadata as an [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] in the second index. The same as [`DataStore.get()`][rblxopencloud.DataStore.get].
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to get data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, entry, or version does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+
+        !!! Tip
+            Since [`DataStore.list_versions()`][rblxopencloud.DataStore.list_versions], and [`DataStore.set()`][rblxopencloud.DataStore.set] return [`rblxopencloud.EntryVersion()`][rblxopencloud.EntryVersion], you can use the [`EntryVersion.get_value()`][rblxopencloud.EntryVersion.get_value] method as a shortcut when using those methods.
         """
         try:
             scope = self.scope
@@ -398,7 +527,15 @@ class DataStore():
 
 class SortedEntry():
     """
-    Object which contains a sorted entry's key, scope, and value.
+    Represents an Ordered Data Store entry when listed with `OrderedDataStore.sort_keys()`.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by `OrderedDataStore.sort_keys()`.
+
+    Attributes:
+        key (str): The entry's key.
+        scope (str): The entry's scope.
+        value (int): The value of the entry.
     """
     def __init__(self, key: str, value: int, scope: str="global") -> None:
         self.key: str = key
@@ -415,7 +552,15 @@ class SortedEntry():
 
 class OrderedDataStore():
     """
-    Class for interacting with the Ordered DataStore API for a specific Ordered DataStore.
+    Represents an ordered data store in an experience.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`Experience.get_ordered_data_store()`][rblxopencloud.Experience.get_ordered_data_store].
+
+    Attributes:
+        name (str): The data store's name.
+        scope (Optional[str]): The data store's scope. If it is `None`, then it uses the `scope/key` syntax.
+        experience (Experience): The experience the data store belongs to.
     """
 
     def __init__(self, name, experince, api_key, scope):
@@ -430,27 +575,37 @@ class OrderedDataStore():
     def __str__(self) -> str:
         return self.name
     
-    def sort_keys(self, descending: bool=True, limit: Union[None, int]=None, min=None, max=None) -> Iterable[SortedEntry]:
+    def sort_keys(self, descending: bool=True, limit: Optional[int]=None, min: int=None, max: int=None) -> Iterable[SortedEntry]:
         """
-        Returns a list of keys and their values.
+        Returns an Iterable of keys in order based on their value.
 
-        The example below would list all keys, along with their value.
-                
-        ```py
+        Example:
+            This will print every key in the datastore. 
+            ```py
             for key in datastore.sort_keys():
                 print(key.name, key.value)
-        ```
-
-        You can simply convert it to a list by putting it in the list function:
-
-        ```py
+            ```
+            If you'd like the keys in a list, you can use the list method:
+            ```py
             list(datastore.sort_keys())
-        ```
-        ### Parameters
-        descending: bool - Wether the largest number should be first, or the smallest.
-        limit: int - Max number of entries to loop through.
-        min: int - Minimum entry value to retrieve
-        max: int - Maximum entry value to retrieve.
+            ```
+
+        Args:
+            descending: Wether the largest number should be first, or the smallest.
+            limit: Will not return more keys than this number. Set to `None` for no limit.
+            min: Minimum entry value to retrieve
+            max: Maximum entry value to retrieve.
+        
+        Returns:
+            An Iterable of all keys in the data store.
+        
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to list ordered data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or key does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            ValueError: The `scope/key` syntax wasn't used and `scope` is `None`.
         """
         if not self.scope: raise ValueError("A scope is required to list keys on OrderedDataStore.")
 
@@ -491,9 +646,21 @@ class OrderedDataStore():
     
     def get(self, key: str) -> int:
         """
-        Gets the value of a key.
-        ### Parameters
-        key: str - The key to find.
+        Gets the value of the key.
+
+        Args:
+            key: The key to get. If `scope` is `None`, then the key should use the `scope/key` syntax.
+        
+        Returns:
+            The integer value of the key.
+
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to get ordered data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or entry does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            ValueError: The `scope/key` syntax wasn't used and `scope` is `None`.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
@@ -514,12 +681,25 @@ class OrderedDataStore():
         
     def set(self, key: str, value: int, exclusive_create: bool=False, exclusive_update: bool=False) -> int:
         """
-        Sets the value of a key.
-        ### Parameters
-        key: str - The key to create/update.
-        value: int - The new integer value. Must be positive.
-        exclusive_create: - bool Wether to fail if the key already has a value.
-        exclusive_update: - bool Wether to fail if the key does not have a value.
+        Sets the value of the key, and then returns the new value.
+
+        Args:
+            key: The key to get. If `scope` is `None`, then the key should use the `scope/key` syntax.
+            value: The new integer value. Must be positive.
+            exclusive_create: Wether to fail if the key already has a value.
+            exclusive_update: Wether to fail if the key does not have a value.
+        
+        Returns:
+            The integer value of the key.
+
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to create/update ordered data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or entry does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            PreconditionFailed: A precondition such as `exclusive_create` or `exclusive_update` failed.
+            ValueError: The `scope/key` syntax wasn't used and `scope` is `None`, or both `exclusive_create` and `exclusive_update` are `True`.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
@@ -551,12 +731,24 @@ class OrderedDataStore():
         elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
 
-    def increment(self, key: str, increment: int) -> None:
+    def increment(self, key: str, increment: int) -> int:
         """
-        Increments the value of a key.
-        ### Parameters
-        key: str - The key to increment.
-        increment: int - The amount to increment the key by. You can use negative numbers to decrease the value.
+        Increments the value of the key, and then returns the new value.
+
+        Args:
+            key: The key to get. If `scope` is `None`, then the key should use the `scope/key` syntax.
+            increment: The amount to increment the value. You can use negative numbers to decrease the value.
+
+        Returns:
+            The integer value of the key.
+
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to increment ordered data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or entry does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            ValueError: The `scope/key` syntax wasn't used and `scope` is `None`, or both `exclusive_create` and `exclusive_update` are `True`.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
@@ -579,8 +771,17 @@ class OrderedDataStore():
     def remove(self, key: str) -> None:
         """
         Removes a key.
-        ### Parameters
-        key: str - The key to remove.
+
+        Args:
+            key: The key to remove. If `scope` is `None`, then the key should use the `scope/key` syntax.
+
+        Raises:
+            InvalidKey: The API key isn't valid, doesn't have access to remove ordered data store keys, or is from an invalid IP address.
+            NotFound: The experience, data store, or entry does not exist.
+            RateLimited: You've exceeded the rate limits.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox returned an unexpected error.
+            ValueError: The `scope/key` syntax wasn't used and `scope` is `None`, or both `exclusive_create` and `exclusive_update` are `True`.
         """
 
         try:
