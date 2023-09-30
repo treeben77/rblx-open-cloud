@@ -31,7 +31,7 @@ class Experience():
     
     def get_data_store(self, name: str, scope: Optional[str]="global") -> DataStore:
         """
-        Creates a `rblxopencloud.DataStore` with the provided name and scope. This function doesn't make an API call so there is no validation.
+        Creates a [`rblxopencloud.DataStore`][rblxopencloud.DataStore] with the provided name and scope. This function doesn't make an API call so there is no validation.
 
         Args:
             name: The data store name.
@@ -44,7 +44,7 @@ class Experience():
     
     def get_ordered_data_store(self, name: str, scope: Optional[str]="global") -> OrderedDataStore:
         """
-        Creates a `rblxopencloud.OrderedDataStore` with the provided name and scope. This function doesn't make an API call so there is no validation.
+        Creates a [`rblxopencloud.OrderedDataStore`][rblxopencloud.OrderedDataStore] with the provided name and scope. This function doesn't make an API call so there is no validation.
 
         Args:
             name: The data store name.
@@ -57,7 +57,7 @@ class Experience():
 
     def list_data_stores(self, prefix: Optional[str]="", limit: Optional[int]=None, scope: Optional[Union[str, None]]="global") -> Iterable[DataStore]:
         """
-        Interates `rblxopencloud.DataStore` for all of the Data Stores in the experience.
+        Interates [`rblxopencloud.DataStore`][rblxopencloud.DataStore] for all of the Data Stores in the experience.
 
         Example:
             This will print every data store in the experience. 
@@ -76,7 +76,7 @@ class Experience():
             scope: The scope for all data stores. Defaults to global, and can be `None` for key syntax like `scope/key`.
         
         Returns:
-            An Iterable of `rblxopencloud.DataStore` in the experience.
+            An Iterable of every [`rblxopencloud.DataStore`][rblxopencloud.DataStore] in the experience.
 
         Raises:
             InvalidKey: The API key isn't valid, doesn't have access to list data stores, or is from an invalid IP address.
