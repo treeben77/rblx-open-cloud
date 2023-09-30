@@ -1,9 +1,11 @@
 site_name: rblx-open-cloud
 repo_url: https://github.com/treeben77/rblx-open-cloud
+edit_uri: tree/main/docs/
 theme:
   name: material
   features:
     - content.code.copy
+    - content.action.edit
   palette:
     scheme: slate
 plugins:
@@ -12,13 +14,13 @@ plugins:
       handlers:
         python:
           import:
-          - url: https://docs.python-requests.org/en/master/objects.inv
-            domains: [std, py]
+          - https://docs.python.org/3/objects.inv
           options:
             show_source: false
             show_root_toc_entry: false
             show_root_heading: true
             members_order: source
+            inherited_members: true
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -28,6 +30,17 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
   - admonition
+  - footnotes
   - pymdownx.details
   - pymdownx.superfences
 use_directory_urls: false
+nav:
+  - Introduction: index.md
+  - Getting Started: getting_started.md
+  - Guides:
+    - OAuth2: guides/oauth2.md
+  - Reference:
+    - Experience: reference/experience.md
+    - OAuth2: reference/oauth2.md
+    - Data Store: reference/datastore.md
+    - Exceptions: reference/exceptions.md

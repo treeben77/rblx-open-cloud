@@ -16,12 +16,25 @@ __all__ = (
     "OAuth2App",
     "AccessToken",
     "PartialAccessToken",
+    "Resources",
     "AccessTokenInfo"
 )
 
 class AccessTokenInfo():
     """
-    Object that contains information about a access token. 
+    Data class that contains information about the access token.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`AccessToken.fetch_token_info()`][rblxopencloud.AccessToken.fetch_token_info].
+    
+    Attributes:
+        active (bool): Wether the token is still active.
+        id (str): A unqiue string for every authorization and user.
+        client_id (int): The app's client ID.
+        user_id (int): The authorized user's ID.
+        scope (list[str]): A list of authorized scopes.
+        expires_at (datetime.datetime): The time the access token will expire at.
+        issued_at (datetime.datetime): The time the access token was issued.
     """
 
     def __init__(self, data: dict):
@@ -38,7 +51,14 @@ class AccessTokenInfo():
 
 class Resources():
     """
-    Object that contains all the authorized objects users, groups, and experiences.
+    Data class that contains all the authorized users, groups, and experiences.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`AccessToken.fetch_resources()`][rblxopencloud.AccessToken.fetch_resources].
+    
+    Attributes:
+        experiences (list[Experience]): A list of authorized experiences. These experiences will have the `owner` attribute filled.
+        accounts (list[Union[User, Group]]): A list of authorized users, groups (aka 'accounts', or 'creators').   
     """
 
     def __init__(self, experiences, accounts):
@@ -51,6 +71,13 @@ class Resources():
 class PartialAccessToken():
     """
     Represents a partial access via OAuth2 consent. It allows access to all resources authorized by the user, but not other information like the refresh token.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`OAuth2App.from_access_token_string()`][rblxopencloud.OAuth2App.from_access_token_string].
+    
+    Attributes:
+        app (OAuth2App): The app this access token belongs to.
+        token (str): The string access token. It can be used with [`OAuth2App.from_access_token_string`][rblxopencloud.OAuth2App.from_access_token_string]
     """
 
     def __init__(self, app, access_token) -> None:
@@ -62,7 +89,16 @@ class PartialAccessToken():
 
     def fetch_userinfo(self) -> User:
         """
-        Returns a `rblx-open-cloud.User` object for this authorization. You can use this object to directly access user resources (like uploading files), if it was authorized.
+        Returns a [`rblxopencloud.User`][rblxopencloud.User] representing the authorzed user.
+
+        Returns:
+            The user object representing the authorized user, it will include `profile` info in the `profile` scope was included.
+        
+        Raises:
+            InsufficientScope: The `openid` scope was not granted.
+            InvalidKey: The access token has expired or is invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response.
         """
 
         response = request_session.get("https://apis.roblox.com/oauth/v1/userinfo", headers={
@@ -84,7 +120,16 @@ class PartialAccessToken():
     
     def fetch_resources(self) -> Resources:
         """
-        Fetches the authorized accounts (users and groups), and experiences.
+        Returns a [`rblxopencloud.Resources`][rblxopencloud.Resources] containing all authorized accounts and expirences.
+
+        Returns:
+            Contains all resources authorized by the user.
+        
+        Raises:
+            InsufficientScope: The `openid` scope was not granted.
+            InvalidKey: The access token has expired or is invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response.
         """
 
         response = request_session.post("https://apis.roblox.com/oauth/v1/token/resources", data={
@@ -127,7 +172,16 @@ class PartialAccessToken():
 
     def fetch_token_info(self) -> AccessTokenInfo:
         """
-        Fetches information the token such as the user's id, the authorized scope, and it's expiry time.
+        Fetches metadata about the token, such as when it was issued, the user's ID and the token's unique ID.
+
+        Returns:
+            Contains the information about access token.
+        
+        Raises:
+            InsufficientScope: The `openid` scope was not granted.
+            InvalidKey: The access token has expired or is invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response.
         """
 
         response = request_session.post("https://apis.roblox.com/oauth/v1/token/introspect", data={
@@ -145,12 +199,35 @@ class PartialAccessToken():
         else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
     
     def revoke(self):
+        """
+        Shortcut for [`OAuth2App.revoke_token()`][rblxopencloud.OAuth2App.revoke_token] to revoke the access token.
+        
+        Raises:
+            InvalidKey: The client ID or client secret is invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response.
+        
+        !!! warning
+            Revoking an access token or refresh token will also invalidate it's pair, so you should only revoke a token once you're completely done with it.
+        """
         self.app.revoke_token(self.token)
 
 class AccessToken(PartialAccessToken):
     """
     Represents access via OAuth2 consent. It allows access to all resources authorized by the user.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by [`OAuth2App.exchange_code()`][rblxopencloud.OAuth2App.exchange_code], and [`OAuth2App.refresh_token()`][rblxopencloud.OAuth2App.refresh_token].
+
+    Attributes:
+        app (OAuth2App): The app this access token belongs to.
+        token (str): The string access token. It can be used with [`OAuth2App.from_access_token_string`][rblxopencloud.OAuth2App.from_access_token_string]
+        refresh_token (str): The access token's refresh token. This can be used with [`OAuth2App.refresh_token`][rblxopencloud.OAuth2App.refresh_token] to fetch a new refresh token after this access token expires.
+        scope (list[str]): A list of scopes that were granted.
+        expires_at (datetime.datetime): The estimated timestamp the access token will expire at.
+        user (Optional[User]): If `openid` scope is granted, then this will be the user object. there's rare circumstances where this will be `None` even with the `openid` scope.
     """
+
     def __init__(self, app, payload, id_token) -> None:
         super().__init__(app, payload["access_token"])
         self.refresh_token: str = payload["refresh_token"]
@@ -169,7 +246,15 @@ class AccessToken(PartialAccessToken):
     
     def revoke_refresh_token(self):
         """
-        Shortcut to revoke the refresh token.
+        Shortcut for [`OAuth2App.revoke_token()`][rblxopencloud.OAuth2App.revoke_token] to revoke the refresh token.
+        
+        Raises:
+            InvalidKey: The client ID or client secret is invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response.
+        
+        !!! warning
+            Revoking an access token or refresh token will also invalidate it's pair, so you should only revoke a token once you're completely done with it.
         """
         self.app.revoke_token(self.refresh_token)
 
@@ -177,10 +262,16 @@ class OAuth2App():
     """
     Represents an OAuth2 app. It is used to exchange codes, refresh tokens, and access the API for authenticated users.
 
-    id: int - The app's client ID.
-    secret: str - The app's client secret.
-    redirect_uri: str - The redirect URI that is being used for authorization. If you need to use multiple, you must make seperate :class:`rblx-open-cloud.OAuth2` objects.
-    openid_certs_cache_seconds: int - The number of seconds to cache the openid certs. You can ignore this if you don't know what it does.
+    Args:
+        id: The app's client ID.
+        secret: The app's client secret.
+        redirect_uri: The redirect URI that is being used for authorization. If you need to use multiple, you must make seperate objects.
+        openid_certs_cache_seconds: The number of seconds to cache Roblox's OpenID certs. You can ignore this if you don't know what it does.
+
+    Attributes:
+        id (int): The app's client ID.
+        redirect_uri (str): The app's redirect URI.
+        openid_certs_cache_seconds (int): The number of seconds to cache the OpenID certs.
     """
 
     def __init__(self, id: int, secret: str, redirect_uri: str, openid_certs_cache_seconds: int = 3600):
@@ -195,25 +286,31 @@ class OAuth2App():
     def __repr__(self) -> str:
         return f"rblxopencloud.OAuth2App(id={self.id}, redirect_uri=\"{self.redirect_uri}\")"
 
-    def generate_code_verifier(self, length: Optional[int]=128):
+    def generate_code_verifier(self, length: Optional[int]=128) -> str:
         """
-        Generates a code verifier which can be provided `OAuth2App.generate_uri()` and :meth:`rblx-open-cloud.OAuth2App.exchange_code` to add extra security to the OAuth2 flow.
-
-        If a code verifier is used, it must be provided to both methods, and it should also be unique.
-        ### Parameters
-        length: Optional[int] - How long the code verifier should be.
+        Generates a code verifier which can be provided [`OAuth2App.generate_uri()`][rblxopencloud.OAuth2App.generate_uri] and [`OAuth2App.exchange_code()`][rblxopencloud.OAuth2App.exchange_code] to add extra security to the OAuth2 flow. If a code verifier is used, it must be provided to both methods, and it should also be unique.
+        
+        Args:
+            length: How long the code verifier should be.
+        
+        Returns:
+            A random string consisting of characters a-z, A-Z, 0-9, `-`, `.`, `_`, and `~`.
         """
 
         return ''.join(secrets.choice(f"{string.ascii_letters}{string.digits}-._~") for _ in range(length))
 
     def generate_uri(self, scope: Union[str, list[str]], state: Optional[str]=None, generate_code: Optional[bool]=True, code_verifier: Optional[str] = None) -> str:
         """
-        Creates an authorization uri with the client information prefilled.
-        ### Parameters
-        scope: Union[str, list[str]] - A string, or list of strings specifying the scopes for authorization. For example `['openid', 'profile']`
-        state: str - A string that will be returned on the otherside of authorization. It isn't required, but is recommend for security.
-        generate_code: bool - Wether to generate a code on return. Defaults to `True`.
-        code_verifier: Optional[str] - The code verifier generated using OAuth2App.generate_code_verifier()`
+        Creates an authorization URI to redirect users to with the client information prefilled.
+        
+        Args:
+            scope: A string, or list of strings specifying the scopes for authorization. For example `['openid', 'profile']`
+            state: A string that will be returned on the otherside of authorization. It isn't required, but is recommend for security.
+            generate_code: Wether to generate a code on return.
+            code_verifier: The optional code verifier generated using [`OAuth2App.generate_code_verifier()`][rblxopencloud.OAuth2App.generate_code_verifier]
+        
+        Returns:
+            A URI string starting with `https://apis.roblox.com/oauth/v1/authorize` and the generated parameters.
         """
 
         params = {
@@ -229,21 +326,35 @@ class OAuth2App():
 
     def from_access_token_string(self, access_token: str) -> PartialAccessToken:
         """
-        Creates an `rblx-open-cloud.PartialAccessToken` from an access token string, fairly useless due to these tokens expiring after 15 minutes.
+        Creates a [`rblxopencloud.PartialAccessToken`][rblxopencloud.PartialAccessToken] from an access token string, fairly useless due to these tokens expiring after 15 minutes.
 
-        It is also advised the refresh token instead of the access token, and refresh the token each time you need to access information instead of the access_token to improve security.
-        ### Parameters
-        access_token: str - The access token string.
+        It is also advised the refresh token instead of the access token, and refresh the token each time you need to access information instead of the access token to improve security.
+        
+        Args:
+            access_token: The access token string.
+
+        Returns:
+            The Access Token without any metadata such as the scopes, user object, or the refresh token.
         """
 
         return PartialAccessToken(self, access_token)
 
     def exchange_code(self, code: str, code_verifier: Optional[str]=None) -> AccessToken:
         """
-        Creates an `rblx-open-cloud.AccessToken` from an authorization code returned from Roblox.
-        ### Parameters
-        code: str - The code from the authorization server.
-        code_verifier: Optional[str] - the string for this OAuth2 flow generated by `OAuth2App.generate_code_verifier()`.
+        Creates a [`rblxopencloud.AccessToken`][rblxopencloud.AccessToken] from an authorization code returned from Roblox.
+        
+        Args:
+            code: The code from the authorization server.
+            code_verifier: The string for this OAuth2 flow generated by [`OAuth2App.generate_code_verifier()`][rblxopencloud.OAuth2App.generate_code_verifier].
+        
+        Returns:
+            An Access Token with all metadata including the user object.
+        
+        Raises:
+            InvalidKey: The client ID, secret or redirect URI is invalid.
+            InvalidCode: The code is invalid, or the code verifier is missing/invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response, or you have jwt installed.
         """
         response = request_session.post("https://apis.roblox.com/oauth/v1/token", data={
             "client_id": self.id,
@@ -286,10 +397,24 @@ class OAuth2App():
 
     def refresh_token(self, refresh_token: str) -> AccessToken:
         """
-        Creates an `rblx-open-cloud.AccessToken` from a refresh token. The new access token will have a different refresh token, and you must store the new refresh token.
-        ### Parameters
-        refresh_token: str - The refresh token to refresh.
+        Creates a [`rblxopencloud.AccessToken`][rblxopencloud.AccessToken] from a refresh token which is returned in a previous authorization code.
+        
+        Args:
+            refresh_token: The refresh token to be used.
+        
+        Returns:
+            An Access Token with all metadata including the user object.
+        
+        Raises:
+            InvalidKey: The client ID, secret or redirect URI is invalid.
+            InvalidCode: The code is invalid, or the code verifier is missing/invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response, or you have jwt installed.
+        
+        !!! warning
+            After refreshing a token, you will get a new refresh token in the [`rblxopencloud.AccessToken`][rblxopencloud.AccessToken] that you need to save.
         """
+
         response = request_session.post("https://apis.roblox.com/oauth/v1/token", data={
             "client_id": self.id,
             "client_secret": self.__secret,
@@ -303,9 +428,21 @@ class OAuth2App():
     
     def revoke_token(self, token: str):
         """
-        Revokes the authorization for a given access token or refresh token string.
+        Revokes the authorization for a given access token or refresh token.
 
-        token: str - The refresh token to refresh.
+        Args:
+            token: The access token or refresh token to revoke.
+        
+        Raises:
+            InvalidKey: The client ID or client secret is invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response.
+        
+        !!! warning
+            Revoking an access token or refresh token will also invalidate it's pair, so you should only revoke a token once you're completely done with it.
+        
+        !!! tip
+            Both [`AccessToken`][rblxopencloud.AccessToken] and [`PartialAccessToken`][rblxopencloud.PartialAccessToken] have shortcuts for this method. So instead, for exmaple, you could use [`AccessToken.revoke()`][rblxopencloud.AccessToken.revoke] to revoke the token.
         """
         response = request_session.post("https://apis.roblox.com/oauth/v1/token/revoke", data={
             "token": token,
