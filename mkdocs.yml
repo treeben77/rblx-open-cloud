@@ -1,8 +1,12 @@
 site_name: rblx-open-cloud
+copyright: Copyright &copy; treeben77 2022-2023
+repo_name: treeben77/rblx-open-cloud
 repo_url: https://github.com/treeben77/rblx-open-cloud
 edit_uri: tree/main/docs/
 theme:
   name: material
+  icon:
+    repo: fontawesome/brands/github
   features:
     - content.code.copy
     - content.action.edit
@@ -10,6 +14,7 @@ theme:
     scheme: slate
 plugins:
   - autorefs
+  - search
   - mkdocstrings:
       handlers:
         python:
@@ -41,6 +46,7 @@ nav:
     - OAuth2: guides/oauth2.md
   - Reference:
     - Experience: reference/experience.md
+    - User: reference/user.md
     - OAuth2: reference/oauth2.md
     - Data Store: reference/datastore.md
     - Exceptions: reference/exceptions.md

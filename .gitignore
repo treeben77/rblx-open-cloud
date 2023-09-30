@@ -10,3 +10,4 @@ docs/make.bat
 docs/Makefile
 docs/build
 site/*
+.cache/*
