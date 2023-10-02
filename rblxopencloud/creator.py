@@ -197,6 +197,11 @@ class Creator():
             RateLimited: You've exceeded the rate limits.
             ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
             rblx_opencloudException: Roblox returned an unexpected error.
+        
+        !!! danger
+            Avoid uploading assets to Roblox that you don't have full control over, such as AI generated assets or content created by unknown people. Assets uploaded that break Roblox's Terms of Services can get your account moderated.
+
+            For OAuth2 developers, it has been confirmed by Roblox staff [in this DevForum post](ttps://devforum.roblox.com/t/2401354/36), that your app will not be punished if a malicious user uses it to upload Terms of Service violating content, and instead the authorizing user's account will be punished.
         """
 
         body, contentType = urllib3.encode_multipart_formdata({
@@ -262,6 +267,11 @@ class Creator():
             RateLimited: You've exceeded the rate limits.
             ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
             rblx_opencloudException: Roblox returned an unexpected error.
+        
+        !!! danger
+            Avoid uploading assets to Roblox that you don't have full control over, such as AI generated assets or content created by unknown people. Assets uploaded that break Roblox's Terms of Services can get your account moderated.
+
+            For OAuth2 developers, it has been confirmed by Roblox staff [in this DevForum post](ttps://devforum.roblox.com/t/2401354/36), that your app will not be punished if a malicious user uses it to upload Terms of Service violating content, and instead the authorizing user's account will be punished.
         """
 
         body, contentType = urllib3.encode_multipart_formdata({
