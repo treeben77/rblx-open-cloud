@@ -48,6 +48,7 @@ nav:
   - Getting Started: getting_started.md
   - Guides:
     - OAuth2: guides/oauth2.md
+    - Experience: guides/experience.md
   - Reference:
     - Experience: reference/experience.md
     - User: reference/user.md

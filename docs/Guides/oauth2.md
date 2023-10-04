@@ -1,7 +1,3 @@
----
-title: OAuth2 
----
-
 # OAuth2
 
 OAuth2 allows app developers to access user's Roblox accounts on their behalf for many different use cases. You could use OAuth2 to allow users to securely identify themselves to allow signing in with Roblox, or so app developers can create intergrations with the user's account, experiences, or groups.
@@ -25,7 +21,7 @@ Scopes define what resources you're trying to access. For example, most apps wil
 
 You should consider what scopes your app will need to complete the tasks it needs to. In the edit page of your app, you will see a 'Permissions' section, this is where you select the scopes your app will need to use. Once you've selected the scopes you will need to use, make sure to press 'SAVE CHANGES'.
 
-### Adding the OAuth2 Object
+### The OAuth2 Object
 
 Now that you've created your OAuth2 app, it's time to use it in your code. In your script, add these lines below your imports but near the top:
 
