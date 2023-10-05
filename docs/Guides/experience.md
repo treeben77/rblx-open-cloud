@@ -31,4 +31,54 @@ experience = Experience(00000000, "your-api-key")
 
 Replace `00000000` with your experience/universe ID (NOT place ID), and `your-api-key` with the API key string you just generated. Now that you've created an [`rblxopencloud.Experience`][rblxopencloud.Experience] object, you can start using the experience APIs!
 
-<!-- ## Using Experience APIs -->
+## DataStore APIs
+
+### Getting Data Stores
+
+You can use Open Cloud to access your experience's [DataStores](https://create.roblox.com/docs/cloud-services/datastores) in Python, including Ordered Data Stores. This could be useful if you're creating a Discord bot, or website to remotly manage user data, or to control certain settings.
+
+To get started, you will need to create a [`rblxopencloud.DataStore`][rblxopencloud.DataStore] object. The following code example creates a [`rblxopencloud.DataStore`][rblxopencloud.DataStore] with the name 'ExampleStore' and the scope 'global' (global is the default scope in Lua):
+
+```py
+datastore = experience.get_data_store("ExampleStore", scope="global")
+```
+
+Great! Now that you've created a data store, you can now access it's entrys.  
+
+!!! tip
+    You can set the `scope` parameter to `None` if you want to access all scopes. You will be required to format keys in the `scope/key` syntax. For example, in `pets/user_287113233`, the scope is `pets`, and `user_287113233` is the key.
+
+### Getting DataStore Keys
+
+To get the value of a DataStore key, you can use [`DataStore.get`][rblxopencloud.DataStore.get]. The following code will get the value for `user_287113233` in the data store.
+
+```py
+value, info = datastore.get("user_287113233")
+```
+
+[`DataStore.get`][rblxopencloud.DataStore.get] returns a tuple of two items, the key's value, and an [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object. The value can be either `str`, `int`, `float`, `list`, or `dict`, and is the equivalent value in Roblox Lua. The [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object contains metadata about the DataStore key, such as the current version ID, when it was created and last updated, a list of user IDs for GDPR tracking, and the custom metadata, learn more about this on [Roblox's DataStore Guide](https://create.roblox.com/docs/cloud-services/datastores#metadata).
+
+### Changing DataStore Keys
+
+DataStore values can be changed with [`DataStore.set`][rblxopencloud.DataStore.set] and [`DataStore.increment`][rblxopencloud.DataStore.increment]. Both will need the 'Create Entry' permission to create new keys, and/or 'Update Entry' permission to update existing keys. First, here's an example using [`DataStore.set`][rblxopencloud.DataStore.set]:
+
+```py
+version = datastore.set("user_287113233", {"xp": 1337, "level": 7}, users=[287113233])
+```
+
+This will set the key `user_287113233` to the dictionary `{"xp": 1337, "level": 7}`, with the user's ID in the list of users. The method returns [`rblxopencloud.EntryVersion`][rblxopencloud.EntryVersion], which contains metadata about the new version, such as it's version ID. The code above is equivalent to the the following lua code:
+
+```lua
+local version = DataStore:SetAsync("user_287113233", {["xp"] = 1337, ["level"] = 7}, {287113233})
+```
+
+If the current value of the key is an integer, or float you can use [`DataStore.increment`][rblxopencloud.DataStore.increment] to update the value, while guaranteeing you don't overwrite the old value. The following example will increment the key `user_score_287113233` by 70:
+
+```py
+value, info = datastore.increment("user_score_287113233", 70, users=[287113233])
+```
+
+[`DataStore.increment`][rblxopencloud.DataStore.increment] actually returns the new value just like [`DataStore.get`][rblxopencloud.DataStore.get] instead.
+
+!!! warning
+    If an entry has `users` and `metadata`, you must provide them every time you set or increment the value, otherwise they will be removed.
