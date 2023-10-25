@@ -527,10 +527,10 @@ class DataStore():
 
 class SortedEntry():
     """
-    Represents an Ordered Data Store entry when listed with `OrderedDataStore.sort_keys()`.
+    Represents an Ordered Data Store entry when listed with [`OrderedDataStore.sort_keys()`][rblxopencloud.OrderedDataStore.sort_keys].
 
     !!! warning
-        This class isn't designed to be created by users. It is returned by `OrderedDataStore.sort_keys()`.
+        This class isn't designed to be created by users. It is returned by [`OrderedDataStore.sort_keys()`][rblxopencloud.OrderedDataStore.sort_keys].
 
     Attributes:
         key (str): The entry's key.

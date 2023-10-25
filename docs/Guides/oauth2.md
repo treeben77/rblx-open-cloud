@@ -13,7 +13,7 @@ To create an OAuth2 application, you must go to the [Creator Dashboard](https://
 
 Once you've saved the Client ID and secret, press 'CONTINUE TO EDIT', in the edit screen you can fill out the description, links, and upload a thumbnail. In the 'Redirect URLs' section at the bottom of the edit page, put in the URLs for where you want the users to go after they authorize, this should be a special route within your website to handle the OAuth2 requests.
 
-After you've finished developing your app, and it is accessible on the internet, you will need to go back to the Creator Dashboard and submit your app for review. Roblox moderators will go through your app and ensure it isn't malicous. If you do not do this, then your app will be limited to 100 users authorizing it.
+After you've finished developing your app, and it is accessible on the internet, you will need to go back to the Creator Dashboard and submit your app for review. Roblox moderators will go through your app and ensure it isn't malicious. If you do not do this, then your app will be limited to 100 users authorizing it.
 
 ### Choosing Scopes
 
