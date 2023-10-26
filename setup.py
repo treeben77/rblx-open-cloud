@@ -18,12 +18,14 @@ setup(
     python_requires='>=3.9.0',
     author="TreeBen77",
     packages=[
-        'rblxopencloud'
+        'rblxopencloud',
+        'rblxopencloudasync'
     ],
     url='https://github.com/TreeBen77/rblx-open-cloud',
     keywords='roblox, open-cloud, data-store, place-publishing, mesageing-service',
     install_requires=[
         'requests',
+        'aiohttp',
         'cryptography',
         'pyjwt'
     ]
