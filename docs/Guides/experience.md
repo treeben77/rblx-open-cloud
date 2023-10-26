@@ -144,3 +144,35 @@ To create an Ordered Data Store, you can use the [`Experience.get_ordered_data_s
 ```py
 datastore = experience.get_ordered_data_store("ExampleStore", scope="global")
 ```
+
+## Other Experience APIs
+
+You can also use the Place Publishing, and Messaging Service APIs with Open Cloud.
+
+### Messaging Service
+
+You can publish messages with Open Cloud that live game servers will recieve. Here's an example to send a messsage top the topic `topic-name`:
+
+```py
+
+experience.publish_message("topic-name", "this is an example message content.")
+```
+
+!!! note
+    Messages sent by Open Cloud with only be recieved by live servers. Studio won't recieve thesse messages.
+
+!!! warning
+    The messaging service only supports strings being sent. To send more complex data, such as dictionaries, you will need to JSON encode the string. See [the json built-in python library](https://docs.python.org/3/library/json.html) and [the Roblox game engine method HttpService:JSONDecode()](https://create.roblox.com/docs/reference/engine/classes/HttpService#JSONDecode).
+
+You can not recieve messages with Open Cloud.
+
+### Place Publishing
+
+You can upload place (`.rblx`) files to Roblox using the Place Publishing API. Given you have a place file, you can use the following code to upload a place. Replace `0000000` with the place ID:
+
+```py
+with open("path-to/place-file.rblx", "rb") as file:
+    experience.upload_place(0000000, file, publish=True)
+```
+
+If `publish` is set to `True`, it will publish the place as well. Otherwise, it will only save the place.

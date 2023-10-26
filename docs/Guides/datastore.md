@@ -1,5 +1,0 @@
----
-title: Datastore 
----
-
-# Getting Started 
