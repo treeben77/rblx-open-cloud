@@ -14,6 +14,6 @@
 
 ::: rblxopencloud.InventoryPrivateServer
 
-::: rblxopencloud.InventoryAssetType
-
 ::: rblxopencloud.InventoryItemState
+
+::: rblxopencloud.InventoryAssetType

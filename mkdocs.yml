@@ -10,6 +10,7 @@ theme:
   features:
     - content.code.copy
     - content.action.edit
+    - content.tabs.link
     - navigation.sections
   palette:
     scheme: slate
@@ -46,6 +47,7 @@ use_directory_urls: false
 nav:
   - Introduction: index.md
   - Getting Started: getting_started.md
+  - Asynchronous: asynchronous.md
   - Guides:
     - Experience: guides/experience.md
     - Group: guides/group.md
