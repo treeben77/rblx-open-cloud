@@ -49,6 +49,7 @@ nav:
   - Guides:
     - Experience: guides/experience.md
     - Group: guides/group.md
+    - User: guides/user.md
     - OAuth2: guides/oauth2.md
   - Reference:
     - Experience: reference/experience.md

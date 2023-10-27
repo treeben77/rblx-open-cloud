@@ -6,7 +6,7 @@ The [`rblxopencloud.Group`][rblxopencloud.Group] object allows access to groups.
 
 ### Creating an API Key
 
-To use any APIs, first you will need to create an API key, the key allows the library to preform requests. To create an API key, you must go to the [Creator Dashboard](https://create.roblox.com/dashboard/credentials), switch to the creator (e.g. user/group) who owns the experience if necessary, and then press 'CREATE API KEY'. This will open the new API key menu.
+To use any APIs, first you will need to create an API key, the key allows the library to preform requests. To create an API key, you must go to the [Creator Dashboard](https://create.roblox.com/dashboard/credentials), switch to the group if using Assets API, or switch to yourself if using the Group API, and then press 'CREATE API KEY'. This will open the new API key menu.
 
 First, you will need to give your API key a name, it should be something that will help you identify it from any other API keys you might have. Next, you will need to define what APIs and permissions you give to your API key. The only Group API right now is the Groups API, and the Assets API.
 

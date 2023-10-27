@@ -1,5 +1,0 @@
----
-title: Inventory 
----
-
-# Getting Started 
