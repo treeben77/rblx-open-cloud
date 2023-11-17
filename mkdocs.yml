@@ -28,6 +28,14 @@ plugins:
             show_root_heading: true
             members_order: source
             inherited_members: true
+extra: 
+  social: 
+    - icon: simple/discord
+      link: https://discord.gg/4CSc9E5uQy
+    - icon: simple/robloxstudio
+      link: https://devforum.roblox.com/t/1991959
+    - icon: simple/github
+      link: https://github.com/treeben77/rblx-open-cloud
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -46,7 +54,6 @@ markdown_extensions:
 use_directory_urls: false
 nav:
   - Introduction: index.md
-  - Getting Started: getting_started.md
   - Asynchronous: asynchronous.md
   - Guides:
     - Experience: guides/experience.md
