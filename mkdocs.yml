@@ -1,0 +1,71 @@
+site_name: rblx-open-cloud
+copyright: Copyright &copy; treeben77 2022-2023
+repo_name: treeben77/rblx-open-cloud
+repo_url: https://github.com/treeben77/rblx-open-cloud
+edit_uri: tree/main/docs/
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.code.copy
+    - content.action.edit
+    - content.tabs.link
+    - navigation.sections
+  palette:
+    scheme: slate
+plugins:
+  - autorefs
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          import:
+          - https://docs.python.org/3/objects.inv
+          options:
+            show_source: false
+            show_root_toc_entry: false
+            show_root_heading: true
+            members_order: source
+            inherited_members: true
+extra: 
+  social: 
+    - icon: simple/discord
+      link: https://discord.gg/4CSc9E5uQy
+    - icon: simple/robloxstudio
+      link: https://devforum.roblox.com/t/1991959
+    - icon: simple/github
+      link: https://github.com/treeben77/rblx-open-cloud
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+use_directory_urls: false
+nav:
+  - Introduction: index.md
+  - Asynchronous: asynchronous.md
+  - Guides:
+    - Experience: guides/experience.md
+    - Group: guides/group.md
+    - User: guides/user.md
+    - OAuth2: guides/oauth2.md
+  - Reference:
+    - Experience: reference/experience.md
+    - Group: reference/group.md
+    - User: reference/user.md
+    - OAuth2: reference/oauth2.md
+    - Webhook: reference/webhook.md
+    - Data Store: reference/datastore.md
+    - Exceptions: reference/exceptions.md
+    - Creator: reference/creator.md
