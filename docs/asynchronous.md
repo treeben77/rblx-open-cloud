@@ -5,7 +5,7 @@
 
     Additionally, avoid using the `rblxopencloud.preform_request` method, as it's likely it's name will be changed.
 
-If you're using rblx-open-cloud in an asynchronous context, such as with [discord.py](https://github.com/Rapptz/discord.py), or [ro.py](https://github.com/ro-py/ro.py), then it could be beneficial to use the aynchronous version of the library.
+If you're using rblx-open-cloud in an asynchronous context, such as with [discord.py](https://github.com/Rapptz/discord.py), [interactions.py](https://github.com/interactions-py/interactions.py), or [ro.py](https://github.com/ro-py/ro.py), then it could be beneficial to use the aynchronous version of the library.
 
 ## Installing the Alpha Version
 
