@@ -7,6 +7,7 @@ __all__ = (
     "rblx_opencloudException",
     "NotFound",
     "InvalidKey",
+    "PermissionDenied",
     "RateLimited",
     "ServiceUnavailable",
     "PreconditionFailed",

@@ -4,7 +4,7 @@ from typing import Union, Optional, TYPE_CHECKING
 import urllib3
 from enum import Enum
 from datetime import datetime
-from . import user_agent, request_session
+from . import send_request
 
 if TYPE_CHECKING:
     from .user import User
@@ -68,18 +68,11 @@ class PendingAsset():
         Checks if the asset has finished proccessing, if so returns the :class:`rblx-open-cloud.Asset` object.
         """
 
-        response = request_session.get(f"https://apis.roblox.com/assets/v1/{self.__path}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
+        _, data, _ = send_request("GET", f"https://apis.roblox.com/assets/v1/{self.__path}",
+            authorization=self.__api_key)
         
-        if response.ok:
-            info = response.json()
-            if not info.get("done"): return None
-            return Asset(info["response"], self.__creator)
-        else:
-            if response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
-            elif response.status_code == 429: raise RateLimited("You're being rate limited.")
-            elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+        if not data.get("done"): return None
+        return Asset(data["response"], self.__creator)
 
 mimetypes = {
     "mp3": "audio/mpeg",
@@ -140,28 +133,32 @@ class Creator():
             }),
             "fileContent": (file.name, file.read(), mimetypes.get(file.name.split(".")[-1]))
         })
-        response = request_session.post(f"https://apis.roblox.com/assets/v1/assets",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "content-type": contentType, "user-agent": user_agent}, data=body)
         
-        if response.status_code == 400 and response.json()["message"] == "\"InvalidImage\"": raise InvalidAsset(f"The file is not a supported type, or is corrupted")
-        elif response.status_code == 400 and response.json()["message"] == "AssetName is moderated.": raise ModeratedText(f"The asset's name was moderated.")
-        elif response.status_code == 400 and response.json()["message"] == "AssetDescription is moderated.": raise ModeratedText(f"The asset's description was moderated.")
-        elif response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
-        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+        status_code, data, _ = send_request("POST", f"assets/v1/assets", authorization=self.__api_key,
+            headers={"content-type": contentType}, expected_status=[200, 400], data=body)
+        
+        if status_code == 400:
+            if data["message"] == "\"InvalidImage\"":
+                raise InvalidAsset(f"The file is not a supported type, or is corrupted")
+            
+            if data["message"] == "AssetName is moderated.":
+                raise ModeratedText(f"The asset's name was moderated.")
+            
+            if data["message"] == "AssetDescription is moderated.":
+                raise ModeratedText(f"The asset's description was moderated.")
+            
+            raise rblx_opencloudException(body["message"] if type(body) == dict else body)
 
-        response_op = request_session.get(f"https://apis.roblox.com/assets/v1/{response.json()['path']}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
+        status_code, data_op, _ = send_request("GET", f"https://apis.roblox.com/assets/v1/{data['path']}",
+            authorization=self.__api_key)
         
-        if not response_op.ok:
-            return PendingAsset(response_op.json()['path'], self.__api_key, self)
+        if not status_code == 200:
+            return PendingAsset(data['path'], self.__api_key, self)
         else:
-            info = response_op.json()
-            if not info.get("done"):
-                return PendingAsset(response_op.json()['path'], self.__api_key, self)
+            if not data_op.get("done"):
+                return PendingAsset(data_op['path'], self.__api_key, self)
             else:
-                return Asset(info["response"], self)
+                return Asset(data_op["response"], self)
     
     def update_asset(self, asset_id: int, file: io.BytesIO) -> Union[Asset, PendingAsset]:
         """
@@ -184,26 +181,28 @@ class Creator():
             }),
             "fileContent": (file.name, file.read(), mimetypes.get(file.name.split(".")[-1]))
         })
-        response = request_session.patch(f"https://apis.roblox.com/assets/v1/assets/{asset_id}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "content-type": contentType, "user-agent": user_agent}, data=body)
 
-        if response.status_code == 400 and response.json()["message"] == "\"InvalidImage\"": raise InvalidAsset(f"The file is not a supported type, or is corrupted")
-        elif response.status_code == 400 and response.json()["message"] == "AssetName is moderated.": raise ModeratedText(f"The asset's name was moderated.")
-        elif response.status_code == 400 and response.json()["message"] == "AssetDescription is moderated.": raise ModeratedText(f"The asset's description was moderated.")
-        elif response.status_code == 401 or response.status_code == 403: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
-        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
-
-        response_op = request_session.get(f"https://apis.roblox.com/assets/v1/{response.json()['path']}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
+        status_code, data, _ = send_request("PATCH", f"https://apis.roblox.com/assets/v1/assets/{asset_id}",
+            authorization=self.__api_key, headers={"content-type": contentType}, expected_status=[200, 400], data=body)
         
-        if not response_op.ok:
-            return PendingAsset(response_op.json()['path'], self.__api_key, self)
+        if status_code == 400:
+            if data["message"] == "\"InvalidImage\"":
+                raise InvalidAsset(f"The file is not a supported type, or is corrupted")
+            
+            if data["message"] == "AssetName is moderated.":
+                raise ModeratedText(f"The asset's name was moderated.")
+            
+            if data["message"] == "AssetDescription is moderated.":
+                raise ModeratedText(f"The asset's description was moderated.")
+        
+        status_code, data_op, _ = send_request("GET", f"https://apis.roblox.com/assets/v1/{data['path']}",
+            authorization=self.__api_key)
+        
+        if not status_code == 200:
+            return PendingAsset(data['path'], self.__api_key, self)
         else:
-            info = response_op.json()
-            if not info.get("done"):
-                return PendingAsset(response_op.json()['path'], self.__api_key, self)
+            if not data_op.get("done"):
+                return PendingAsset(data_op['path'], self.__api_key, self)
             else:
-                return Asset(info["response"], self)
+                return Asset(data_op["response"], self)
         

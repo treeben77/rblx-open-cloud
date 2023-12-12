@@ -2,7 +2,7 @@ from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimit
 import io
 from typing import Optional, Iterable, Literal, Union
 from .datastore import DataStore, OrderedDataStore
-from . import user_agent, request_session
+from . import send_request
 
 __all__ = (
     "Experience",
@@ -81,22 +81,17 @@ class Experience():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.id}/standard-datastores",
-                headers={"x-api-key": self.__api_key}, params={
+            _, data, _ = send_request("GET", f"datastores/v1/universes/{self.id}/standard-datastores",
+                authorization=self.__api_key, params={
                     "prefix": prefix,
                     "cursor": nextcursor if nextcursor else None
-                })
-            if response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
-            elif response.status_code == 404: raise NotFound("The datastore you're trying to access does not exist.")
-            elif response.status_code == 429: raise RateLimited("You're being rate limited.")
-            elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
-            
-            data = response.json()
+                }, expected_status=[200])
+
             for datastore in data["datastores"]:
                 yields += 1
                 yield DataStore(datastore["name"], self, self.__api_key, datastore["createdTime"], scope)
                 if limit == None or yields >= limit: break
+            
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
     
@@ -116,14 +111,10 @@ class Experience():
         topic: str - The topic to send the message in
         data: str - The message to send. Open Cloud does not support sending dictionaries/tables with publishing messages. You'll have to json encode it before sending it, and decode it in Roblox.
         """
-        response = request_session.post(f"https://apis.roblox.com/messaging-service/v1/universes/{self.id}/topics/{topic}",
-        json={"message": data}, headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
-        if response.status_code == 200: return
-        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
-        elif response.status_code == 404: raise NotFound(f"The place does not exist.")
-        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")  
+        send_request("POST", f"messaging-service/v1/universes/{self.id}/topics/{topic}",
+            authorization=self.__api_key, json={"message": data}, expected_status=[200])
+        
+        return None
     
     def upload_place(self, place_id:int, file: io.BytesIO, publish: Optional[bool] = False) -> int:
         """
@@ -139,14 +130,10 @@ class Experience():
         file: io.BytesIO - The file to upload. The file should be opened in bytes.
         publish: Optional[bool] - Wether to publish the place as well. Defaults to `False`.
         """
-        response = request_session.post(f"https://apis.roblox.com/universes/v1/{self.id}/places/{place_id}/versions",
-            headers={"x-api-key": self.__api_key, 'content-type': 'application/octet-stream', "user-agent": user_agent}, data=file.read(), params={
+        _, data, _ = send_request("POST", f"universes/v1/{self.id}/places/{place_id}/versions",
+            authorization=self.__api_key, headers={"content-type": "application/octet-stream"},
+            expected_status=[200], data=file.read(), params={
                 "versionType": "Published" if publish else "Saved"
             })
-        if response.status_code == 200:
-            return response.json()["versionNumber"]
-        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
-        elif response.status_code == 404: raise NotFound(f"The place does not exist.")
-        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")   
+        
+        return data["versionNumber"]

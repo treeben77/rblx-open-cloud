@@ -2,7 +2,7 @@ from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimit
 import json, datetime
 import base64, hashlib, urllib.parse
 from typing import Union, Optional, Iterable, TYPE_CHECKING
-from . import user_agent, request_session
+from . import send_request
 
 if TYPE_CHECKING:
     from .experience import Experience
@@ -120,27 +120,20 @@ class DataStore():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries",
-                headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
-                "datastoreName": self.name,
-                "scope": self.scope,
-                "AllScopes": not self.scope,
-                "prefix": prefix,
-                "cursor": nextcursor if nextcursor else None
-            })
-            if response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-            elif response.status_code == 401: raise InvalidKey(response.text)
-            elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-            elif response.status_code == 404: raise NotFound(response.json()["message"])
-            elif response.status_code == 429: raise RateLimited(response.json()["message"])
-            elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+            _, data, _ = send_request("GET", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries",
+                authorization=self.__api_key, params={
+                    "datastoreName": self.name,
+                    "scope": self.scope,
+                    "AllScopes": not self.scope,
+                    "prefix": prefix,
+                    "cursor": nextcursor if nextcursor else None
+                }, expected_status=[200])
             
-            data = response.json()
             for key in data["keys"]:
                 yields += 1
                 yield ListedEntry(key["key"], key["scope"])
                 if limit != None and yields >= limit: break
+            
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
     
@@ -155,28 +148,22 @@ class DataStore():
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
-            headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
+        
+        _, data, headers = send_request("GET", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
+            authorization=self.__api_key, params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key
-            })
+            }, expected_status=[200])
 
-        if response.status_code == 200:
-            try: metadata = json.loads(response.headers["roblox-entry-attributes"])
-            except(KeyError): metadata = {}
-            try: userids = json.loads(response.headers["roblox-entry-userids"])
-            except(KeyError): userids = []
-            
-            return json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
-    response.headers["roblox-entry-version-created-time"], userids, metadata)
-        elif response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-        elif response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-        elif response.status_code == 404: raise NotFound(response.json()["message"])
-        elif response.status_code == 429: raise RateLimited(response.json()["message"])
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+        try: metadata = json.loads(headers["roblox-entry-attributes"])
+        except(KeyError): metadata = {}
+        try: userids = json.loads(headers["roblox-entry-userids"])
+        except(KeyError): userids = []
+        
+
+        return data, EntryInfo(headers["roblox-entry-version"], headers["roblox-entry-created-time"],
+            headers["roblox-entry-version-created-time"], userids, metadata)
 
     def set(self, key: str, value: Union[str, dict, list, int, float], users:Optional[list[int]]=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Optional[str]=None) -> EntryVersion:
         """
@@ -196,31 +183,22 @@ class DataStore():
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         if users == None: users = []
-        data = json.dumps(value)
 
-        response = request_session.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
-            headers={"x-api-key": self.__api_key, "user-agent": user_agent, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata),
-            "content-md5": base64.b64encode(hashlib.md5(data.encode()).digest())}, data=data, params={
+        status_code, data, headers = send_request("POST", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
+            authorization=self.__api_key, headers={
+                "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)
+            }, json=value, params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key,
                 "exclusiveCreate": exclusive_create,
                 "matchVersion": previous_version
-            })
+            }, expected_status=[200, 412])
         
-        if response.status_code == 200:
-            data = json.loads(response.text)
-            return EntryVersion(data["version"], data["deleted"], data["contentLength"], data["createdTime"], data["objectCreatedTime"], self, key, self.scope if self.scope else scope)
-        elif response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-        elif response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-        elif response.status_code == 404: raise NotFound(response.json()["message"])
-        elif response.status_code == 429: raise RateLimited(response.json()["message"])
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        elif response.status_code == 412:
-            try: metadata = json.loads(response.headers["roblox-entry-attributes"])
+        if status_code == 412:
+            try: metadata = json.loads(headers["roblox-entry-attributes"])
             except(KeyError): metadata = {}
-            try: userids = json.loads(response.headers["roblox-entry-userids"])
+            try: userids = json.loads(headers["roblox-entry-userids"])
             except(KeyError): userids = []
 
             if exclusive_create:
@@ -230,9 +208,13 @@ class DataStore():
             else:
                 error = "A Precondition Failed"
 
-            raise PreconditionFailed(json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
-    response.headers["roblox-entry-version-created-time"], userids, metadata), error)
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+            raise PreconditionFailed(data, EntryInfo(
+                headers["roblox-entry-version"],
+                headers["roblox-entry-created-time"],
+                headers["roblox-entry-version-created-time"], userids, metadata
+            ), error)
+        
+        return EntryVersion(data["version"], data["deleted"], data["contentLength"], data["createdTime"], data["objectCreatedTime"], self, key, self.scope if self.scope else scope)
 
     def increment(self, key: str, increment: Union[int, float], users:Optional[list[int]]=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
@@ -250,29 +232,23 @@ class DataStore():
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
         if users == None: users = []
 
-        response = request_session.post(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/increment",
-            headers={"x-api-key": self.__api_key, "user-agent": user_agent, "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)}, params={
+        _, data, headers = send_request("POST", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/increment",
+            authorization=self.__api_key, headers={
+                "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)
+            }, params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key,
                 "incrementBy": increment
-            })
+            }, expected_status=[200])
 
-        if response.status_code == 200:
-            try: metadata = json.loads(response.headers["roblox-entry-attributes"])
-            except(KeyError): metadata = {}
-            try: userids = json.loads(response.headers["roblox-entry-userids"])
-            except(KeyError): userids = []
-            
-            return json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
-    response.headers["roblox-entry-version-created-time"], userids, metadata)
-        elif response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-        elif response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-        elif response.status_code == 404: raise NotFound(response.json()["message"])
-        elif response.status_code == 429: raise RateLimited(response.json()["message"])
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+        try: metadata = json.loads(headers["roblox-entry-attributes"])
+        except(KeyError): metadata = {}
+        try: userids = json.loads(headers["roblox-entry-userids"])
+        except(KeyError): userids = []
+        
+        return data, EntryInfo(headers["roblox-entry-version"], headers["roblox-entry-created-time"],
+            headers["roblox-entry-version-created-time"], userids, metadata)
     
     def remove(self, key: str) -> None:
         """
@@ -285,21 +261,15 @@ class DataStore():
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        response = request_session.delete(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
-            headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
+                
+        send_request("DELETE", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
+            authorization=self.__api_key, params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key
-            })
+            }, expected_status=[204])
 
-        if response.status_code == 204: return None
-        elif response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-        elif response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-        elif response.status_code == 404: raise NotFound(response.json()["message"])
-        elif response.status_code == 429: raise RateLimited(response.json()["message"])
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+        return None
     
     def list_versions(self, key: str, after: Optional[datetime.datetime]=None, before: Optional[datetime.datetime]=None, limit: Optional[int]=None, descending: bool=True) -> Iterable[EntryVersion]:
         """Returns an Iterable of previous versions of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`. The example below would list all versions, along with their value.
@@ -329,8 +299,8 @@ class DataStore():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions",
-                headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
+            _, data, _ = send_request("GET", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions",
+                authorization=self.__api_key, params={
                     "datastoreName": self.name,
                     "scope": scope,
                     "entryKey": key,
@@ -338,21 +308,14 @@ class DataStore():
                     "cursor": nextcursor if nextcursor else None,
                     "startTime": after.isoformat() if after else None,
                     "endTime": before.isoformat() if before else None
-                })
+                }, expected_status=[200])
             
-            if response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-            elif response.status_code == 401: raise InvalidKey(response.text)
-            elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-            elif response.status_code == 404: raise NotFound(response.json()["message"])
-            elif response.status_code == 429: raise RateLimited(response.json()["message"])
-            elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
-
-            data = response.json()
+            data = data
             for version in data["versions"]:
                 yields += 1
                 yield EntryVersion(version["version"], version["deleted"], version["contentLength"], version["createdTime"], version["objectCreatedTime"], self, key, self.scope if self.scope else scope)
                 if limit == None or yields >= limit: break
+            
             nextcursor = data.get("nextPageCursor")
             if not nextcursor: break
 
@@ -368,33 +331,28 @@ class DataStore():
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
             raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.") 
-        response = request_session.get(f"https://apis.roblox.com/datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions/version",
-            headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
+        
+        status_code, data, headers = send_request("GET", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions/version",
+            authorization=self.__api_key, params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key,
                 "versionId": version
-            })
+            }, expected_status=[200, 400])
 
-        if response.status_code == 200:
-            try: metadata = json.loads(response.headers["roblox-entry-attributes"])
-            except(KeyError): metadata = {}
-            try: userids = json.loads(response.headers["roblox-entry-userids"])
-            except(KeyError): userids = []
-            
-            return json.loads(response.text), EntryInfo(response.headers["roblox-entry-version"], response.headers["roblox-entry-created-time"],
-                response.headers["roblox-entry-version-created-time"], userids, metadata)
-        elif response.status_code == 400:
-            if response.json()["message"] == "Invalid version id.":
-                raise NotFound(response.json()["message"])
+        if status_code == 400:
+            if data["message"] == "Invalid version id.":
+                raise NotFound(data["message"])
             else:
-                raise rblx_opencloudException(response.json()["message"])
-        elif response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-        elif response.status_code == 404: raise NotFound(response.json()["message"])
-        elif response.status_code == 429: raise RateLimited(response.json()["message"])
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+                raise rblx_opencloudException(data["message"])
+        
+        try: metadata = json.loads(headers["roblox-entry-attributes"])
+        except(KeyError): metadata = {}
+        try: userids = json.loads(headers["roblox-entry-userids"])
+        except(KeyError): userids = []
+        
+        return data, EntryInfo(headers["roblox-entry-version"], headers["roblox-entry-created-time"],
+            headers["roblox-entry-version-created-time"], userids, metadata)
 
 class SortedEntry():
     """
@@ -418,14 +376,14 @@ class OrderedDataStore():
     Class for interacting with the Ordered DataStore API for a specific Ordered DataStore.
     """
 
-    def __init__(self, name, experince, api_key, scope):
+    def __init__(self, name, experience, api_key, scope):
         self.name = name
         self.__api_key = api_key
         self.scope = scope
-        self.experince = experince
+        self.experience = experience
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.OrderedDataStore(\"{self.name}\", scope=\"{self.scope}\", experince={repr(self.experince)})"
+        return f"rblxopencloud.OrderedDataStore(\"{self.name}\", scope=\"{self.scope}\", experience={repr(self.experience)})"
     
     def __str__(self) -> str:
         return self.name
@@ -465,27 +423,20 @@ class OrderedDataStore():
         nextcursor = ""
         yields = 0
         while limit == None or yields < limit:
-            response = request_session.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(self.scope)}/entries",
-                headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={
-                "max_page_size": limit if limit and limit < 100 else 100,
-                "order_by": "desc" if descending else None,
-                "page_token": nextcursor if nextcursor else None,
-                "filter": filter
-            })
+            _, data, _ = send_request("GET", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(self.scope)}/entries",
+                authorization=self.__api_key, params={
+                    "max_page_size": limit if limit and limit < 100 else 100,
+                    "order_by": "desc" if descending else None,
+                    "page_token": nextcursor if nextcursor else None,
+                    "filter": filter
+                }, expected_status=[200])
 
-            if response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-            elif response.status_code == 401: raise InvalidKey(response.text)
-            elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-            elif response.status_code == 404: raise NotFound(response.json()["message"])
-            elif response.status_code == 429: raise RateLimited(response.json()["message"])
-            elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
-            
-            data = response.json()
+            data = data
             for key in data["entries"]:
                 yields += 1
                 yield SortedEntry(key["id"], key["value"], self.scope)
                 if limit != None and yields >= limit: break
+            
             nextcursor = data.get("nextPageToken")
             if not nextcursor: break
     
@@ -500,17 +451,10 @@ class OrderedDataStore():
             else: scope = self.scope
         except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
 
-        response = request_session.get(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
-            headers={"x-api-key": self.__api_key, "user-agent": user_agent})
+        _, data, _ = send_request("GET", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+                authorization=self.__api_key, expected_status=[200])
         
-        if response.status_code == 200: return int(response.json()["value"])
-        elif response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-        elif response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-        elif response.status_code == 404: raise NotFound(response.json()["message"])
-        elif response.status_code == 429: raise RateLimited(response.json()["message"])
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+        return int(data["value"])
         
     def set(self, key: str, value: int, exclusive_create: bool=False, exclusive_update: bool=False) -> int:
         """
@@ -528,28 +472,30 @@ class OrderedDataStore():
         if exclusive_create and exclusive_update: raise ValueError("exclusive_create and exclusive_updated can not both be True")
 
         if not exclusive_create:
-            response = request_session.patch(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
-                headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={"allow_missing": not exclusive_update}, json={
+            status_code, data, _ = send_request("PATCH", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+                authorization=self.__api_key, expected_status=[200], params={
+                    "allow_missing": not exclusive_update
+                }, json={
                     "value": value
                 })
         else:
-            response = request_session.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
-                headers={"x-api-key": self.__api_key, "user-agent": user_agent}, params={"id": key}, json={
+            status_code, data, _ = send_request("POST", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
+                authorization=self.__api_key, expected_status=[200, 400, 404], params={
+                    "id": key
+                }, json={
                     "value": value
                 })
         
-        if response.status_code == 200: return int(response.json()["value"])
-        elif response.status_code == 400:
-            if response.json()["message"] == "Entry already exists.":
-                raise PreconditionFailed(None, None, response.json()["message"])
+        if status_code == 400:
+            if data["message"] == "Entry already exists.":
+                raise PreconditionFailed(None, None, data["message"])
             else:
-                raise rblx_opencloudException(response.json()["message"])
-        elif response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-        elif response.status_code == 404 and exclusive_update and response.json()["code"] == "NOT_FOUND": raise PreconditionFailed(response.json()["message"])
-        elif response.status_code == 429: raise RateLimited(response.json()["message"])
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+                raise rblx_opencloudException(data["message"])
+        
+        if status_code == 404 and exclusive_update and data["code"] == "NOT_FOUND":
+            raise PreconditionFailed(data["message"])
+
+        return int(data["value"])
 
     def increment(self, key: str, increment: int) -> None:
         """
@@ -563,18 +509,18 @@ class OrderedDataStore():
             else: scope = self.scope
         except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
 
-        response = request_session.post(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}:increment",
-            headers={"x-api-key": self.__api_key, "user-agent": user_agent}, json={
+        status_code, data, _ = send_request("POST", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}:increment",
+            authorization=self.__api_key, expected_status=[200, 409], json={
                 "amount": increment
             })
         
-        if response.status_code == 200: return int(response.json()["value"])
-        elif response.status_code == 401: raise InvalidKey("Your key may have expired, or may not have permission to access this resource.")
-        elif response.status_code == 404: raise NotFound(f"The key {key} does not exist.")
-        elif response.status_code == 409 and response.json()["message"] == "Entry value outside of bounds.": raise ValueError("New value can't be less than 0.")
-        elif response.status_code == 429: raise RateLimited("You're being rate limited.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+        if status_code == 409 and data["message"] == "Entry value outside of bounds.":
+            raise ValueError("Entry value outside of bounds.")
+        
+        if status_code == 409:
+            raise rblx_opencloudException(f"Unexpected HTTP {status_code}")
+        
+        return int(data["value"])
 
     def remove(self, key: str) -> None:
         """
@@ -588,14 +534,7 @@ class OrderedDataStore():
             else: scope = self.scope
         except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
 
-        response = request_session.delete(f"https://apis.roblox.com/ordered-data-stores/v1/universes/{self.experince.id}/orderedDatastores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
-            headers={"x-api-key": self.__api_key, "user-agent": user_agent})
+        send_request("DELETE", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+            authorization=self.__api_key, expected_status=[200, 204])
         
-        if response.status_code in [200, 204]: return None
-        elif response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-        elif response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise InvalidKey(response.json()["message"])
-        elif response.status_code == 404: raise NotFound(response.json()["message"])
-        elif response.status_code == 429: raise RateLimited(response.json()["message"])
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+        return None
