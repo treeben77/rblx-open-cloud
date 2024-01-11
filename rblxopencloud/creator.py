@@ -4,7 +4,7 @@ from typing import Union, Optional, TYPE_CHECKING
 import urllib3
 from enum import Enum
 from datetime import datetime
-from . import send_request
+from . import send_request, Operation
 
 if TYPE_CHECKING:
     from .user import User
@@ -27,6 +27,34 @@ class AssetType(Enum):
     Audio = 2
     Model = 3
 
+ASSET_TYPE_ENUMS = {
+    "Decal": AssetType.Decal,
+    "Audio": AssetType.Audio,
+    "Model": AssetType.Model,
+    "ASSET_TYPE_DECAL": AssetType.Decal,
+    "ASSET_TYPE_AUDIO": AssetType.Audio,
+    "ASSET_TYPE_MODEL": AssetType.Model
+}
+
+class ModerationStatus(Enum):
+    """
+    Enum to denote the current moderation status of an asset.
+    """
+    
+    Unknown = 0
+    Reviewing = 1
+    Rejected = 2
+    Approved = 3
+
+MODERATION_STATUS_ENUMS = {
+    "Reviewing": ModerationStatus.Reviewing,
+    "Rejected": ModerationStatus.Rejected,
+    "Approved": ModerationStatus.Approved,
+    "MODERATION_STATE_REVIEWING": ModerationStatus.Reviewing,
+    "MODERATION_STATE_REJECTED": ModerationStatus.Rejected,
+    "MODERATION_STATE_APPROVED": ModerationStatus.Approved
+}
+
 class Asset():
     """
     Represents an processed asset uploaded to Roblox.
@@ -41,38 +69,12 @@ class Asset():
         
         self.revision_id: Optional[int] = assetObject.get("revisionId")
         self.revision_time: Optional[datetime] = datetime.fromisoformat(assetObject["revisionCreateTime"][0:26]) if assetObject.get("revisionCreateTime") else None
-        
-        if assetObject.get("assetType") in ["Decal", "ASSET_TYPE_DECAL"]: self.type: AssetType = AssetType.Decal
-        elif assetObject.get("assetType") in ["Audio", "ASSET_TYPE_AUDIO"]: self.type: AssetType = AssetType.Audio
-        elif assetObject.get("assetType") in ["Model", "ASSET_TYPE_MODEL"]: self.type: AssetType = AssetType.Model
-        else: self.type: AssetType = AssetType.Unknown
+        self.type: AssetType = ASSET_TYPE_ENUMS.get(assetObject.get("assetType"), AssetType.Unknown)
+        self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
+            assetObject.get("moderationState"), ModerationStatus.Unknown)
     
     def __repr__(self) -> str:
         return f"rblxopencloud.Asset({self.id}, name=\"{self.name}\", type={self.type})"
-
-class PendingAsset():
-    """
-    Represents an asset uploaded to Roblox, but hasn't been processed yet.
-    """
-
-    def __init__(self, path, api_key, creator=None) -> None:
-        self.__path = path
-        self.__api_key = api_key
-        self.__creator = creator
-    
-    def __repr__(self) -> str:
-        return f"rblxopencloud.PendingAsset()"
-    
-    def fetch_operation(self) -> Optional[Asset]:
-        """
-        Checks if the asset has finished proccessing, if so returns the :class:`rblx-open-cloud.Asset` object.
-        """
-
-        _, data, _ = send_request("GET", f"https://apis.roblox.com/assets/v1/{self.__path}",
-            authorization=self.__api_key)
-        
-        if not data.get("done"): return None
-        return Asset(data["response"], self.__creator)
 
 mimetypes = {
     "mp3": "audio/mpeg",
@@ -97,7 +99,7 @@ class Creator():
     def __repr__(self) -> str:
         return f"rblxopencloud.Creator({self.id})"
     
-    def upload_asset(self, file: io.BytesIO, asset_type: Union[AssetType, str], name: str, description: str, expected_robux_price: int = 0) -> Union[Asset, PendingAsset]:
+    def upload_asset(self, file: io.BytesIO, asset_type: Union[AssetType, str], name: str, description: str, expected_robux_price: int = 0) -> Operation[Asset]:
         """
         Uploads the file onto roblox as an asset with the provided name and description. It will return `rblx-open-cloud.Asset` if the asset is processed instantly, otherwise it will return `rblx-open-cloud.PendingAsset`. The following asset types and file formats are accepted:
 
@@ -149,18 +151,9 @@ class Creator():
             
             raise rblx_opencloudException(body["message"] if type(body) == dict else body)
 
-        status_code, data_op, _ = send_request("GET", f"https://apis.roblox.com/assets/v1/{data['path']}",
-            authorization=self.__api_key)
-        
-        if not status_code == 200:
-            return PendingAsset(data['path'], self.__api_key, self)
-        else:
-            if not data_op.get("done"):
-                return PendingAsset(data_op['path'], self.__api_key, self)
-            else:
-                return Asset(data_op["response"], self)
+        return Operation(f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self)
     
-    def update_asset(self, asset_id: int, file: io.BytesIO) -> Union[Asset, PendingAsset]:
+    def update_asset(self, asset_id: int, file: io.BytesIO) -> Operation[Asset]:
         """
         Updates the file for an existing assest on Roblox. It will return :class:`rblx-open-cloud.Asset` if the asset is processed instantly, otherwise it will return :class:`rblx-open-cloud.PendingAsset`. The following asset types and file formats can be updated:
 
@@ -195,14 +188,5 @@ class Creator():
             if data["message"] == "AssetDescription is moderated.":
                 raise ModeratedText(f"The asset's description was moderated.")
         
-        status_code, data_op, _ = send_request("GET", f"https://apis.roblox.com/assets/v1/{data['path']}",
-            authorization=self.__api_key)
-        
-        if not status_code == 200:
-            return PendingAsset(data['path'], self.__api_key, self)
-        else:
-            if not data_op.get("done"):
-                return PendingAsset(data_op['path'], self.__api_key, self)
-            else:
-                return Asset(data_op["response"], self)
+        return Operation(f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self)
         
