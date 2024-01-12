@@ -13,10 +13,11 @@ import hashlib, string, secrets
 from . import user_agent, request_session
 
 __all__ = (
-    "OAuth2App",
-    "AccessToken",
+    "Resources",
+    "AccessTokenInfo",
     "PartialAccessToken",
-    "AccessTokenInfo"
+    "AccessToken",
+    "OAuth2App"
 )
 
 class AccessTokenInfo():

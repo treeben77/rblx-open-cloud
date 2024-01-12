@@ -16,12 +16,12 @@ setup(
     long_description_content_type="text/markdown",
     license='MIT',
     python_requires='>=3.9.0',
-    author="TreeBen77",
+    author="treeben77",
     packages=[
         'rblxopencloud',
         'rblxopencloudasync'
     ],
-    url='https://github.com/TreeBen77/rblx-open-cloud',
+    url='https://github.com/treeben77/rblx-open-cloud',
     keywords='roblox, open-cloud, data-store, place-publishing, mesageing-service',
     install_requires=[
         'requests',
