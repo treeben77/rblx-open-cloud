@@ -90,17 +90,25 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         if response.status_code == 401 and 401 not in expected_status:
             raise InvalidKey("The authorization key is not valid.")
         elif response.status_code == 403 and 403 not in expected_status:
-            raise PermissionDenied("The authorization does not have scope to access this resource.")
+            raise PermissionDenied(
+                "The authorization doesn't have scope to access this resource."
+            )
         elif response.status_code == 404 and 404 not in expected_status:
             raise NotFound(body["message"] if type(body) == dict else body)
         elif response.status_code == 429 and 429 not in expected_status:
             raise RateLimited("The resource is being rate limited.")
         elif response.status_code >= 500  and 500 not in expected_status:
-            raise ServiceUnavailable("The service is unavailable or has encountered an error.")
+            raise ServiceUnavailable(
+                "The service is unavailable or has encountered an error."
+            )
         elif response.status_code == 400 and 400 not in expected_status:
-            raise rblx_opencloudException(body["message"] if type(body) == dict else body)
+            raise rblx_opencloudException(
+                body["message"] if type(body) == dict else body
+            )
         elif response.status_code not in expected_status:
-            raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+            raise rblx_opencloudException(
+                f"Unexpected HTTP {response.status_code}"
+            )
     
     return response.status_code, body, response.headers
 
@@ -121,7 +129,7 @@ class Operation(Generic[T]):
         self.__return_meta: dict = return_meta
     
     def __repr__(self) -> str:
-        return "rblxopencloud.Operation()"
+        return "<rblxopencloud.Operation>"
     
     def fetch_status(self) -> Optional[T]:
         """

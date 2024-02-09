@@ -1,6 +1,6 @@
 from .exceptions import InvalidAsset, ModeratedText, rblx_opencloudException
 import json, io
-from typing import Union, Optional, TYPE_CHECKING
+from typing import Union, Optional, Iterable, TYPE_CHECKING
 import urllib3
 from enum import Enum
 from datetime import datetime
@@ -15,6 +15,7 @@ __all__ = (
     "AssetType",
     "ModerationStatus",
     "Asset",
+    "AssetVersion",
     "Creator"
 )
 
@@ -98,7 +99,8 @@ class Asset():
             data.get("assetType"), AssetType.Unknown)
         
         self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
-            data.get("moderationState"), ModerationStatus.Unknown)
+            data.get("moderationResult", {}).get("moderationState"),
+            ModerationStatus.Unknown)
         
         self.revision_id: Optional[int] = data.get("revisionId")
         self.revision_time: Optional[datetime] = (
@@ -107,7 +109,34 @@ class Asset():
         )
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.Asset({self.id}, type={self.type})"
+        return f"<rblxopencloud.Asset id={self.id}, type={self.type}>"
+
+class AssetVersion():
+    """
+    Represents a version of an asset uploaded on to Roblox.
+
+    Attributes:
+        id (int): This asset version's revision ID.
+        asset_id (int): The asset's ID.
+        creator (Union[Creator, User, Group]): The user, group, or creator\
+        which uploaded the asset.
+        moderation_status (ModerationStatus): The moderation status of this\
+        version.
+    """
+
+    def __init__(self, data, creator) -> None:
+        self.id: int = data["path"].split("/")[3]
+
+        self.asset_id: int = data["path"].split("/")[1]
+        self.creator: Union[Creator, User, Group] = creator
+
+        self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
+            data.get("moderationResult", {}).get("moderationState"),
+            ModerationStatus.Unknown)
+    
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.AssetVersion\
+ asset_id={self.asset_id}, id={self.id}>"
 
 ASSET_MIME_TYPES = {
     "mp3": "audio/mpeg",
@@ -122,6 +151,9 @@ ASSET_MIME_TYPES = {
 class Creator():
     """
     Represents an object that can upload assets, such as a user or a group.
+
+    Attributes:
+        id (int): The ID of the creator.
     """
 
     def __init__(self, id, api_key, type) -> None:
@@ -130,7 +162,8 @@ class Creator():
         self.__creator_type = type
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.Creator({self.id})"
+        return f"<rblxopencloud.Creator id={self.id}>"
+    
     
     def upload_asset(
             self, file: io.BytesIO, asset_type: Union[AssetType, str],
@@ -230,24 +263,44 @@ class Creator():
         return Operation(f"assets/v1/{data['path']}", self.__api_key,
             Asset, creator=self)
     
+    def fetch_asset(self, asset_id: int) -> Asset:
+        """
+        Fetches an asset uploaded to Roblox.
+
+        Args:
+            asset_id: The ID of the asset to fetch.
+
+        Returns:
+            An [`Asset`][rblxopencloud.Asset] representing the asset.
+        
+        Raises:
+            InvalidKey: The API key isn't valid or doesn't have access to \
+            the endpoint.
+            RateLimited: You've exceeded the endpoint's rate limits.
+            ServiceUnavailable: The server ran into an error.
+            rblx_opencloudException: The server returned an unexpected error.
+        """
+
+        _, data, _ = send_request("GET", f"assets/v1/assets/{asset_id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
+        
+        return Asset(data, self)
+        
     def update_asset(
             self, asset_id: int, file: io.BytesIO
         ) -> Operation[Asset]:
         """
-        Updates an asset on Roblox with a file and returns an \
-        [`Operation`][rblxopencloud.Operation]. The following asset types are \
-        currently supported:
+        Updates an asset on Roblox with the provided file. The following \
+        asset types are currently supported:
 
         | Asset Type | File Formats |
         | --- | --- |
         | Model | `.fbx` |
 
-        **The `asset:read` and `asset:write` scopes are required for OAuth2 \
-        authorization.**
-
         Args:
-            file: The file opened in bytes to be uploaded.
-            asset_id: The ID of the asset to be updated.
+            file: The file opened in bytes to upload.
+            asset_id: The ID of the asset to update.
 
         Returns:
             Returns a [`Operation`][rblxopencloud.Operation] for the asset \
@@ -304,4 +357,28 @@ class Creator():
         
         return Operation(f"assets/v1/{data['path']}", self.__api_key,
             Asset, creator=self)
+    
+    def list_asset_versions(
+            self, asset_id: int, limit: Optional[int]=None
+        ) -> Iterable[Asset]:
+        """
+        """
         
+        nextcursor = ""
+        yields = 0
+        while limit == None or yields < limit:
+            _, data, _ = send_request("GET",
+                f"assets/v1/assets/{asset_id}/versions", params={
+                    "maxPageSize":
+                        limit-yields if limit and limit-yields <= 50 else 50,
+                    "pageToken": nextcursor if nextcursor else None
+                }, authorization=self.__api_key, expected_status=[200]
+            )
+
+            for version in data["assetVersions"]:
+                yields += 1
+                yield AssetVersion(version, self)
+                if limit and yields >= limit: break
+            
+            nextcursor = data.get("nextPageToken")
+            if not nextcursor: break

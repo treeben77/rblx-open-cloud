@@ -137,3 +137,35 @@ class Experience():
             })
         
         return data["versionNumber"]
+    
+    
+    def send_notification(self, user: int, message_id: str, 
+            analytics_category: str = None, launch_data: str = None,
+            **parameters: dict[str, Union[str, int]]) -> int:
+
+        parameters_dict = {}
+
+        for key, value in parameters.items():
+            parameters_dict[key] = {
+                "int64_value" if type(value) == int else "string_value": value
+            }
+        
+        _, data, _ = send_request("POST",
+            f"cloud/v2/users/{user}/notifications",
+            authorization=self.__api_key, expected_status=[200], json={
+                "source": {
+                    "universe": f"universes/{self.id}"
+                },
+                "payload": {
+                    "type": "MOMENT",
+                    "messageId": message_id,
+                    "parameters": parameters_dict,
+                    "joinExperience": {
+                        "launchData": launch_data
+                    } if launch_data else None,
+                    "analyticsData": {
+                        "category": analytics_category
+                    } if analytics_category else None
+                }
+            })
+        

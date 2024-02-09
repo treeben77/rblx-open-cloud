@@ -3,7 +3,9 @@ from setuptools import setup
 import re
 
 with open("rblxopencloud/__init__.py", "r") as file:
-    version = re.search(r"VERSION: str = \"(\d+\.\d+\.\d+)\"", file.read()).group(1)
+    version = re.search(
+        r"VERSION: str = \"(\d+\.\d+\.\d+)\"", file.read()
+    ).group(1)
 
 with open("README.md", "r") as file:
     long_description = file.read()
@@ -27,6 +29,7 @@ setup(
         'requests',
         'aiohttp',
         'cryptography',
-        'pyjwt'
+        'pyjwt',
+        'python-dateutil'
     ]
 )
