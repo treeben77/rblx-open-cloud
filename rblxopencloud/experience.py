@@ -8,6 +8,7 @@ from enum import Enum
 from dateutil import parser
 from datetime import datetime
 import urllib.parse
+
 __all__ = (
     "Experience",
     "ExperienceAgeRating",
@@ -65,10 +66,15 @@ exeperience_age_rating_strings = {
 
 class Place():
     """
-    Represents a place within an experience on Roblox. Currently only holds place information, and can only be updated with [`Experience.update_place()`][rblxopencloud.Experience.update_place].
+    Represents a place within an experience on Roblox. Currently only holds \
+    place information, and can only be updated with \
+    [`Experience.update_place()`][rblxopencloud.Experience.update_place].
     
     !!! warning
-        This class isn't designed to be created by users. It is returned by [`Experience.fetch_place()`][rblxopencloud.Experience.fetch_place], and [`Experience.update_place()`][rblxopencloud.Experience.update_place].
+        This class isn't designed to be created by users. It is returned by \
+        [`Experience.fetch_place()`][rblxopencloud.Experience.fetch_place], \
+        and [`Experience.update_place()`]\
+        [rblxopencloud.Experience.update_place].
     
     Attributes:
         id (int): The place's ID.
@@ -77,18 +83,114 @@ class Place():
         description (str): The place's description.
         created_at (datetime): The time the place was created.
         updated_at (datetime): The time the place was last updated.
-        server_size (str): The maximum number of players that can be in a single server.
+        server_size (str): The number of players the can be in a single server.
     """
 
-    def __init__(self, data, api_key, experience) -> None:
-        self.id: int = int(data['path'].split("/")[-1])
+    def __init__(self, id, data, api_key, experience) -> None:
+        self.id: int = id
         self.experience: Experience = experience
-        self.name: str = data["displayName"]
-        self.description: str = data["description"]
-        self.created_at: datetime = parser.parse(data["createTime"])
-        self.updated_at: datetime = parser.parse(data["updateTime"])
-        self.server_size: str = data["serverSize"]
+        self.name: Optional[str] = data["displayName"] if data else None
+        self.description: Optional[str] = data["description"] if data else None
+        self.created_at: Optional[datetime] = (
+            parser.parse(data["createTime"])
+            if data else None
+        )
+        self.updated_at: Optional[datetime] = (
+            parser.parse(data["updateTime"])
+            if data else None
+        )
+
+        self.server_size: Optional[str] = data["serverSize"] if data else None
         self.__api_key = api_key
+    
+    def __update_params(self, data):
+        self.name = data["displayName"]
+        self.description = data["description"]
+        self.created_at = parser.parse(data["createTime"])
+        self.updated_at = parser.parse(data["updateTime"])
+        self.server_size = data["serverSize"]
+    
+    def fetch(self) -> "Place":
+        """
+        Fetches the information of a place within the expereince.
+
+        Args:
+            place_id: The place ID to fetch information for.
+
+        Returns:
+            The place information.
+        """
+        
+        _, data, _ = send_request("GET",
+            f"cloud/v2/universes/{self.experience.id}/places/{self.id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
+
+        self.__update_params(data)
+
+        return self
+    
+    def update(self, name: str = None,
+        description: str = None, server_size: int = None) -> "Place":
+        """
+        Updates information for the place and fills the empty parameters.
+
+        Args:
+            name: The new name for the place.
+            description: The new description for the place.
+            server_size: The new server size for the place.
+        
+        Returns:
+            The place object with the empty parameters filled.
+        """
+
+        payload, field_mask = {}, []
+
+        if name:
+            payload["displayName"] = name
+            field_mask.append("displayName")
+
+        if description:
+            payload["description"] = description
+            field_mask.append("description")
+
+        if server_size:
+            payload["serverSize"] = server_size
+            field_mask.append("serverSize")
+        
+        _, data, _ = send_request("PATCH",
+            f"cloud/v2/universes/{self.experience.id}/places/{self.id}",
+            authorization=self.__api_key, expected_status=[200],
+            json=payload, params={"updateMask": ",".join(field_mask)}
+        )
+        
+        self.__update_params(data)
+
+        return self
+    
+    def upload_place_file(self, file: io.BytesIO,
+            publish: bool = False) -> int:
+        """
+        Uploads the place file to Roblox, optionally choosing to publish it.
+
+        Args:
+            file: The place file to upload, opened in bytes.
+            publish: Wether to publish the new place file.
+
+        Returns:
+            The place's new version ID.
+        """
+
+        _, data, _ = send_request("POST",
+            f"universes/v1/{self.experience.id}/places/{self.id}/versions",
+            authorization=self.__api_key, expected_status=[200],
+            headers={"content-type": "application/octet-stream"},
+            data=file.read(), params={
+                "versionType": "Published" if publish else "Saved"
+            }
+        )
+        
+        return data["versionNumber"]
     
     def __repr__(self) -> str:
         return f"<rblxopencloud.Place id={self.id}, \
@@ -356,6 +458,21 @@ class Experience():
         self.__update_params(data)
         return self
     
+    def get_place(self, place_id: int) -> Place:
+        """
+        Creates a [`rblxopencloud.Place`][rblxopencloud.Place] for a place \
+        within the experience. Does not make any API calls.
+
+        Args:
+            place_id: The ID of the place.
+
+        Returns:
+            The created place object with all parameters as `None` except \
+            `id` and `experience`.
+        """
+        
+        return Place(place_id, None, self.__api_key, self)
+    
     def get_data_store(self, name: str, scope: Optional[str] = "global"
         ) -> DataStore:
         """
@@ -433,87 +550,7 @@ class Experience():
             f"topics/{urllib.parse.quote(topic)}", expected_status=[200],
             authorization=self.__api_key, json={"message": data}
         )
-    
-    def fetch_place(self, place_id: int) -> Place:
-        """
-        Fetches the information of a place within the expereince.
-
-        Args:
-            place_id: The place ID to fetch information for.
-
-        Returns:
-            The place information.
-        """
         
-        _, data, _ = send_request("GET",
-            f"cloud/v2/universes/{self.id}/places/{place_id}",
-            authorization=self.__api_key, expected_status=[200]
-        )
-
-        return Place(data, self.__api_key, self)
-    
-    def update_place(self, place_id: int, name: str = None,
-        description: str = None, server_size: int = None) -> Place:
-        """
-        Updates information for a place within the experience.
-
-        Args:
-            place_id: The place ID to update.
-            name: The new name for the place.
-            description: The new description for the place.
-            server_size: The new server size for the place.
-        
-        Returns:
-            The updated place.
-        """
-
-        payload, field_mask = {}, []
-
-        if name:
-            payload["displayName"] = name
-            field_mask.append("displayName")
-
-        if description:
-            payload["description"] = description
-            field_mask.append("description")
-
-        if server_size:
-            payload["serverSize"] = server_size
-            field_mask.append("serverSize")
-        
-        _, data, _ = send_request("PATCH",
-            f"cloud/v2/universes/{self.id}/places/{place_id}",
-            authorization=self.__api_key, expected_status=[200],
-            json=payload, params={"updateMask": ",".join(field_mask)}
-        )
-
-        return Place(data, self.__api_key, self)
-    
-    def upload_place(self, place_id: int, file: io.BytesIO,
-            publish: bool = False) -> int:
-        """
-        Uploads the place file to Roblox, optionally choosing to publish it.
-
-        Args:
-            place_id: The place ID to upload the file to.
-            file: The place file to upload, opened in bytes.
-            publish: Wether to publish the new place file.
-
-        Returns:
-            The place's new version ID.
-        """
-
-        _, data, _ = send_request("POST",
-            f"universes/v1/{self.id}/places/{place_id}/versions",
-            authorization=self.__api_key, expected_status=[200],
-            headers={"content-type": "application/octet-stream"},
-            data=file.read(), params={
-                "versionType": "Published" if publish else "Saved"
-            }
-        )
-        
-        return data["versionNumber"]
-    
     def send_notification(self, user_id: int, message_id: str, 
             analytics_category: str = None, launch_data: str = None,
             **message_variables: dict[str, Union[str, int]]) -> None:
@@ -566,4 +603,3 @@ class Experience():
             f"cloud/v2/universes/{self.id}:restartServers",
             authorization=self.__api_key, expected_status=[200]
         )
-    
