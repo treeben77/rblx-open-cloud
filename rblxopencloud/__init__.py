@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union, TypeVar, Generic
+from typing import Literal, Optional, Union, TypeVar, Generic, Callable
 import requests
 
 VERSION: str = "2.0.0"
@@ -77,7 +77,7 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
                 else "x-api-key"] = authorization
 
     response = http_session.request(method, f"https://apis.roblox.com/{path}",
-                                    headers=headers, **kwargs)
+                                    headers=headers, **kwargs, timeout=10)
 
     if 'application/json' in response.headers.get('Content-Type', ''):
         body = response.json()
@@ -111,6 +111,29 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
             )
     
     return response.status_code, body, response.headers
+
+def iterate_request(*args, data_key: str, cursor_key: str,
+        max_yields: int = None, post_request_hook: Callable = None, **kwargs
+    ):
+
+    next_cursor, yields = "", 0
+
+    while max_yields == None or yields < max_yields:
+
+        if not kwargs.get("params"): kwargs["params"] = {}
+        kwargs["params"][cursor_key] = next_cursor if next_cursor else None
+
+        status, data, headers = send_request(*args, **kwargs)
+        if post_request_hook: post_request_hook(status, data, headers)
+
+        for entry in data[data_key]:
+            yield entry
+
+            yields += 1
+            if max_yields == None or yields >= max_yields: break
+        
+        next_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
+        if not next_cursor: break
 
 T = TypeVar("T")
 
@@ -163,7 +186,7 @@ class Operation(Generic[T]):
         ) -> T:
         """
         Continuously checks the status of the operation every \
-        `interval_seconds` until complete or after  `timeout_seconds` has \
+        `interval_seconds` until complete or after `timeout_seconds` has \
         passed.
 
         Args:
