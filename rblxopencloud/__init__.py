@@ -3,6 +3,7 @@ import requests
 
 VERSION: str = "2.0.0"
 VERSION_INFO: Literal['alpha', 'beta', 'final'] = "alpha"
+DEBUG = VERSION_INFO == "alpha"
 
 user_agent: str = f"rblx-open-cloud/{VERSION} \
 (https://github.com/treeben77/rblx-open-cloud)"
@@ -84,7 +85,8 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
     else:
         body = response.text
 
-    print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
+    if DEBUG:
+        print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
 
     if expected_status:
         if response.status_code == 401 and 401 not in expected_status:
@@ -182,7 +184,8 @@ class Operation(Generic[T]):
         
     def wait(
             self, timeout_seconds: Optional[float]=60,
-            interval_seconds: float=0
+            interval_seconds: float=0,
+            interval_exponent: float=1.3
         ) -> T:
         """
         Continuously checks the status of the operation every \
@@ -195,6 +198,8 @@ class Operation(Generic[T]):
             recommended.
             interval_seconds: The number of seconds (excluding network time) \
             between every status check.
+            interval_exponent: The number multiplier for exponental backoff. \
+            Set to 1 for linear intervals.
 
         Returns:
             The return type as defined by `T`.
@@ -220,6 +225,7 @@ class Operation(Generic[T]):
                 raise TimeoutError("Timeout exceeded")
 
             if interval_seconds > 0: time.sleep(interval_seconds)
+            interval_seconds *= interval_exponent
 
 del Literal, Optional, TypeVar, T, requests, Generic
 

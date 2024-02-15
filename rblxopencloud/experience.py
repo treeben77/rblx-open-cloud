@@ -1,9 +1,10 @@
 import io
 from typing import Optional, Iterable, Union
 from .datastore import DataStore, OrderedDataStore
-from . import send_request, iterate_request
+from . import send_request, iterate_request, Operation
 from .user import User
 from .group import Group
+from .engine import Instance, InstanceType
 from enum import Enum
 from dateutil import parser
 from datetime import datetime
@@ -66,9 +67,7 @@ exeperience_age_rating_strings = {
 
 class Place():
     """
-    Represents a place within an experience on Roblox. Currently only holds \
-    place information, and can only be updated with \
-    [`Experience.update_place()`][rblxopencloud.Experience.update_place].
+    Represents a place within an experience on Roblox.
     
     !!! warning
         This class isn't designed to be created by users. It is returned by \
@@ -103,6 +102,10 @@ class Place():
         self.server_size: Optional[str] = data["serverSize"] if data else None
         self.__api_key = api_key
     
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.Place id={self.id}, \
+experience={repr(self.experience)}>"
+    
     def __update_params(self, data):
         self.name = data["displayName"]
         self.description = data["description"]
@@ -110,12 +113,9 @@ class Place():
         self.updated_at = parser.parse(data["updateTime"])
         self.server_size = data["serverSize"]
     
-    def fetch(self) -> "Place":
+    def fetch_info(self) -> "Place":
         """
         Fetches the information of a place within the expereince.
-
-        Args:
-            place_id: The place ID to fetch information for.
 
         Returns:
             The place information.
@@ -130,8 +130,8 @@ class Place():
 
         return self
     
-    def update(self, name: str = None,
-        description: str = None, server_size: int = None) -> "Place":
+    def update(self, name: str = None, description: str = None,
+        server_size: int = None) -> "Place":
         """
         Updates information for the place and fills the empty parameters.
 
@@ -191,18 +191,47 @@ class Place():
         )
         
         return data["versionNumber"]
-    
-    def __repr__(self) -> str:
-        return f"<rblxopencloud.Place id={self.id}, \
-experience={repr(self.experience)}>"
+
+    def list_root_children(self) -> Operation[list[InstanceType]]:
+        _, data, _ = send_request("GET", "cloud/v2/universes/"+
+            f"{self.experience.id}/places/{self.id}/instances/"+
+            "root:listChildren", authorization=self.__api_key,
+            expected_status=[200])
+        
+        def operation_callable(response):
+            instance_objects = []
+            
+            for instance in response["instances"]:
+                instance_objects.append(
+                    Instance._determine_instance_subclass(data)
+                    (instance["engineInstance"]["Id"], instance,
+                        place=self, api_key=self.__api_key)
+                )
+
+            return instance_objects
+
+        return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+                         operation_callable)
+
+    def fetch_instance(self, instance_id: str) -> Operation[InstanceType]:
+
+        _, data, _ = send_request("GET", "cloud/v2/universes/"+
+            f"{self.experience.id}/places/{self.id}/instances/{instance_id}",
+            authorization=self.__api_key, expected_status=[200])
+        
+        return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+            lambda r: Instance._determine_instance_subclass(r)
+            (r["engineInstance"]["Id"], r, place=self, api_key=self.__api_key))
 
 class Experience():
     """
-    Represents an experience/game on Roblox. Allows interaction with data stores, messaging service, etc.
+    Represents an experience/universe on Roblox.
 
     Args:
         id: The experience/universe ID
-        api_key: The API key created on the [Creator Dashboard](https://create.roblox.com/credentials) with access to the experience.
+        api_key: The API key created on the \
+        [Creator Dashboard](https://create.roblox.com/credentials) with \
+        access to the experience.
     
     Attributes:
         id (int): The experience/universe ID
@@ -397,8 +426,8 @@ class Experience():
 
         !!! tip
             To update the experience's name or description use \
-            [`Experience.update_place`][rblxopencloud.Experience.\
-            update_place] on the experience's start place.
+            [`Place.update`][rblxopencloud.Place.update] on the experience's \
+            start place.
         """
 
         payload, field_mask = {}, []
@@ -505,7 +534,7 @@ class Experience():
         
         return OrderedDataStore(name, self, self.__api_key, scope)
 
-    def list_data_stores(self, prefix: str="", limit: int=None,
+    def list_data_stores(self, prefix: str="", limit: int = None,
         scope: Optional[str] = "global") -> Iterable[DataStore]:
         """
         Iterates all data stores in the experience.
