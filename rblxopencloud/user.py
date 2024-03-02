@@ -1,11 +1,9 @@
-from .exceptions import rblx_opencloudException, InvalidKey, PermissionDenied, NotFound, RateLimited, ServiceUnavailable
 from .creator import Creator
-from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable
 import datetime
 
 from typing import Optional, Iterable, Union, TYPE_CHECKING
 from enum import Enum
-from . import user_agent, request_session
+from . import send_request, iterate_request
 
 if TYPE_CHECKING:
     from .group import GroupMember
@@ -151,47 +149,98 @@ class InventoryItem():
         return f"rblxopencloud.InventoryItem(id={self.id}"
 
 class InventoryAsset(InventoryItem):
-    def __init__(self, data) -> None:
-        super().__init__(data["assetId"])
-        self.type: InventoryAssetType = InventoryAssetType(asset_type_strings.get(data["inventoryItemAssetType"], InventoryAssetType.Unknown))
-        self.instance_id: int = data["instanceId"]
-        self.collectable_item_id: Optional[str] = data.get("collectibleDetails", {}).get("itemId", None)
-        self.collectable_instance_id: Optional[str] = data.get("collectibleDetails", {}).get("instanceId", None)
-        self.serial_number: Optional[int] = data.get("collectibleDetails", {}).get("serialNumber", None)
+    """
+    Represents an asset in a user's inventory such as clothing and \
+    development items.
 
-        collectable_state = data.get("collectibleDetails", {}).get("instanceState", None)
-        self.collectable_state: Optional[InventoryItemState] = InventoryItemState(state_type_strings.get(collectable_state, InventoryItemState.Unknown)) if collectable_state else None
+    Attributes:
+        id (int): The ID of the inventory item.
+        type (InventoryAssetType): The asset's type.
+        instance_id (int): The unique ID of this asset's instance.
+        collectable_item_id (Optional[str]): A unique item UUID for \
+        collectables.
+        collectable_instance_id (Optional[str]): A unique instance UUID for \
+        collectables.
+        serial_number (Optional[int]): The serial number of the collectable.
+        collectable_state (Optional[InventoryItemState]): Wether the item is \
+        ready for sale or in hold.
+    """
+     
+    def __init__(self, data: dict) -> None:
+        super().__init__(data["assetId"])
+        self.type: InventoryAssetType = InventoryAssetType(
+            asset_type_strings.get(data["inventoryItemAssetType"],
+                                   InventoryAssetType.Unknown)
+        )
+        self.instance_id: int = data["instanceId"]
+        self.collectable_item_id: Optional[str] = data.get(
+            "collectibleDetails", {}).get("itemId", None)
+        self.collectable_instance_id: Optional[str] = data.get(
+            "collectibleDetails", {}).get("instanceId", None)
+        self.serial_number: Optional[int] = data.get("collectibleDetails", {}
+            ).get("serialNumber", None)
+
+        collectable_state = data.get("collectibleDetails", {}
+            ).get("instanceState", None)
+        self.collectable_state: Optional[InventoryItemState] = (
+            InventoryItemState(state_type_strings.get(collectable_state,
+            InventoryItemState.Unknown)) if collectable_state else None
+        )
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryAsset(id={self.id}, type={self.type})"
+        return f"<rblxopencloud.InventoryAsset id={self.id} type={self.type}>"
 
 class InventoryBadge(InventoryItem):
+    """
+    Represents a badge in a user's inventory.
+
+    Attributes:
+        id (int): The ID of the badge.
+    """
+
     def __init__(self, data) -> None:
         super().__init__(data["badgeId"])
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryBadge(id={self.id})"
+        return f"<rblxopencloud.InventoryBadge id={self.id}>"
 
 class InventoryGamePass(InventoryItem):
+    """
+    Represents a game pass in a user's inventory.
+
+    Attributes:
+        id (int): The ID of the game pass.
+    """
+
     def __init__(self, data) -> None:
         super().__init__(data["gamePassId"])
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryGamePass(id={self.id})"
+        return f"<rblxopencloud.InventoryGamePass id={self.id}>"
 
 class InventoryPrivateServer(InventoryItem):
+    """
+    Represents a game pass in a user's inventory.
+
+    Attributes:
+        id (int): The ID of the game pass.
+    """
     def __init__(self, data) -> None:
         super().__init__(data["privateServerId"])
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryPrivateServer(id={self.id})"
+        return f"<rblxopencloud.InventoryPrivateServer id={self.id}>"
 
 class User(Creator):
     """
-    Represents a user on Roblox. It is used to provide information about a user in OAuth2, and to upload assets to a user.
-    ### Paramaters
-    id: int - The user's ID.
-    api_key: str - Your API key created from [Creator Dashboard](https://create.roblox.com/credentials) with access to this user.
+    Represents a user on Roblox. It is used to provide information about a \
+    user in OAuth2, and to upload assets to a user.
+    
+    Attributes:
+        id (int): The user's ID.
+        api_key (str): Your API key created from \
+        [Creator Dashboard](https://create.roblox.com/credentials) with \
+        access to this user.
     """
     def __init__(self, id: int, api_key: str) -> None:
         self.username: Optional[str] = None
@@ -204,120 +253,107 @@ class User(Creator):
         self.__api_key = api_key
 
         super().__init__(id, api_key, "User")
+        
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.User id={self.id}>"
 
-    def list_groups(self, limit: Optional[int]=None) -> Iterable["GroupMember"]:
+    def list_groups(self, limit: int=None) -> Iterable["GroupMember"]:
         from .group import GroupMember
 
-        filter = None
-
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            response = request_session.get(f"https://apis.roblox.com/cloud/v2/groups/-/memberships",
-                headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent}, params={
+        for entry in iterate_request("GET", "cloud/v2/groups/-/memberships",
+            authorization=self.__api_key, params={
                 "maxPageSize": limit if limit and limit <= 99 else 99,
                 "filter": f"user == 'users/{self.id}'",
-                "pageToken": nextcursor if nextcursor else None
-            })
-
-            if response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-            elif response.status_code == 401: raise InvalidKey(response.text)
-            elif response.status_code == 404: raise NotFound(response.json()["message"])
-            elif response.status_code == 429: raise RateLimited("You're being rate limited!")
-            elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
-            
-            data = response.json()
-            for member in data["groupMemberships"]:
-                yields += 1
-                
-                yield GroupMember(member, self.__api_key)
-            nextcursor = data.get("nextPageToken")
-            if not nextcursor: break
-
-        pass
+            }, data_key="groupMemberships", cursor_key="nextPageToken",
+            expected_status=[200]
+        ):
+            yield GroupMember(entry, self.__api_key)
     
-    def __repr__(self) -> str:
-        return f"rblxopencloud.User({self.id})"
-
-    def list_inventory(self, limit: Optional[int]=None, only_collectibles: Optional[bool]=False, assets: Optional[Union[list[InventoryAssetType], list[int], bool]]=None, badges: Optional[Union[list[int], bool]]=False, game_passes: Optional[Union[list[int], bool]]=False, private_servers: Optional[Union[list[int], bool]]=False) -> Iterable[Union[InventoryAsset, InventoryBadge, InventoryGamePass, InventoryPrivateServer]]:
+    def list_inventory(self, limit: int=None, only_collectibles: bool=False,
+        assets: Union[list[InventoryAssetType], list[int], bool]=None,
+        badges: Union[list[int], bool]=False,
+        game_passes: Union[list[int], bool]=False,
+        private_servers: Union[list[int], bool]=False
+    ) -> Iterable[Union[InventoryAsset, InventoryBadge,
+        InventoryGamePass, InventoryPrivateServer]]:
         """
-        Interates `rblx-open-cloud.InventoryItem` for items in the user's inventory. If `only_collectibles`, `assets`, `badges`, `game_passes`, and `private_servers` are `False`, then all inventory items are returned.
+        Interates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \
+        the user's inventory. If `only_collectibles`, `assets`, `badges`, \
+        `game_passes`, and `private_servers` are `False`, then all inventory \
+        items are returned.
         
-        The example below would iterate through every item in the user's inventory.
-        
-        ```py
-            for item in user.list_inventory():
-                print(item)
-        ```
-        
-        The `user.inventory-item:read` scope is required if authorized via OAuth2`.
-        ### Parameters
-        limit: Optional[bool] - he maximum number of inventory items to iterate. This can be `None` to return all items.
-        only_collectibles: Optional[bool] - Wether the only inventory assets iterated are collectibles (limited items).
-        assets: Optional[Union[list[InventoryAssetType], list[int], bool]] - If this is `True`, then it will return all assets, if it is a list of IDs, it will only return assets with the provided IDs, and if it is a list of :class:`rblx-open-cloud.InventoryAssetType` then it will only return assets of these types.
-        badges: Optional[Union[list[int], bool]] - If this is `True`, then it will return all badges, but if it is a list of IDs, it will only return badges with the provided IDs.
-        game_passes: Optional[Union[list[int], bool]] - If this is `True`, then it will return all game passes, but if it is a list of IDs, it will only return game passes with the provided IDs.
-        private_servers: Optional[Union[list[int], bool]] - If this is `True`, then it will return all private servers, but if it is a list of IDs, it will only return private servers with the provided IDs.
+        Args:
+            limit (bool): The maximum number of inventory items to iterate. \
+            This can be `None` to return all items.
+            only_collectibles (bool): Wether the only inventory assets \
+            returned are collectibles (limited items).
+            assets (Union[list[InventoryAssetType], list[int], bool]): If \
+            `True`, then it will return all assets, if it is a list of IDs, \
+            it will only return assets with the provided IDs, and if it is a \
+            list of [`InventoryAssetType`][rblxopencloud.InventoryAssetType] \
+            then it will only return assets of these types.
+            badges (Union[list[int], bool]): If `True`, then it will return \
+            all badges, but if it is a list of IDs, it will only return \
+            badges with the provided IDs.
+            game_passes (Union[list[int], bool]): If `True`, then it will \
+            return all game passes, but if it is a list of IDs, it will only \
+            return game passes with the provided IDs.
+            private_servers (Union[list[int], bool]): If `True`, then it will \
+            return all private servers, but if it is a list of IDs, it will \
+            only return private servers with the provided IDs.
         """
 
-        filter_dict = {}
+        filter = {}
 
         if only_collectibles:
-            filter_dict["onlyCollectibles"] = only_collectibles
+            filter["onlyCollectibles"] = only_collectibles
             if assets == None: assets = True
 
         if assets == True:
-            filter_dict["inventoryItemAssetTypes"] = "*"
-        elif type(assets) == list and isinstance(assets[0], InventoryAssetType):
-            filter_dict["inventoryItemAssetTypes"] = ",".join([list(asset_type_strings.keys())[list(asset_type_strings.values()).index(asset_type)] for asset_type in assets])
+            filter["inventoryItemAssetTypes"] = "*"
+        elif (type(assets) == list and
+            isinstance(assets[0], InventoryAssetType)):
+
+            asset_types = []
+            for asset_type in assets:
+                asset_types.append(
+                    list(asset_type_strings.keys())
+                    [list(asset_type_strings.values()).index(asset_type)]
+                )
+                
+            filter["inventoryItemAssetTypes"] = ",".join(asset_types)
         elif type(assets) == list:
-            filter_dict["assetIds"] = ",".join([str(asset) for asset in assets])
+            filter["assetIds"] = ",".join([str(id) for id in assets])
 
         if badges == True:
-            filter_dict["badges"] = "true"
+            filter["badges"] = "true"
         elif type(badges) == list:
-            filter_dict["badgeIds"] = ",".join([str(badge) for badge in badges])
+            filter["badgeIds"] = ",".join([str(id) for id in badges])
             
         if game_passes == True:
-            filter_dict["gamePasses"] = "true"
-        elif type(badges) == list:
-            filter_dict["gamePassIds"] = ",".join([str(game_pass) for game_pass in game_passes])
+            filter["gamePasses"] = "true"
+        elif type(game_passes) == list:
+            filter["gamePassIds"] = (
+                ",".join([str(id) for id in game_passes])
+            )
             
         if private_servers == True:
-            filter_dict["privateServers"] = "true"
+            filter["privateServers"] = "true"
         elif type(badges) == list:
-            filter_dict["privateServerIds"] = ",".join([str(private_server) for private_server in private_servers])
+            filter["privateServerIds"] = ",".join([
+                str(private_server) for private_server in private_servers])
 
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            response = request_session.get(f"https://apis.roblox.com/cloud/v2/users/{self.id}/inventory-items",
-                headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent}, params={
+        for entry in iterate_request("GET",
+            f"cloud/v2/users/{self.id}/inventory-items", params={
                 "maxPageSize": limit if limit and limit <= 100 else 100,
-                "filter": ";".join([f"{k}={v}" for k, v in filter_dict.items()]),
-                "pageToken": nextcursor if nextcursor else None
-            })
-
-            if response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-            elif response.status_code == 401: raise InvalidKey(response.text)
-            elif response.status_code == 403: raise PermissionDenied(response.json()["message"])
-            elif response.status_code == 404: raise NotFound(response.json()["message"])
-            elif response.status_code == 429: raise RateLimited("You're being rate limited!")
-            elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
-            
-            data = response.json()
-            for item in data["inventoryItems"]:
-                yields += 1
-                if "assetDetails" in item.keys():
-                    yield InventoryAsset(item["assetDetails"])
-                elif "badgeDetails" in item.keys():
-                    yield InventoryBadge(item["badgeDetails"])
-                elif "gamePassDetails" in item.keys():
-                    yield InventoryGamePass(item["gamePassDetails"])
-                elif "privateServerDetails" in item.keys():
-                    yield InventoryPrivateServer(item["privateServerDetails"])
-                if limit != None and yields >= limit: break
-            nextcursor = data.get("nextPageToken")
-            if not nextcursor: break
+                "filter": ";".join([f"{k}={v}" for k, v in filter.items()])
+            }, authorization=self.__api_key, data_key="inventoryItems",
+            cursor_key="pageToken", expected_status=[200]):
+                if "assetDetails" in entry.keys():
+                    yield InventoryAsset(entry["assetDetails"])
+                elif "badgeDetails" in entry.keys():
+                    yield InventoryBadge(entry["badgeDetails"])
+                elif "gamePassDetails" in entry.keys():
+                    yield InventoryGamePass(entry["gamePassDetails"])
+                elif "privateServerDetails" in entry.keys():
+                    yield InventoryPrivateServer(entry["privateServerDetails"])

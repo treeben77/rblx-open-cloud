@@ -164,6 +164,29 @@ class Creator():
     def __repr__(self) -> str:
         return f"<rblxopencloud.Creator id={self.id}>"
     
+    def fetch_asset(self, asset_id: int) -> Asset:
+        """
+        Fetches an asset uploaded to Roblox.
+
+        Args:
+            asset_id: The ID of the asset to fetch.
+
+        Returns:
+            An [`Asset`][rblxopencloud.Asset] representing the asset.
+        
+        Raises:
+            InvalidKey: The API key isn't valid or doesn't have access to \
+            the endpoint.
+            RateLimited: You've exceeded the endpoint's rate limits.
+            ServiceUnavailable: The server ran into an error.
+            rblx_opencloudException: The server returned an unexpected error.
+        """
+
+        _, data, _ = send_request("GET", f"assets/v1/assets/{asset_id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
+        
+        return Asset(data, self)
     
     def upload_asset(
             self, file: io.BytesIO, asset_type: Union[AssetType, str],
@@ -262,31 +285,7 @@ class Creator():
 
         return Operation(f"assets/v1/{data['path']}", self.__api_key,
             Asset, creator=self)
-    
-    def fetch_asset(self, asset_id: int) -> Asset:
-        """
-        Fetches an asset uploaded to Roblox.
-
-        Args:
-            asset_id: The ID of the asset to fetch.
-
-        Returns:
-            An [`Asset`][rblxopencloud.Asset] representing the asset.
-        
-        Raises:
-            InvalidKey: The API key isn't valid or doesn't have access to \
-            the endpoint.
-            RateLimited: You've exceeded the endpoint's rate limits.
-            ServiceUnavailable: The server ran into an error.
-            rblx_opencloudException: The server returned an unexpected error.
-        """
-
-        _, data, _ = send_request("GET", f"assets/v1/assets/{asset_id}",
-            authorization=self.__api_key, expected_status=[200]
-        )
-        
-        return Asset(data, self)
-        
+            
     def update_asset(
             self, asset_id: int, file: io.BytesIO
         ) -> Operation[Asset]:

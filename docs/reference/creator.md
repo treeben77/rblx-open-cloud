@@ -7,3 +7,5 @@
 ::: rblxopencloud.AssetType
 
 ::: rblxopencloud.ModerationStatus
+
+::: rblxopencloud.AssetVersion

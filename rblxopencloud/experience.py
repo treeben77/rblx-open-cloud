@@ -71,9 +71,7 @@ class Place():
     
     !!! warning
         This class isn't designed to be created by users. It is returned by \
-        [`Experience.fetch_place()`][rblxopencloud.Experience.fetch_place], \
-        and [`Experience.update_place()`]\
-        [rblxopencloud.Experience.update_place].
+        [`Experience.get_place()`][rblxopencloud.Experience.get_place].
     
     Attributes:
         id (int): The place's ID.

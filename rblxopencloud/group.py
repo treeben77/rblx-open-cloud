@@ -1,35 +1,70 @@
 from .creator import Creator
-from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable, PermissionDenied
 import datetime
 from typing import Optional, Iterable
-from . import user_agent, request_session
+from . import send_request, iterate_request
 from .user import User
+from dateutil import parser
 
 __all__ = (
     "Group",
     "GroupMember",
     "GroupRole",
     "GroupRolePermissions",
-    "GroupShout"
+    "GroupShout",
+    "GroupJoinRequest"
 )
 
 class GroupShout():
     """
     Represents a group shout.
+
+    Attributes:
+        content (str): The message content of the shout.
+        user (User): The user who posted it.
+        created_at (datetime.datetime): The timestamp the group shout was \
+        posted.
+        first_created_at (datetime.datetime): The timestamp the first group \
+        shout was posted in this group.
     """
 
     def __init__(self, shout, api_key=None) -> None:
         self.content: str = shout["content"]
         self.user: User = User(int(shout["poster"].split("/")[1]), api_key)
-        self.created_at: datetime.datetime = datetime.datetime.fromisoformat((shout["updateTime"].split("Z")[0]+"0"*6)[0:26])
-        self.first_created_at: datetime.datetime = datetime.datetime.fromisoformat((shout["createTime"].split("Z")[0]+"0"*6)[0:26])
+        self.created_at: datetime.datetime = (
+            parser.parse(shout["updateTime"])
+            if shout.get("updateTime") else None
+        )
+        self.first_created_at: datetime.datetime = (
+            parser.parse(shout["createTime"])
+            if shout.get("createTime") else None
+        )
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.GroupShout(content=\"{self.content}\")"
+        return f"<rblxopencloud.GroupShout content=\"{self.content}\">"
 
 class GroupRolePermissions():
     """
     Represents a role's permissions inside of a group.
+
+    Attributes:
+        view_wall_posts (bool): View group wall
+        create_wall_posts (bool): Post on group wall
+        delete_wall_posts (bool): Delete group wall posts
+        view_group_shout (bool): View group shout
+        create_group_shout (bool): Post group shout
+        change_member_ranks (bool): Manage lower-ranked member ranks
+        accept_join_requests (bool): Accept join requests
+        exile_members (bool): Kick lower-ranked members
+        manage_relationships (bool): Manage allies and enemies
+        view_audit_log (bool): View audit log
+        spend_group_funds (bool): Spend group funds
+        advertise_group (bool): Advertise the group
+        create_avatar_items (bool): Create avatar items
+        manage_avatar_items (bool): Configure avatar items
+        manage_experiences (bool): Create and edit group experiences
+        view_experience_analytics (bool): View group experience analytics
+        create_api_keys (bool): Create group API keys
+        manage_api_keys (bool): Administer all group API keys
     """
 
     def __init__(self, permissions) -> None:
@@ -48,16 +83,31 @@ class GroupRolePermissions():
         self.create_avatar_items: bool = permissions["createAvatarItems"]
         self.manage_avatar_items: bool = permissions["manageAvatarItems"]
         self.manage_experiences: bool = permissions["manageGroupUniverses"]
-        self.view_experience_analytics: bool = permissions["viewUniverseAnalytics"]
+        self.view_experience_analytics: bool = (
+            permissions["viewUniverseAnalytics"]
+        )
         self.create_api_keys: bool = permissions["createApiKeys"]
         self.manage_api_keys: bool = permissions["manageApiKeys"]
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.GroupRolePermissions()"
+        return f"<rblxopencloud.GroupRolePermissions>"
 
 class GroupRole():
     """
     Represents a role inside of a group.
+
+    Attributes:
+        id (int): The ID of the role.
+        name (str): The name of the role.
+        rank (int): The rank number of this role (0-255).
+        description (Optional[str]): The description of the rank. Will be \
+        `None` if the authorizing user is the owner.
+        member_count (Optional[int]): The number of members in this rank. \
+        Will be `None` if it is the guest rank.
+        permissions (Optional[GroupRolePermissions]): The permissions this \
+        rank has. Will be `None` unless the authorizing user owns the group, \
+        the authorizing user's rank in the group is this rank, or it is the \
+        guest rank.
     """
 
     def __init__(self, role) -> None:
@@ -66,35 +116,112 @@ class GroupRole():
         self.rank: int = role["rank"]
         self.description: Optional[str] = role.get("description")
         self.member_count: Optional[int] = role.get("memberCount", None)
-        self.permissions: Optional[GroupRolePermissions] = GroupRolePermissions(role["permissions"]) if role.get("permissions") else None
+        self.permissions: Optional[GroupRolePermissions] = (
+            GroupRolePermissions(role["permissions"])
+            if role.get("permissions") else None
+        )
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.GroupRole(id={self.id}, name=\"{self.name}\", rank={self.rank})"
+        return f"<rblxopencloud.GroupRole id={self.id} name=\"{self.name}\" \
+rank={self.rank})>"
 
 class GroupMember(User):
     """
     Represents a user inside of a group.
+
+    Attributes:
+        id (int): The user ID of the group member.
+        role_id (int): The role ID assigned to the group member.
+        group (Group): The group this group member is associated with.
+        joined_at (datetime.datetime): The time the user joined the group.
+        updated_at (datetime.datetime): The time the user was last update in \
+        the group (Such as rank change).
     """
 
     def __init__(self, member, api_key, group=None) -> None:
         self.id: int = int(member["user"].split("/")[1])
         self.role_id: int = int(member["role"].split("/")[-1])
-        self.group: Group = group if group else Group(int(member["role"].split("/")[1]), api_key)
-        self.joined_at: datetime.datetime = datetime.datetime.fromisoformat((member["createTime"].split("Z")[0]+("" if "." in member["createTime"] else ".")+"0"*6)[0:26])
-        self.updated_at: datetime.datetime = datetime.datetime.fromisoformat((member["updateTime"].split("Z")[0]+("" if "." in member["updateTime"] else ".")+"0"*6)[0:26])
+        self.group: Group = (
+            group if group else
+            Group(int(member["role"].split("/")[1]), api_key)
+        )
+        self.joined_at: datetime.datetime = parser.parse(member["createTime"])
+        self.updated_at: datetime.datetime = parser.parse(member["updateTime"])
+        super().__init__(self.id, api_key)
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.GroupMember id={self.id} group={self.group}>"
+
+class GroupJoinRequest(User):
+    """
+    Represents a user requesting to join a group.
+
+    Attributes:
+        id (int): The user's ID.
+        group (Group): The group this object is related to.
+        requested_at (datetime.datetime): The time when the user requested to \
+        join the Group.
+    
+    !!! tip
+        This class bases [`rblxopencloud.User`][rblxopencloud.User], so all \
+        methods of it can be used from this object, such as \
+        [`User.list_inventory()`][rblxopencloud.User.list_inventory].
+    """
+
+    def __init__(self, member, api_key, group=None) -> None:
+        self.id: int = int(member["user"].split("/")[1])
+        self.group: Group = group
+        self.requested_at: datetime.datetime = parser.parse(
+            member["createTime"])
 
         super().__init__(self.id, api_key)
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.GroupMember(id={self.id}, group={self.group})"
+        return f"<rblxopencloud.GroupJoinRequest id={self.id} \
+group={self.group}>"
+
+    def accept(self):
+        """
+        Accepts the join request for this user. Shortcut for \
+        [`Group.accept_join_request`][rblxopencloud.Group.accept_join_request].
+        """
+        return self.group.accept_join_request(self.id)
+
+    def decline(self):
+        """
+        Declines the join request for this user. Shortcut for \
+        [`Group.decline_join_request`\
+        ][rblxopencloud.Group.decline_join_request].
+        """
+        return self.group.decline_join_request(self.id)
 
 class Group(Creator):
     """
-    Represents a group on Roblox. It can be used for both uploading assets, and accessing group information.
-    ### Paramaters
-    id: int - The group's ID.
-    api_key: str - Your API key created from [Creator Dashboard](https://create.roblox.com/credentials) with access to this user.
+    Represents a group on Roblox. It can be used for both uploading assets, \
+    and accessing group information.
+    
+    Args:
+        id: The group's ID.
+        api_key: Your API key created from \
+        [Creator Dashboard](https://create.roblox.com/credentials) with \
+        access to this group.
+    
+    Attributes:
+        id (int): The group's ID.
+        name (Optional[str]): The group's name.
+        description (Optional[str]): The group's description.
+        created_at (Optional[datetime.datetime]): When the group was created.
+        updated_at (Optional[datetime.datetime]): When the group was last \
+        updated.
+        owner (Optional[User]): The group's group's owner.
+        member_count (Optional[int]): The number of members in the group.
+        public_entry (Optional[bool]): Wether you can join without being \
+        approved.
+        locked (Optional[bool]): Wether the group has been locked by Roblox \
+        moderation.
+        verified (Optional[bool]): Wether the group has a verified badge.
     """
+
     def __init__(self, id: int, api_key: str) -> None:
         self.id: int = id
         self.__api_key = api_key
@@ -116,27 +243,28 @@ class Group(Creator):
     
     def fetch_info(self) -> "Group":
         """
-        Updates the empty parameters in this Group object and returns it self with the group info.
-
-        The ``group:read`` scope is required if authorized via `OAuth2 </oauth2>`__.
+        Updates the empty parameters in this Group object and returns it self \
+        with the group info.
         """
 
-        response = request_session.get(f"https://apis.roblox.com/cloud/v2/groups/{self.id}",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
-        
-        if response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 404: raise NotFound(response.json()['message'])
-        elif response.status_code == 429: raise RateLimited("You're being rate limited!")
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
-        
-        data = response.json()
+        _, data, _ = send_request("GET", f"cloud/v2/groups/{self.id}",
+            authorization=self.__api_key, expected_status=[200])
 
         self.name = data["displayName"]
         self.description = data["description"]
-        self.created_at = datetime.datetime.fromisoformat((data["createTime"].split("Z")[0]+("." if not "." in data["createTime"] else "")+"0"*6)[0:26])
-        self.updated_at = datetime.datetime.fromisoformat((data["updateTime"].split("Z")[0]+("." if not "." in data["updateTime"] else "")+"0"*6)[0:26])
-        self.owner = User(int(data["owner"].split("/")[1]), self.__api_key) if data.get("owner") else None
+        self.created_at = (
+            parser.parse(data["createTime"])
+            if data.get("createTime") else None
+        )
+        self.updated_at = (
+            parser.parse(data["updateTime"])
+            if data.get("updateTime") else None
+        )
+        self.owner = (
+            User(int(data["owner"].split("/")[1]), self.__api_key)
+            if data.get("owner") else None
+        )
+
         self.member_count = data["memberCount"]
         self.public_entry = data["publicEntryAllowed"]
         self.locked = data["locked"]
@@ -144,7 +272,8 @@ class Group(Creator):
         
         return self
         
-    def list_members(self, limit: Optional[int]=None, role_id:Optional[int] = None, user_id: Optional[int] = None) -> Iterable["GroupMember"]:
+    def list_members(self, limit: int = None, role_id: int = None,
+                    user_id: int = None) -> Iterable[GroupMember]:
         """
         Interates `rblx-open-cloud.GroupMember` for each user in the group.
         
@@ -155,11 +284,17 @@ class Group(Creator):
                 print(member)
         ```
         
-        The `group:read` scope is required if authorized via OAuth2.
-        ### Parameters
-        limit: Optional[int] - The maximum number of members to iterate. This can be `None` to return all members.
-        role_id: Optional[int] - If present, the api will only provide members with this role.
-        user_id: Optional[int] - If present, the api will only provide the member with this user ID.
+        Args:
+            limit: Optional[int] - The maximum number of members to iterate. \
+            This can be `None` to return all members.
+            role_id: Optional[int] - If present, the api will only provide \
+            members with this role.
+            user_id: Optional[int] - If present, the api will only provide \
+            the member with this user ID.
+        
+        Yields:
+            [`rblxopencloud.GroupMember`][rblxopencloud.GroupMember] for \
+            every member in the group.
         """
         filter = None
 
@@ -169,79 +304,100 @@ class Group(Creator):
         if role_id:
             filter = f"role == 'groups/{self.id}/roles/{role_id}'"
 
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            response = request_session.get(f"https://apis.roblox.com/cloud/v2/groups/{self.id}/memberships",
-                headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent}, params={
-                "maxPageSize": limit if limit and limit <= 99 else 99,
-                "filter": filter,
-                "pageToken": nextcursor if nextcursor else None
-            })
-
-            if response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-            elif response.status_code == 401: raise InvalidKey(response.text)
-            elif response.status_code == 404: raise NotFound(response.json()["message"])
-            elif response.status_code == 429: raise RateLimited("You're being rate limited!")
-            elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
-            
-            data = response.json()
-            for member in data["groupMemberships"]:
-                yields += 1
-                
-                yield GroupMember(member, self.__api_key)
-            nextcursor = data.get("nextPageToken")
-            if not nextcursor: break
+        for entry in iterate_request("GET",
+                f"cloud/v2/groups/{self.id}/memberships",
+                authorization=self.__api_key, params={
+                    "maxPageSize": limit if limit and limit <= 99 else 99,
+                    "filter": filter
+                }, data_key="groupMemberships", cursor_key="pageToken",
+                max_yields=limit, expected_status=[200]
+            ):
+            yield GroupMember(entry, self.__api_key)
     
-    def list_roles(self, limit: Optional[int]=None):
+    def list_roles(self, limit: int=None) -> Iterable[GroupRole]:
         """
-        Interates `rblx-open-cloud.GroupRole` for each role in the group.
+        Iterates every role in the group.
         
-        The `group:read` scope is required if authorized via OAuth2.
-        ### Parameters
-        limit: Optional[int] - The maximum number of roles to iterate. This can be `None` to return all role.
+        Args:
+            limit (int): The maximum number of roles to iterate. This can be \
+            `None` to return all role.
+        
+        Yields:
+            [`GroupRole`][rblxopencloud.GroupRole] for every role in the group.
         """
 
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            response = request_session.get(f"https://apis.roblox.com/cloud/v2/groups/{self.id}/roles",
-                headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent}, params={
-                "maxPageSize": limit if limit and limit <= 20 else 20,
-                "pageToken": nextcursor if nextcursor else None
-            })
-
-            if response.status_code == 400: raise rblx_opencloudException(response.json()["message"])
-            elif response.status_code == 401: raise InvalidKey(response.text)
-            elif response.status_code == 404: raise NotFound(response.json()["message"])
-            elif response.status_code == 429: raise RateLimited("You're being rate limited!")
-            elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-            elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
-            
-            data = response.json()
-            for role in data["groupRoles"]:
-                yields += 1
-                
-                yield GroupRole(role)
-            nextcursor = data.get("nextPageToken")
-            if not nextcursor: break
+        for entry in iterate_request("GET", f"cloud/v2/groups/{self.id}/roles",
+                authorization=self.__api_key, params={
+                    "maxPageSize": limit if limit and limit <= 20 else 20
+                }, data_key="groupRoles", cursor_key="pageToken",
+                max_yields=limit, expected_status=[200]
+            ):
+            yield GroupRole(entry)
     
-    def fetch_shout(self) -> "GroupShout":
+    def list_join_requests(self, limit: int=None, user_id: int = None
+        ) -> Iterable["GroupJoinRequest"]:
         """
-        Returns `rblx-open-cloud.GroupShout` with information about the group's current shout. It requires permission to view the shout from the API key owner or OAuth2 authorizing user.
-
-        The ``group:read`` scope is required if authorized via OAuth2.
+        Iterates every group join request for private groups.
+        
+        Args:
+            limit: The maximum number of join requests to iterate. This can \
+            be `None` to return all join requests.
+            user_id: If present, the api will only provide the join request \
+            with this user ID.
+        
+        Yields:
+            [`GroupJoinRequest`][rblxopencloud.GroupJoinRequest] for each \
+            user who has requested to join.
         """
 
-        response = request_session.get(f"https://apis.roblox.com/cloud/v2/groups/{self.id}/shout",
-            headers={"x-api-key" if not self.__api_key.startswith("Bearer ") else "authorization": self.__api_key, "user-agent": user_agent})
+        for entry in iterate_request("GET",
+                f"cloud/v2/groups/{self.id}/join-requests",
+                authorization=self.__api_key, params={
+                    "maxPageSize": limit if limit and limit <= 100 else 100,
+                    "filter": f"user == 'users/{user_id}'" if user_id else None
+                }, data_key="groupJoinRequests", cursor_key="nextPageToken",
+                max_yields=limit, expected_status=[200]
+            ):
+            yield GroupJoinRequest(entry, self.__api_key)
+
+    def fetch_shout(self) -> GroupShout:
+        """
+        Returns [`GroupShout`][rblxopencloud.GroupShout] with information \
+        about the group's current shout. It requires permission to view the \
+        shout from the API key owner or OAuth2 authorizing user.
+
+        Returns:
+            [`GroupShout`][rblxopencloud.GroupShout] with information about \
+            the group's shout.
+        """
+
+        _, data, _ = send_request("GET", f"cloud/v2/groups/{self.id}/shout",
+            authorization=self.__api_key, expected_status=[200])
         
-        if response.status_code == 401: raise InvalidKey(response.text)
-        elif response.status_code == 403: raise PermissionDenied(response.json()['message'])
-        elif response.status_code == 404: raise NotFound(response.json()['message'])
-        elif response.status_code == 429: raise RateLimited("You're being rate limited!")
-        elif response.status_code >= 500: raise ServiceUnavailable(f"Internal Server Error: '{response.text}'")
-        elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}: '{response.text}'")
+        return GroupShout(data, self.__api_key)
+
+    def accept_join_request(self, user_id: int):
+        """
+        Accepts the join request for the provided user.
         
-        return GroupShout(response.json(), self.__api_key)
+        Args:
+            user_id: The user ID to accept the join request for. Must have \
+            requested to join.
+        """
+
+        send_request("DELETE",
+            f"cloud/v2/groups/{self.id}/join-requests/{user_id}:accept",
+            authorization=self.__api_key, expected_status=[200])
+    
+    def decline_join_request(self, user_id: int):
+        """
+        Declines the join request for the provided user.
+
+        Args:
+            user_id: The user ID to decline the join request for. Must have \
+            requested to join.
+        """
+
+        send_request("DELETE",
+            f"cloud/v2/groups/{self.id}/join-requests/{user_id}:decline",
+            authorization=self.__api_key, expected_status=[200])

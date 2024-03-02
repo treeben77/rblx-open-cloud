@@ -14,7 +14,9 @@ request_session = http_session # TODO: remove this line
 from .exceptions import *
 
 def send_request(method: str, path: str, authorization: Optional[str]=None,
-        expected_status: Optional[list[int]]=None, **kwargs
+        expected_status: Optional[list[int]]=None, retry_max_attempts: int=2,
+        retry_interval_seconds: float=1, retry_interval_exponent: float=2,
+        **kwargs
     ) -> tuple[int, Union[str, int, float, dict, list, None], dict]:
     """
     Sends a HTTP request to `https://apis.roblox.com` and returns the result. \
@@ -32,6 +34,12 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         handle (such as raise an exception). It is used internally by the \
         library, but can also be used by users to raise errors. *Will not \
         raise any errors when `None`.*
+        retry_max_attempts: The number of retries to complete on an 5xx \
+        error. Set to 0 for no retries, defaults to 2.
+        retry_interval_seconds: The number of seconds between each retry on a \
+        5xx error. Set to 0 for no delay interval.
+        retry_interval_exponent: The second interval exponenet to apply to \
+        `retry_interval_seconds` between each attempt.
 
     Other parameters:
         params (dict[str, Union[str, int, float, bool]]): A dictionary of \
@@ -86,7 +94,7 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         body = response.text
 
     if DEBUG:
-        print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
+        print(f"[DEBUG] {method} /{path} - {response.status_code}")#\n{body}")
 
     if expected_status:
         if response.status_code == 401 and 401 not in expected_status:
@@ -99,7 +107,15 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
             raise NotFound(body["message"] if type(body) == dict else body)
         elif response.status_code == 429 and 429 not in expected_status:
             raise RateLimited("The resource is being rate limited.")
-        elif response.status_code >= 500  and 500 not in expected_status:
+        elif response.status_code >= 500 and 500 not in expected_status:
+            if retry_max_attempts > 0:
+                import time
+                time.sleep(retry_interval_seconds)
+
+                return send_request(method, path, authorization,
+                    expected_status, retry_max_attempts-1,
+                    retry_interval_seconds*retry_interval_exponent,
+                    retry_interval_exponent, **kwargs)
             raise ServiceUnavailable(
                 "The service is unavailable or has encountered an error."
             )
@@ -132,7 +148,7 @@ def iterate_request(*args, data_key: str, cursor_key: str,
             yield entry
 
             yields += 1
-            if max_yields == None or yields >= max_yields: break
+            if max_yields != None and yields >= max_yields: break
         
         next_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
         if not next_cursor: break
@@ -236,4 +252,5 @@ from .oauth2 import *
 from .group import *
 from .creator import *
 from .webhook import *
+from .apikey import *
 # from .memorystore import *
