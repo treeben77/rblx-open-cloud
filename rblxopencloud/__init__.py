@@ -94,7 +94,7 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         body = response.text
 
     if DEBUG:
-        print(f"[DEBUG] {method} /{path} - {response.status_code}")#\n{body}")
+        print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
 
     if expected_status:
         if response.status_code == 401 and 401 not in expected_status:
@@ -162,12 +162,14 @@ class Operation(Generic[T]):
     """
 
     def __init__(
-            self, path: str, api_key: str, return_type: T, **return_meta
+            self, path: str, api_key: str, return_type: T,
+            cached_response: dict = None, **return_meta
         ) -> None:
         self.__path: str = path
         self.__api_key: str = api_key
         self.__return_type: T = return_type
         self.__return_meta: dict = return_meta
+        self.__cached_response: dict = cached_response
     
     def __repr__(self) -> str:
         return "<rblxopencloud.Operation>"
@@ -229,6 +231,13 @@ class Operation(Generic[T]):
             unavailable right now.
             rblx_opencloudException: Roblox returned an unexpected error.
         """
+
+        if self.__cached_response:
+            if callable(self.__return_type):
+                return self.__return_type(
+                    self.__cached_response, **self.__return_meta)
+            else:
+                return self.__return_type
 
         import time
 

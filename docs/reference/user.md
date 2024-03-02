@@ -17,3 +17,7 @@
 ::: rblxopencloud.InventoryItemState
 
 ::: rblxopencloud.InventoryAssetType
+
+::: rblxopencloud.UserSocialLinks
+
+::: rblxopencloud.UserVisibility
