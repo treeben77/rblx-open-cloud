@@ -151,6 +151,22 @@ class GroupMember(User):
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.GroupMember id={self.id} group={self.group}>"
+    
+    def fetch_role(self, skip_cache: bool=False) -> GroupRole:
+        """
+        Fetches and returns the user's role info (rank, role name, etc). The \
+        roles are cached therefore it runs faster. Shortcut for \
+        [`Group.fetch_role`][rblxopencloud.Group.fetch_role]
+
+        Args:
+            skip_cache (bool): Wether to forcably refetch role information.
+
+        Returns:
+            The [`GroupRole`][rblxopencloud.GroupRole] for the user's current \
+            rank.
+        """
+
+        return self.group.fetch_role(self.role_id, skip_cache=skip_cache)
 
 class GroupJoinRequest(User):
     """
@@ -235,6 +251,8 @@ class Group(Creator):
         self.public_entry: Optional[bool] = None
         self.locked: Optional[bool] = None
         self.verified: Optional[bool] = None
+        
+        self.__role_cache = {}
 
         super().__init__(id, api_key, "Group")
     
@@ -271,35 +289,65 @@ class Group(Creator):
         self.verified = data["verified"]
         
         return self
+
+    def fetch_member(self, user_id: int) -> Optional[GroupMember]:
+        """
+        Returns the member info for the provided user or `None` if the user \
+        is not a member of the group.
+
+        Args:
+            user_id (int): The user ID to fetch member info for.
+
+        Returns:
+            The [`GroupMember`][rblxopencloud.GroupMember] for the provided \
+            user or `None` if the user isn't a member of the group.
+        """
+
+        _, data, _ = send_request("GET",
+            f"cloud/v2/groups/{self.id}/memberships", params={
+                "limit": 1, "filter": f"user == 'users/{user_id}'"
+            }, expected_status=[200], authorization=self.__api_key)
         
-    def list_members(self, limit: int = None, role_id: int = None,
-                    user_id: int = None) -> Iterable[GroupMember]:
+        if not data["groupMemberships"]: return None
+        return GroupMember(data["groupMemberships"][0], self.__api_key, self)
+    
+    def fetch_role(self, role_id: int, skip_cache: bool = False
+        ) -> Optional[GroupRole]:
+        """
+        Returns the role info for the provided role ID or `None` if the role \
+        ID isn't found.
+
+        Args:
+            role_id (int): The ID of the role to find.
+            skip_cache (bool): Wether to forcably refetch role information.
+
+        Returns:
+            The [`GroupRole`][rblxopencloud.GroupRole] for the provided role \
+            ID or `None` if the role couldn't be found.
+        """
+
+        if skip_cache or not list(self.__role_cache.keys()):
+            list(self.list_roles())
+
+        role_entry = self.__role_cache.get(role_id)
+        return GroupRole(role_entry) if role_entry else None
+
+    def list_members(self, limit: int = None, role_id: int = None
+        ) -> Iterable[GroupMember]:
         """
         Interates `rblx-open-cloud.GroupMember` for each user in the group.
-        
-        The example below would iterate through every user in the group.
-        
-        ```py
-            for member in group.list_members():
-                print(member)
-        ```
-        
+                
         Args:
             limit: Optional[int] - The maximum number of members to iterate. \
             This can be `None` to return all members.
             role_id: Optional[int] - If present, the api will only provide \
             members with this role.
-            user_id: Optional[int] - If present, the api will only provide \
-            the member with this user ID.
         
         Yields:
             [`rblxopencloud.GroupMember`][rblxopencloud.GroupMember] for \
             every member in the group.
         """
         filter = None
-
-        if user_id:
-            filter = f"user == 'users/{user_id}'"
         
         if role_id:
             filter = f"role == 'groups/{self.id}/roles/{role_id}'"
@@ -312,8 +360,8 @@ class Group(Creator):
                 }, data_key="groupMemberships", cursor_key="pageToken",
                 max_yields=limit, expected_status=[200]
             ):
-            yield GroupMember(entry, self.__api_key)
-    
+            yield GroupMember(entry, self.__api_key, self)
+
     def list_roles(self, limit: int=None) -> Iterable[GroupRole]:
         """
         Iterates every role in the group.
@@ -332,6 +380,8 @@ class Group(Creator):
                 }, data_key="groupRoles", cursor_key="pageToken",
                 max_yields=limit, expected_status=[200]
             ):
+            self.__role_cache[int(entry["id"])] = entry
+
             yield GroupRole(entry)
     
     def list_join_requests(self, limit: int=None, user_id: int = None
@@ -401,3 +451,4 @@ class Group(Creator):
         send_request("DELETE",
             f"cloud/v2/groups/{self.id}/join-requests/{user_id}:decline",
             authorization=self.__api_key, expected_status=[200])
+        
