@@ -1,11 +1,9 @@
-from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable, PreconditionFailed
+from .exceptions import rblx_opencloudException, NotFound, PreconditionFailed
 import json, datetime
 import base64, hashlib, urllib.parse
 from typing import Union, Optional, Iterable, TYPE_CHECKING
-from . import send_request
-
-if TYPE_CHECKING:
-    from .experience import Experience
+from . import send_request, iterate_request
+from dateutil import parser
 
 if TYPE_CHECKING:
     from .experience import Experience
@@ -21,46 +19,60 @@ __all__ = (
 
 class EntryInfo():
     """
-    Contains data about an entry such as version ID, timestamps, users and metadata.
+    Contains data about an entry such as version ID, timestamps, users and \
+    metadata.
     """
     def __init__(self, version, created, updated, users, metadata) -> None:
         self.version: str = version
-        self.created: datetime.date = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
-        self.updated: datetime.date = datetime.datetime.fromisoformat((updated.split("Z")[0]+"0"*6)[0:26])
+        self.created: datetime.datetime = parser.parse(created)
+        self.updated: datetime.datetime = parser.parse(updated)
         self.users: list[int] = users
         self.metadata: dict = metadata
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.EntryInfo(\"{self.version}\", users={self.users}, metadata={self.metadata})"
+        return f"<rblxopencloud.EntryInfo version=\"{self.version}\" \
+users={self.users} metadata={self.metadata}>"
 
 class EntryVersion():
     """
-    Contains data about a version such as it's ID, timestamps, content length and wether this version is deleted.
+    Contains data about a version such as it's ID, timestamps, content length \
+    and wether this version is deleted.
     """
-    def __init__(self, version, deleted, content_length, created, key_created, datastore, key, scope) -> None:
+
+    def __init__(self, version, deleted, content_length, created, key_created,
+        datastore, key, scope) -> None:
         self.version: str = version
         self.deleted: bool = deleted
         self.content_length: int = content_length
-        self.created: datetime.datetime = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
-        self.key_created: datetime.datetime = datetime.datetime.fromisoformat((key_created.split("Z")[0]+"0"*6)[0:26])
-        self.__datastore = datastore
+        self.created: datetime.datetime = parser.parse(created)
+        self.key_created: datetime.datetime = parser.parse(key_created)
+        self.__datastore: DataStore = datastore
         self.__key = key
         self.__scope = scope
     
     def __eq__(self, object) -> bool:
         if not isinstance(object, EntryVersion):
             return NotImplemented
-        return self.__key == object.__key and self.__scope == object.__scope and self.version == object.version
+        return (
+            self.__key == object.__key and self.__scope == object.__scope and
+            self.version == object.version
+        )
     
-    def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
-        """Gets the value of this version. Shortcut for `DataStore.get_version`"""
+    def get_value(self
+        ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        """
+        Gets the value of this version. Shortcut for `DataStore.get_version`
+        """
+
         if self.__datastore.scope:
             return self.__datastore.get_version(self.__key, self.version)
         else:
-            return self.__datastore.get_version(f"{self.__scope}/{self.__key}", self.version)
+            return self.__datastore.get_version(
+                f"{self.__scope}/{self.__key}", self.version)
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.EntryVersion(\"{self.version}\", content_length={self.content_length})"
+        return f"<rblxopencloud.EntryVersion version\"{self.version}\" \
+content_length={self.content_length}>"
 
 class ListedEntry():
     """
@@ -76,7 +88,8 @@ class ListedEntry():
         return self.key == object.key and self.scope == object.scope
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.ListedEntry(\"{self.key}\", scope=\"{self.scope}\")"
+        return f"<rblxopencloud.ListedEntry key=\"{self.key}\" \
+scope=\"{self.scope}\">"
 
 class DataStore():
     """
@@ -88,105 +101,116 @@ class DataStore():
         self.__api_key: str = api_key
         self.scope: str = scope
         self.experience: Experience = experience
-        if created: self.created = datetime.datetime.fromisoformat((created.split("Z")[0]+"0"*6)[0:26])
+        if created: self.created = parser.parse(created)
         else: self.created = None
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.DataStore(\"{self.name}\", scope=\"{self.scope}\", universe={repr(self.experience)})"
+        return f"<rblxopencloud.DataStore(name=\"{self.name}\" \
+            scope=\"{self.scope}\" experience={repr(self.experience)}>"
     
     def __str__(self) -> str:
         return self.name
 
-    def list_keys(self, prefix: str="", limit: Optional[int]=None) -> Iterable[ListedEntry]:
+    def list_keys(self, prefix: str="", limit: int=None
+        ) -> Iterable[ListedEntry]:
         """
-        Returns an Iterable of keys in the database and scope, optionally matching a prefix. Will return keys from all scopes if :attr:`scope` is ``None``.
+        Iterates all keys in the database and scope, optionally matching a \
+        prefix.
 
-        The example below would list all keys, along with their scope.
-                
-        ```py
-            for key in datastore.list_keys():
-                print(key.key, key.scope)
-        ```
-
-        You can simply convert it to a list by putting it in the list function:
-
-        ```py
-            list(datastore.list_versions())
-        ### Parameters
-        prefix: str - Only return keys that start with this prefix.
-        limit: Optional[int] - Will not return more keys than this number. Set to `None` for no limit.
-        ```
+        Args:
+            prefix (str): Only return keys that start with this prefix.
+            limit (int): Will not return more keys than this number. Set to \
+            `None` for no limit.
         """
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            _, data, _ = send_request("GET", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries",
-                authorization=self.__api_key, params={
-                    "datastoreName": self.name,
-                    "scope": self.scope,
-                    "AllScopes": not self.scope,
-                    "prefix": prefix,
-                    "cursor": nextcursor if nextcursor else None
-                }, expected_status=[200])
-            
-            for key in data["keys"]:
-                yields += 1
-                yield ListedEntry(key["key"], key["scope"])
-                if limit != None and yields >= limit: break
-            
-            nextcursor = data.get("nextPageCursor")
-            if not nextcursor: break
+        
+        for entry in iterate_request("GET", f"datastores/v1/universes/\
+{self.experience.id}/standard-datastores/datastore/entries", params={
+            "datastoreName": self.name,
+            "scope": self.scope,
+            "AllScopes": not self.scope,
+            "prefix": prefix
+        }, expected_status=[200], authorization=self.__api_key,
+        cursor_key="cursor", data_key="keys"):
+            yield ListedEntry(entry["key"], entry["scope"])
     
-    def get(self, key: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+    def get(self, key: str
+        ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
-        Gets the value of a key.
-        ### Parameters
-        key: str - The key to find. When `DataStore.scope` is `None`, this must include the scope like this `scope/key`
+        Gets the value of a key in the scope and datastore.
+        
+        Args:
+            key (str): The key to fetch. If `DataStore.scope` is `None`, this \
+            must include the scope in the `scope/key` syntax.
         """
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
+            raise ValueError("'scope/key' syntax expected for key.")
         
-        _, data, headers = send_request("GET", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
-            authorization=self.__api_key, params={
+        _, data, headers = send_request("GET", 
+            f"datastores/v1/universes/{self.experience.id}/standard-datastores\
+/datastore/entries/entry",
+            authorization=self.__api_key, expected_status=[200], params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key
-            }, expected_status=[200])
+            })
 
-        try: metadata = json.loads(headers["roblox-entry-attributes"])
-        except(KeyError): metadata = {}
-        try: userids = json.loads(headers["roblox-entry-userids"])
-        except(KeyError): userids = []
+        if headers.get("roblox-entry-attributes"):
+            metadata = json.loads(headers["roblox-entry-attributes"])
+        else: metadata = {}
+
+        if headers.get("roblox-entry-userids"):
+            userids = json.loads(headers["roblox-entry-userids"])
+        else: userids = []
         
-
-        return data, EntryInfo(headers["roblox-entry-version"], headers["roblox-entry-created-time"],
+        return data, EntryInfo(
+            headers["roblox-entry-version"],
+            headers["roblox-entry-created-time"],
             headers["roblox-entry-version-created-time"], userids, metadata)
 
-    def set(self, key: str, value: Union[str, dict, list, int, float], users:Optional[list[int]]=None, metadata:dict={}, exclusive_create:bool=False, previous_version:Optional[str]=None) -> EntryVersion:
+    def set(self, key: str, value: Union[str, dict, list, int, float],
+            users: Optional[list[int]]=None, metadata: dict={},
+            exclusive_create: bool=False, previous_version: Optional[str]=None
+        ) -> EntryVersion:
         """
-        Sets the value of a key.
-        ### Parameters
-        key: str - The key to find. When `DataStore.scope` is `None`, this must include the scope like this `scope/key`
-        value: Union[str, dict, list, int, float] - The new value
-        users: list[int] - a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
-        metadata: dict - a dictionary, just like the lua equivalent [DataStoreSetOptions:SetMetadata()](https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata)
-        exclusive_create: bool - whether to update the entry if it already has a value. Raises `rblx-open-cloud.PreconditionFailed` if it has a value.
-        previous_version: Optional[str] don't update if the current version is not this value. Raises `rblx-open-cloud.PreconditionFailed` if it has a value.
+        Sets the value of a key in the datastore and scope.
+        
+        Args:
+            key (str): The key to update. If `DataStore.scope` is `None`, \
+            this must include the scope in the `scope/key` syntax.
+            value (Union[str, dict, list, int, float]): The new value to set.
+            users (list[int]): a list of Roblox user IDs to attach to the \
+            entry.
+            metadata (dict): a dict of metadata to attach to the entry.
+            exclusive_create (bool): Whether to update the entry if it \
+            already has a value. Raises \
+            [`PreconditionFailed`][rblxopencloud.PreconditionFailed] if it \
+            has a value.
+            previous_version (Optional[str]): If provided, the current \
+            version ID must match this string or the entry will not be \
+            updated and \
+            [`PreconditionFailed`][rblxopencloud.PreconditionFailed] is raised.
         """
-        if previous_version and exclusive_create: raise ValueError("previous_version and exclusive_create can not both be set")
+        if previous_version and exclusive_create:
+            raise ValueError(
+                "previous_version and exclusive_create are mutally exclusive."
+            )
+
+        if users == None: users = []
+        
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        if users == None: users = []
+            raise ValueError("'scope/key' syntax expected for key.")
 
-        status_code, data, headers = send_request("POST", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
-            authorization=self.__api_key, headers={
-                "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)
+        status_code, data, headers = send_request("POST",
+            f"datastores/v1/universes/{self.experience.id}/standard-datastores\
+/datastore/entries/entry", authorization=self.__api_key, headers={
+                "roblox-entry-userids": json.dumps(users),
+                "roblox-entry-attributes": json.dumps(metadata)
             }, json=value, params={
                 "datastoreName": self.name,
                 "scope": scope,
@@ -196,17 +220,20 @@ class DataStore():
             }, expected_status=[200, 412])
         
         if status_code == 412:
-            try: metadata = json.loads(headers["roblox-entry-attributes"])
-            except(KeyError): metadata = {}
-            try: userids = json.loads(headers["roblox-entry-userids"])
-            except(KeyError): userids = []
+            if headers.get("roblox-entry-attributes"):
+                metadata = json.loads(headers["roblox-entry-attributes"])
+            else: metadata = {}
 
+            if headers.get("roblox-entry-userids"):
+                userids = json.loads(headers["roblox-entry-userids"])
+            else: userids = []
+        
             if exclusive_create:
-                error = "An entry already exists with the provided key and scope"
+                error = "A value already exists for this key."
             elif previous_version:
                 error = f"The current version is not '{previous_version}'"
             else:
-                error = "A Precondition Failed"
+                error = "Precondition failed."
 
             raise PreconditionFailed(data, EntryInfo(
                 headers["roblox-entry-version"],
@@ -214,55 +241,79 @@ class DataStore():
                 headers["roblox-entry-version-created-time"], userids, metadata
             ), error)
         
-        return EntryVersion(data["version"], data["deleted"], data["contentLength"], data["createdTime"], data["objectCreatedTime"], self, key, self.scope if self.scope else scope)
+        return EntryVersion(
+            data["version"], data["deleted"], data["contentLength"],
+            data["createdTime"], data["objectCreatedTime"], self, key,
+            self.scope if self.scope else scope
+        )
 
-    def increment(self, key: str, increment: Union[int, float], users:Optional[list[int]]=None, metadata:dict={}) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+    def increment(self, key: str, delta: Union[int, float],
+            users: Optional[list[int]]=None, metadata:dict={}
+        ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
-        Increments the value of a key.
-        # Parameters
-        key: The key to increment.
-        value: Union[int, float] - The number to increase the value by, use negative numbers to decrease it.
-        users: list[int] - a list of Roblox user IDs to attach to the entry to assist with GDPR tracking/removal.
-        metadata: dict - a dictionary of user-defind metadata, just like the lua equivalent [DataStoreSetOptions:SetMetadata()](https://create.roblox.com/docs/reference/engine/classes/DataStoreSetOptions#SetMetadata)
+        Increments the value of a key in the datastore and scope.
+        
+        Args:
+            key (str): The key to increment. If `DataStore.scope` is `None`, \
+            this must include the scope in the `scope/key` syntax.
+            delta (Union[int, float]): The number to increment the value by. \
+            Use negative numbers to decrement the value.
+            users (list[int]): a list of Roblox user IDs to attach to the \
+            entry.
+            metadata (dict): a dict of metadata to attach to the entry.
         """
+        
+        if users == None: users = []
+        
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        if users == None: users = []
+            raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, headers = send_request("POST", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/increment",
-            authorization=self.__api_key, headers={
-                "roblox-entry-userids": json.dumps(users), "roblox-entry-attributes": json.dumps(metadata)
+        _, data, headers = send_request("POST",
+            f"datastores/v1/universes/{self.experience.id}/standard-datastores\
+/datastore/entries/entry/increment", authorization=self.__api_key, headers={
+                "roblox-entry-userids": json.dumps(users),
+                "roblox-entry-attributes": json.dumps(metadata)
             }, params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key,
-                "incrementBy": increment
+                "incrementBy": delta
             }, expected_status=[200])
 
-        try: metadata = json.loads(headers["roblox-entry-attributes"])
-        except(KeyError): metadata = {}
-        try: userids = json.loads(headers["roblox-entry-userids"])
-        except(KeyError): userids = []
+        if headers.get("roblox-entry-attributes"):
+            metadata = json.loads(headers["roblox-entry-attributes"])
+        else: metadata = {}
+
+        if headers.get("roblox-entry-userids"):
+            userids = json.loads(headers["roblox-entry-userids"])
+        else: userids = []
         
-        return data, EntryInfo(headers["roblox-entry-version"], headers["roblox-entry-created-time"],
+        return data, EntryInfo(
+            headers["roblox-entry-version"],
+            headers["roblox-entry-created-time"],
             headers["roblox-entry-version-created-time"], userids, metadata)
     
     def remove(self, key: str) -> None:
         """
-        Removes a key.
-        ### Parameters
-        key: str - The key to remove.
+        Removes the value of a key from the datastore and scope.
+        
+        Args:
+            key (str): The key to remove. If `DataStore.scope` is `None`, \
+            this must include the scope in the `scope/key` syntax.
         """
+
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
+            raise ValueError("'scope/key' syntax expected for key.")
                 
-        send_request("DELETE", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry",
+        send_request("DELETE",
+            f"datastores/v1/universes/{self.experience.id}/standard-datastores\
+/datastore/entries/entry",
             authorization=self.__api_key, params={
                 "datastoreName": self.name,
                 "scope": scope,
@@ -271,69 +322,66 @@ class DataStore():
 
         return None
     
-    def list_versions(self, key: str, after: Optional[datetime.datetime]=None, before: Optional[datetime.datetime]=None, limit: Optional[int]=None, descending: bool=True) -> Iterable[EntryVersion]:
-        """Returns an Iterable of previous versions of a key. If `DataStore.scope` is `None` then `key` must be formatted like `scope/key`. The example below would list all versions, along with their value.
-                
-        ```py
-            for version in datastore.list_versions("key-name"):
-                print(version, version.get_value())
-        ```
-
-        You can simply convert it to a list by putting it in the list function:
-
-        ```py
-            list(datastore.list_versions("key-name"))
-        ```
-        ### Parameters
-        key: The key to find versions for.
-        after: datetime.datetime - Only find versions after this datetime
-        before: datetime.datetime - Only find versions before this datetime
-        limit: Optional[int] - Will not return more versions than this number. Set to `None` for no limit.
-        descending: bool - Wether the versions should be sorted by date ascending or descending.
+    def list_versions(self, key: str, after: datetime.datetime = None,
+            before: datetime.datetime = None, limit: Optional[int] = None,
+            descending: bool = True) -> Iterable[EntryVersion]:
         """
+        Iterates all available versions of a key.
+
+        Args:
+            key (str): The key to find versions. If `DataStore.scope` is \
+            `None`, this must include the scope in the `scope/key` syntax.
+            after (datetime.datetime): Filters versions to only those created \
+            after this time.
+            before (datetime.datetime): Filters versions to only those \
+            created before this time.
+            limit (Optional[int]): Maximum number of versions to iterate.
+            descending (bool) When `True`, versions are iterated in \
+            descending order (oldest to youngest).
+        """
+
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.")
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            _, data, _ = send_request("GET", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions",
-                authorization=self.__api_key, params={
-                    "datastoreName": self.name,
-                    "scope": scope,
-                    "entryKey": key,
-                    "sortOrder": "Descending" if descending else "Ascending",
-                    "cursor": nextcursor if nextcursor else None,
-                    "startTime": after.isoformat() if after else None,
-                    "endTime": before.isoformat() if before else None
-                }, expected_status=[200])
-            
-            data = data
-            for version in data["versions"]:
-                yields += 1
-                yield EntryVersion(version["version"], version["deleted"], version["contentLength"], version["createdTime"], version["objectCreatedTime"], self, key, self.scope if self.scope else scope)
-                if limit == None or yields >= limit: break
-            
-            nextcursor = data.get("nextPageCursor")
-            if not nextcursor: break
-
-    def get_version(self, key: str, version: str) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
-        """
-        Gets the value of a key version.
+            raise ValueError("'scope/key' syntax expected for key.")
         
-        key: str - The key to find.
-        version: str - The version ID to get.
+        for entry in iterate_request("GET", f"datastores/v1/universes/\
+{self.experience.id}/standard-datastores/datastore/entries/versions", params={
+            "datastoreName": self.name,
+            "scope": self.scope,
+            "entryKey": key,
+            "sortOrder": "Descending" if descending else "Ascending",
+            "startTime": after.isoformat() if after else None,
+            "endTime": before.isoformat() if before else None
+        }, expected_status=[200], authorization=self.__api_key,
+        cursor_key="cursor", data_key="keys"):
+            yield EntryVersion(entry["version"], entry["deleted"],
+                entry["contentLength"], entry["createdTime"],
+                entry["objectCreatedTime"], self, key,
+                self.scope if self.scope else scope)
+
+    def get_version(self, key: str, version: str
+        ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
+        Gets the value of a key at a specific version ID.
+        
+        Args:
+            key (str): The key to get. If `DataStore.scope` is `None`, this \
+            must include the scope in the `scope/key` syntax.
+            version (str): The version ID string to fetch.
+        """
+
         try:
             scope = self.scope
             if not scope: scope, key = key.split("/", maxsplit=1)
         except(ValueError):
-            raise ValueError("a scope and key seperated by a forward slash is required for DataStore without a scope.") 
+            raise ValueError("'scope/key' syntax expected for key.")
         
-        status_code, data, headers = send_request("GET", f"datastores/v1/universes/{self.experience.id}/standard-datastores/datastore/entries/entry/versions/version",
-            authorization=self.__api_key, params={
+        status_code, data, headers = send_request("GET",
+            f"datastores/v1/universes/{self.experience.id}/standard-datastores\
+/datastore/entries/entry/versions/version", authorization=self.__api_key,
+            params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key,
@@ -346,12 +394,17 @@ class DataStore():
             else:
                 raise rblx_opencloudException(data["message"])
         
-        try: metadata = json.loads(headers["roblox-entry-attributes"])
-        except(KeyError): metadata = {}
-        try: userids = json.loads(headers["roblox-entry-userids"])
-        except(KeyError): userids = []
+        if headers.get("roblox-entry-attributes"):
+            metadata = json.loads(headers["roblox-entry-attributes"])
+        else: metadata = {}
+
+        if headers.get("roblox-entry-userids"):
+            userids = json.loads(headers["roblox-entry-userids"])
+        else: userids = []
         
-        return data, EntryInfo(headers["roblox-entry-version"], headers["roblox-entry-created-time"],
+        return data, EntryInfo(
+            headers["roblox-entry-version"],
+            headers["roblox-entry-created-time"],
             headers["roblox-entry-version-created-time"], userids, metadata)
 
 class SortedEntry():
