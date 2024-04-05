@@ -417,16 +417,19 @@ class SortedEntry():
         self.value: int = value
     
     def __eq__(self, object) -> bool:
-        if not isinstance(object, SortedEntry):
-            return NotImplemented
-        return self.key == object.key and self.scope == object.scope and self.value == object.value
+        if not isinstance(object, SortedEntry): return NotImplemented
+        return (
+            self.key == object.key and
+            self.scope == object.scope and
+            self.value == object.value
+        )
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.SortedEntry(\"{self.key}\", value={self.value})"
+        return f"<rblxopencloud.SortedEntry \"{self.key}\" value={self.value}>"
 
 class OrderedDataStore():
     """
-    Class for interacting with the Ordered DataStore API for a specific Ordered DataStore.
+    Represents an ordered data store in an experience.
     """
 
     def __init__(self, name, experience, api_key, scope):
@@ -436,104 +439,103 @@ class OrderedDataStore():
         self.experience = experience
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.OrderedDataStore(\"{self.name}\", scope=\"{self.scope}\", experience={repr(self.experience)})"
+        return f"<rblxopencloud.OrderedDataStore \"{self.name}\" \
+scope=\"{self.scope}\" experience={repr(self.experience)}>"
     
     def __str__(self) -> str:
         return self.name
     
-    def sort_keys(self, descending: bool=True, limit: Union[None, int]=None, min=None, max=None) -> Iterable[SortedEntry]:
+    def sort_keys(self, descending: bool=True, limit: Optional[int]=None,
+        min=None, max=None) -> Iterable[SortedEntry]:
         """
         Returns a list of keys and their values.
 
-        The example below would list all keys, along with their value.
-                
-        ```py
-            for key in datastore.sort_keys():
-                print(key.name, key.value)
-        ```
-
-        You can simply convert it to a list by putting it in the list function:
-
-        ```py
-            list(datastore.sort_keys())
-        ```
-        ### Parameters
-        descending: bool - Wether the largest number should be first, or the smallest.
-        limit: int - Max number of entries to loop through.
-        min: int - Minimum entry value to retrieve
-        max: int - Maximum entry value to retrieve.
+        Args:
+            descending (bool): Wether the largest number should be first, or \
+            the smallest.
+            limit (int): Max number of entries to loop through.
+            min (int): Minimum entry value to retrieve
+            max (int): Maximum entry value to retrieve.
         """
-        if not self.scope: raise ValueError("A scope is required to list keys on OrderedDataStore.")
+        if not self.scope:raise ValueError(
+            "scope is required to list keys with OrderedDataStore."
+        )
 
         filter = None
         if min and max:
             if min > max: raise ValueError("min must not be greater than max.")
             filter = f"entry >= {min} && entry <= {max}"
+        elif min: filter = f"entry >= {min}"
+        elif max: filter = f"entry <= {max}"
 
-        if min: filter = f"entry >= {min}"
-        if max: filter = f"entry <= {max}"
-
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            _, data, _ = send_request("GET", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(self.scope)}/entries",
-                authorization=self.__api_key, params={
-                    "max_page_size": limit if limit and limit < 100 else 100,
-                    "order_by": "desc" if descending else None,
-                    "page_token": nextcursor if nextcursor else None,
-                    "filter": filter
-                }, expected_status=[200])
-
-            data = data
-            for key in data["entries"]:
-                yields += 1
-                yield SortedEntry(key["id"], key["value"], self.scope)
-                if limit != None and yields >= limit: break
-            
-            nextcursor = data.get("nextPageToken")
-            if not nextcursor: break
+        for entry in iterate_request("GET", f"ordered-data-stores/v1/universes\
+/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes\
+/{urllib.parse.quote(self.scope)}/entries", params={
+            "max_page_size": limit if limit and limit < 100 else 100,
+            "order_by": "desc" if descending else None,
+            "filter": filter
+        }, expected_status=[200], authorization=self.__api_key,
+        cursor_key="page_token", data_key="entries"):
+            yield SortedEntry(entry["id"], entry["value"], self.scope)
     
     def get(self, key: str) -> int:
         """
         Gets the value of a key.
-        ### Parameters
-        key: str - The key to find.
+        
+        Args:
+            key (str): The key to find.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
-        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+        except(ValueError):
+            raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, _ = send_request("GET", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+        _, data, _ = send_request("GET", f"ordered-data-stores/v1/universes/\
+{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/\
+{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
                 authorization=self.__api_key, expected_status=[200])
         
         return int(data["value"])
         
-    def set(self, key: str, value: int, exclusive_create: bool=False, exclusive_update: bool=False) -> int:
+    def set(self, key: str, value: int, exclusive_create: bool=False,
+            exclusive_update: bool=False) -> int:
         """
         Sets the value of a key.
-        ### Parameters
-        key: str - The key to create/update.
-        value: int - The new integer value. Must be positive.
-        exclusive_create: - bool Wether to fail if the key already has a value.
-        exclusive_update: - bool Wether to fail if the key does not have a value.
+
+        Args:
+            key (str): The key to create/update.
+            value (int): The new integer value. Must be positive.
+            exclusive_create (bool): Wether to fail if the key already has a \
+            value.
+            exclusive_update (bool): Wether to fail if the key does not have \
+            a value.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
-        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
-        if exclusive_create and exclusive_update: raise ValueError("exclusive_create and exclusive_updated can not both be True")
+        except(ValueError):
+            raise ValueError("'scope/key' syntax expected for key.")
+        if exclusive_create and exclusive_update: raise ValueError(
+            "exclusive_create and exclusive_updated can not both be True"
+        )
 
         if not exclusive_create:
-            status_code, data, _ = send_request("PATCH", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+            status_code, data, _ = send_request("PATCH", f"ordered-data-stores\
+/v1/universes/{self.experience.id}/orderedDataStores/\
+{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/\
+{urllib.parse.quote(key)}",
                 authorization=self.__api_key, expected_status=[200], params={
                     "allow_missing": not exclusive_update
                 }, json={
                     "value": value
                 })
         else:
-            status_code, data, _ = send_request("POST", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
-                authorization=self.__api_key, expected_status=[200, 400, 404], params={
+            status_code, data, _ = send_request("POST", f"ordered-data-stores\
+/v1/universes/{self.experience.id}/orderedDataStores/\
+{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
+                authorization=self.__api_key, expected_status=[200, 400, 404],
+                params={
                     "id": key
                 }, json={
                     "value": value
@@ -545,29 +547,41 @@ class OrderedDataStore():
             else:
                 raise rblx_opencloudException(data["message"])
         
-        if status_code == 404 and exclusive_update and data["code"] == "NOT_FOUND":
+        if (
+            status_code == 404 and exclusive_update and
+            data["code"] == "NOT_FOUND"
+        ):
             raise PreconditionFailed(data["message"])
 
         return int(data["value"])
 
-    def increment(self, key: str, increment: int) -> None:
+    def increment(self, key: str, delta: int) -> None:
         """
         Increments the value of a key.
-        ### Parameters
-        key: str - The key to increment.
-        increment: int - The amount to increment the key by. You can use negative numbers to decrease the value.
+        
+        Args:
+            key (str): The key to increment.
+            delta (int): The amount to increment the key by. You can use \
+            negative numbers to decrease the value.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
-        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+        except(ValueError): raise ValueError(
+            "'scope/key' syntax expected for key."
+        )
 
-        status_code, data, _ = send_request("POST", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}:increment",
+        status_code, data, _ = send_request("POST", f"ordered-data-stores/v1/\
+            universes/{self.experience.id}/orderedDataStores/\
+            {urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}\
+            /entries/{urllib.parse.quote(key)}:increment",
             authorization=self.__api_key, expected_status=[200, 409], json={
-                "amount": increment
+                "amount": delta
             })
         
-        if status_code == 409 and data["message"] == "Entry value outside of bounds.":
+        if (status_code == 409 and
+            data["message"] == "Entry value outside of bounds."
+        ):
             raise ValueError("Entry value outside of bounds.")
         
         if status_code == 409:
@@ -578,16 +592,21 @@ class OrderedDataStore():
     def remove(self, key: str) -> None:
         """
         Removes a key.
-        ### Parameters
-        key: str - The key to remove.
+        
+        Args:
+            key (str): The key to remove.
         """
 
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
             else: scope = self.scope
-        except(ValueError): raise ValueError("a scope and key seperated by a forward slash is required for OrderedDataStore without a scope.")
+        except(ValueError): raise ValueError(
+            "'scope/key' syntax expected for key."
+        )
 
-        send_request("DELETE", f"ordered-data-stores/v1/universes/{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
+        send_request("DELETE", f"ordered-data-stores/v1/universes/\
+{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/\
+{urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
             authorization=self.__api_key, expected_status=[200, 204])
         
         return None

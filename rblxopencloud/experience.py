@@ -4,7 +4,6 @@ from .datastore import DataStore, OrderedDataStore
 from . import send_request, iterate_request, Operation
 from .user import User
 from .group import Group
-from .engine import Instance, InstanceType
 from enum import Enum
 from dateutil import parser
 from datetime import datetime
@@ -101,7 +100,7 @@ class Place():
         self.__api_key = api_key
     
     def __repr__(self) -> str:
-        return f"<rblxopencloud.Place id={self.id}, \
+        return f"<rblxopencloud.Place id={self.id} \
 experience={repr(self.experience)}>"
     
     def __update_params(self, data):
@@ -113,10 +112,10 @@ experience={repr(self.experience)}>"
     
     def fetch_info(self) -> "Place":
         """
-        Fetches the information of a place within the expereince.
+        Fetches the places's information and fills the Place object parameters.
 
         Returns:
-            The place information.
+            The place object with parameters filled.
         """
         
         _, data, _ = send_request("GET",
@@ -128,8 +127,10 @@ experience={repr(self.experience)}>"
 
         return self
     
-    def update(self, name: str = None, description: str = None,
-        server_size: int = None) -> "Place":
+    def update(
+            self, name: str = None, description: str = None,
+            server_size: int = None
+        ) -> "Place":
         """
         Updates information for the place and fills the empty parameters.
 
@@ -166,8 +167,9 @@ experience={repr(self.experience)}>"
 
         return self
     
-    def upload_place_file(self, file: io.BytesIO,
-            publish: bool = False) -> int:
+    def upload_place_file(
+            self, file: io.BytesIO, publish: bool = False
+        ) -> int:
         """
         Uploads the place file to Roblox, optionally choosing to publish it.
 
@@ -182,44 +184,43 @@ experience={repr(self.experience)}>"
         _, data, _ = send_request("POST",
             f"universes/v1/{self.experience.id}/places/{self.id}/versions",
             authorization=self.__api_key, expected_status=[200],
-            headers={"content-type": "application/octet-stream"},
-            data=file.read(), params={
+            headers={"content-type": "application/octet-stream"}, params={
                 "versionType": "Published" if publish else "Saved"
-            }
+            }, data=file.read()
         )
         
         return data["versionNumber"]
 
-    def list_root_children(self) -> Operation[list[InstanceType]]:
-        _, data, _ = send_request("GET", "cloud/v2/universes/"+
-            f"{self.experience.id}/places/{self.id}/instances/"+
-            "root:listChildren", authorization=self.__api_key,
-            expected_status=[200])
+    # def list_root_children(self) -> Operation[list[InstanceType]]:
+    #     _, data, _ = send_request("GET", "cloud/v2/universes/"+
+    #         f"{self.experience.id}/places/{self.id}/instances/"+
+    #         "root:listChildren", authorization=self.__api_key,
+    #         expected_status=[200])
         
-        def operation_callable(response):
-            instance_objects = []
+    #     def operation_callable(response):
+    #         instance_objects = []
             
-            for instance in response["instances"]:
-                instance_objects.append(
-                    Instance._determine_instance_subclass(data)
-                    (instance["engineInstance"]["Id"], instance,
-                        place=self, api_key=self.__api_key)
-                )
+    #         for instance in response["instances"]:
+    #             instance_objects.append(
+    #                 Instance._determine_instance_subclass(data)
+    #                 (instance["engineInstance"]["Id"], instance,
+    #                     place=self, api_key=self.__api_key)
+    #             )
 
-            return instance_objects
+    #         return instance_objects
 
-        return Operation(f"cloud/v2/{data['path']}", self.__api_key,
-                         operation_callable)
+    #     return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+    #                      operation_callable)
 
-    def fetch_instance(self, instance_id: str) -> Operation[InstanceType]:
+    # def fetch_instance(self, instance_id: str) -> Operation[InstanceType]:
 
-        _, data, _ = send_request("GET", "cloud/v2/universes/"+
-            f"{self.experience.id}/places/{self.id}/instances/{instance_id}",
-            authorization=self.__api_key, expected_status=[200])
+    #     _, data, _ = send_request("GET", "cloud/v2/universes/"+
+    #         f"{self.experience.id}/places/{self.id}/instances/{instance_id}",
+    #         authorization=self.__api_key, expected_status=[200])
         
-        return Operation(f"cloud/v2/{data['path']}", self.__api_key,
-            lambda r: Instance._determine_instance_subclass(r)
-            (r["engineInstance"]["Id"], r, place=self, api_key=self.__api_key))
+    #     return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+    #         lambda r: Instance._determine_instance_subclass(r)
+    #         (r["engineInstance"]["Id"], r, place=self, api_key=self.__api_key))
 
 class Experience():
     """
@@ -386,7 +387,8 @@ class Experience():
         self.__update_params(data)
         return self
     
-    def update(self, voice_chat_enabled: bool = None,
+    def update(
+            self, voice_chat_enabled: bool = None,
             private_server_price: Union[int, bool] = None,
             desktop_enabled: bool = None, mobile_enabled: bool = None,
             tablet_enabled: bool = None, console_enabled: bool = None,
@@ -446,6 +448,7 @@ class Experience():
             
             field_mask.append("privateServerPriceRobux")
 
+        # iterate through all the social links and add them into the payload
         for platform, value in {
             "facebook": facebook_social_link,  "twitter": twitter_social_link,
             "youtube": youtube_social_link, "twitch": twitch_social_link,
@@ -466,6 +469,7 @@ class Experience():
                     field_mask.append(f"{platform}SocialLink.title")
                     field_mask.append(f"{platform}SocialLink.uri")
                 else:
+                    # any social link is being removed
                     field_mask.append(f"{platform}SocialLink")
 
         for platform, value in {
@@ -477,9 +481,10 @@ class Experience():
                 payload[f"{platform}Enabled"] = value
                 field_mask.append(f"{platform}Enabled")
         
-        _, data, _ = send_request("PATCH", f"cloud/v2/universes/{self.id}",
+        _, data, _ = send_request("PATCH",
+            f"cloud/v2/universes/{self.id}",
             authorization=self.__api_key, expected_status=[200],
-            json=payload, params={"updateMask": ",".join(field_mask)}
+            params={"updateMask": ",".join(field_mask)}, json=payload
         )
 
         self.__update_params(data)
@@ -500,7 +505,8 @@ class Experience():
         
         return Place(place_id, None, self.__api_key, self)
     
-    def get_data_store(self, name: str, scope: Optional[str] = "global"
+    def get_data_store(
+            self, name: str, scope: Optional[str] = "global"
         ) -> DataStore:
         """
         Creates a [`rblxopencloud.DataStore`][rblxopencloud.DataStore] with \
@@ -516,7 +522,8 @@ class Experience():
         
         return DataStore(name, self, self.__api_key, None, scope)
     
-    def get_ordered_data_store(self, name: str, scope: Optional[str] = "global"
+    def get_ordered_data_store(
+            self, name: str, scope: Optional[str] = "global"
         ) -> OrderedDataStore:
         """
         Creates a [`rblxopencloud.OrderedDataStore`]\
@@ -550,22 +557,22 @@ class Experience():
         
         for entry in iterate_request("GET",
             f"datastores/v1/universes/{self.id}/standard-datastores",
-            authorization=self.__api_key, params={"prefix": prefix},
-            expected_status=[200], max_yields=limit,
-            data_key="datastores", cursor_key="cursor",
+            authorization=self.__api_key, expected_status=[200],
+            params={"prefix": prefix},
+            max_yields=limit, data_key="datastores", cursor_key="cursor",
         ):
             yield DataStore(entry["name"], self, self.__api_key,
-                            entry["createdTime"], scope)
+                entry["createdTime"], scope)
     
     def publish_message(self, topic: str, data: str) -> None:
         """
         Publishes a message to live game servers that can be recieved with \
         [MessagingService](https://create.roblox.com/docs/reference/engine/\
-        classes/MessagingService).
+classes/MessagingService).
 
         Args:
             topic: The topic to publish the message into.
-            data: The message to send. Open Cloud only support string data, \
+            data: The message to send. Open Cloud only supports string data, \
             not tables. 
         
         !!! note
@@ -573,16 +580,20 @@ class Experience():
             servers. Studio won't recieve thesse messages.
         """
 
-        send_request("POST", f"messaging-service/v1/universes/{self.id}/"+
-            f"topics/{urllib.parse.quote(topic)}", expected_status=[200],
-            authorization=self.__api_key, json={"message": data}
+        topic = urllib.parse.quote(topic)
+
+        send_request("POST",
+            f"messaging-service/v1/universes/{self.id}/topics/{topic}",
+            authorization=self.__api_key, expected_status=[200], json={
+                "message": data
+            }
         )
         
     def send_notification(self, user_id: int, message_id: str, 
-            analytics_category: str = None, launch_data: str = None,
+            launch_data: str = None, analytics_category: str = None,
             **message_variables: dict[str, Union[str, int]]) -> None:
         """
-        Sends an experience notification to the requested user.
+        Sends an Experience notification to the requested user.
 
         Args:
             user_id: The user to recieve the notification.
@@ -593,6 +604,7 @@ class Experience():
             string.
         """
 
+        # format params the way roblox expects {key: {"int64_value": value}}
         parameters_dict = {}
         for key, value in message_variables.items():
             parameters_dict[key] = {

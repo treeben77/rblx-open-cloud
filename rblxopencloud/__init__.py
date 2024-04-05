@@ -3,7 +3,7 @@ import requests
 
 VERSION: str = "2.0.0"
 VERSION_INFO: Literal['alpha', 'beta', 'final'] = "alpha"
-DEBUG = VERSION_INFO == "alpha"
+DEBUG: bool = VERSION_INFO == "alpha"
 
 user_agent: str = f"rblx-open-cloud/{VERSION} \
 (https://github.com/treeben77/rblx-open-cloud)"
@@ -159,6 +159,11 @@ class Operation(Generic[T]):
     """
     Represents a request to the Roblox API which takes time to complete such \
     as uploading an asset or flushing an experience's memory store.
+
+    Attributes:
+        is_done (bool): Wether the operations is known to be complete and \
+        [`wait()`][rblxopencloud.Operation.wait] can provide an immedite \
+        response.
     """
 
     def __init__(
@@ -170,6 +175,7 @@ class Operation(Generic[T]):
         self.__return_type: T = return_type
         self.__return_meta: dict = return_meta
         self.__cached_response: dict = cached_response
+        self.is_done: bool = cached_response != None
     
     def __repr__(self) -> str:
         return "<rblxopencloud.Operation>"
@@ -194,6 +200,9 @@ class Operation(Generic[T]):
         _, body, _ = send_request("GET", self.__path, self.__api_key,
             expected_status=[200])
         if not body.get("done"): return None
+
+        self.__cached_response = body["response"]
+        self.is_done = True
         
         if callable(self.__return_type):
             return self.__return_type(body["response"], **self.__return_meta)

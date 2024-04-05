@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_der_public_key
 from cryptography.hazmat.backends import default_backend
 import hashlib, string, secrets
-from . import user_agent, request_session
+from . import send_request, iterate_request
 
 __all__ = (
     "Resources",
@@ -22,7 +22,7 @@ __all__ = (
 
 class AccessTokenInfo():
     """
-    Object that contains information about a access token. 
+    Contains information about a access token. 
     """
 
     def __init__(self, data: dict):
@@ -31,15 +31,21 @@ class AccessTokenInfo():
         self.client_id: int = int(data["client_id"])
         self.user_id: int = data["sub"]
         self.scope: list[str] = data["scope"].split(" ")
-        self.expires_at: datetime.datetime = datetime.datetime.fromtimestamp(data["exp"])
-        self.issued_at: datetime.datetime = datetime.datetime.fromtimestamp(data["iat"])
+        self.expires_at: datetime.datetime = (
+            datetime.datetime.fromtimestamp(data["exp"])
+        )
+        self.issued_at: datetime.datetime = (
+            datetime.datetime.fromtimestamp(data["iat"])
+        )
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.AccessTokenInfo(id=\"{self.id}\", user_id={self.user_id})"
+        return f"<rblxopencloud.AccessTokenInfo \
+id=\"{self.id}\" user_id={self.user_id}>"
 
 class Resources():
     """
-    Object that contains all the authorized objects users, groups, and experiences.
+    Contains the authorized users, groups, and experiences for the \
+    authorization.
     """
 
     def __init__(self, experiences, accounts):
@@ -47,11 +53,14 @@ class Resources():
         self.accounts: list[Union[User, Group]] = accounts
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.Resources(experiences={self.experiences}, accounts={self.accounts})"
+        return f"<rblxopencloud.Resources \
+experiences={self.experiences} accounts={self.accounts}>"
 
 class PartialAccessToken():
     """
-    Represents a partial access via OAuth2 consent. It allows access to all resources authorized by the user, but not other information like the refresh token.
+    Represents an access token via OAuth2 consent without all information. It \
+    allows access to all resources authorized by the user, but not other \
+    information like the refresh token.
     """
 
     def __init__(self, app, access_token) -> None:
@@ -59,114 +68,141 @@ class PartialAccessToken():
         self.token: str = access_token
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.PartialAccessToken(token=\"{self.token[:15]}...\")"
+        return f"<rblxopencloud.PartialAccessToken \
+    token=\"{self.token[:15]}...\">"
 
     def fetch_userinfo(self) -> User:
         """
-        Returns a `rblx-open-cloud.User` object for this authorization. You can use this object to directly access user resources (like uploading files), if it was authorized.
+        Returns a [`User`][rblxopencloud.User] object for this authorization. \
+        This object can be used to directly access granted user resources \
+        (such as like uploading files).
         """
 
-        response = request_session.get("https://apis.roblox.com/oauth/v1/userinfo", headers={
-            "authorization": f"Bearer {self.token}", "user-agent": user_agent
-        })
-        user = User(response.json().get("id") or response.json().get("sub"), f"Bearer {self.token}")
-        user.username: str = response.json().get("preferred_username")
-        user.display_name: str = response.json().get("nickname")
-        user.headshot_uri: str = response.json().get("picture")
-        user.created_at: datetime.datetime = datetime.datetime.fromtimestamp(response.json()["created_at"]) if response.json().get("created_at") else None
+        status, data, _ = send_request("GET", "oauth/v1/userinfo",
+            authorization=f"Bearer {self.token}", expected_status=[200, 401])
 
-        if response.ok: return user
-        elif response.status_code == 401:
-            if response.json()["error"] == "insufficient_scope":
-                raise InsufficientScope(response.json()["scope"], f"The access token does not have the required scope:'{response.json()['scope']}'")
-            raise InvalidKey("The key has expired, been revoked or is invalid.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
-    
+        if status == 401:
+            if data["error"] == "insufficient_scope":
+                raise InsufficientScope(
+                    data["scope"],
+                    f"Access token missing required scope:'{data['scope']}'"
+                )
+            raise InvalidKey("The key has expired, been revoked or is invalid")
+        
+        user = User(data.get("id") or data.get("sub"), f"Bearer {self.token}")
+        user.username = data.get("preferred_username")
+        user.display_name = data.get("nickname")
+        user.headshot_uri = data.get("picture")
+        user.created_at = (
+            datetime.datetime.fromtimestamp(data["created_at"])
+            if data.get("created_at") else None
+        )
+
+        return user
+            
     def fetch_resources(self) -> Resources:
         """
-        Fetches the authorized accounts (users and groups), and experiences.
+        Fetches the authorized accounts (users and groups) and experiences.
         """
 
-        response = request_session.post("https://apis.roblox.com/oauth/v1/token/resources", data={
-            "token": self.token,
-            "client_id": self.app.id,
-            "client_secret": self.app._OAuth2App__secret
-        }, headers={"user-agent": user_agent})
+        status, data, _ = send_request("GET", "oauth/v1/token/resources",
+            expected_status=[200, 401], data={
+                "token": self.token,
+                "client_id": self.app.id,
+                "client_secret": self.app._OAuth2App__secret
+            }
+        )
 
-        if response.status_code == 401:
-            if response.json()["error"] == "insufficient_scope":
-                raise InsufficientScope(response.json()["scope"], f"The access token does not have the required scope:'{response.json()['scope']}'")
-            raise InvalidKey("The key has expired, been revoked or is invalid.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        elif not response.ok: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+        if status == 401:
+            if data["error"] == "insufficient_scope":
+                raise InsufficientScope(
+                    data["scope"],
+                    f"Access token missing required scope: '{data['scope']}'"
+                )
+            raise InvalidKey("The key has expired, been revoked or is invalid")
 
         experiences = []
         accounts = []
         
-        for resource in response.json()["resource_infos"]:
+        api_key = f"Bearer {self.token}"
+
+        for resource in data["resource_infos"]:
             owner = resource["owner"]
             if resource["resources"].get("universe"):
                 for experience_id in resource["resources"]["universe"]["ids"]:
-                    experience = Experience(experience_id, f"Bearer {self.token}")
+                    experience = Experience(experience_id, api_key)
                     if owner["type"] == "User":
-                        experience.owner = User(owner["id"], f"Bearer {self.token}")
+                        experience.owner = User(owner["id"], api_key)
                     elif owner["type"] == "Group":
-                        experience.owner = Group(owner["id"], f"Bearer {self.token}")
+                        experience.owner = Group(owner["id"], api_key)
                     experiences.append(experience)
 
             if resource["resources"].get("creator"):
                 for creator_id in resource["resources"]["creator"]["ids"]:
                     if creator_id == "U":
-                        accounts.append(User(owner["id"], f"Bearer {self.token}"))
+                        accounts.append(User(owner["id"], api_key))
                     elif creator_id.startswith("U"):
-                        accounts.append(User(creator_id[1:], f"Bearer {self.token}"))
+                        accounts.append(User(creator_id[1:], api_key))
                     elif creator_id.startswith("G"):
-                        accounts.append(Group(creator_id[1:], f"Bearer {self.token}"))
+                        accounts.append(Group(creator_id[1:], api_key))
 
         return Resources(experiences=experiences, accounts=accounts)
 
     def fetch_token_info(self) -> AccessTokenInfo:
         """
-        Fetches information the token such as the user's id, the authorized scope, and it's expiry time.
+        Fetches token information such as the user's id, the authorized \
+        scope, and it's expiry time.
         """
 
-        response = request_session.post("https://apis.roblox.com/oauth/v1/token/introspect", data={
-            "token": self.token,
-            "client_id": self.app.id,
-            "client_secret": self.app._OAuth2App__secret
-        }, headers={"user-agent": user_agent})
+        status, data, _ = send_request("GET", "oauth/v1/token/introspect",
+            expected_status=[200, 401], data={
+                "token": self.token,
+                "client_id": self.app.id,
+                "client_secret": self.app._OAuth2App__secret
+            }
+        )
         
-        if response.ok: return AccessTokenInfo(response.json())
-        elif response.status_code == 401:
-            if response.json()["error"] == "insufficient_scope":
-                raise InsufficientScope(response.json()["scope"], f"The access token does not have the required scope:'{response.json()['scope']}'")
-            raise InvalidKey("The key has expired, been revoked or is invalid.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+        if status == 401:
+            if data["error"] == "insufficient_scope":
+                raise InsufficientScope(data["scope"],
+                f"Access token missing required scope: '{data['scope']}")
+            raise InvalidKey("The key has expired, been revoked or is invalid")
+        
+        return AccessTokenInfo(data)
     
     def revoke(self):
         self.app.revoke_token(self.token)
 
 class AccessToken(PartialAccessToken):
     """
-    Represents access via OAuth2 consent. It allows access to all resources authorized by the user.
+    Represents access via OAuth2 consent. It allows access to all resources \
+    authorized by the user.
     """
     def __init__(self, app, payload, id_token) -> None:
         super().__init__(app, payload["access_token"])
         self.refresh_token: str = payload["refresh_token"]
         self.scope: list[str] = payload["scope"].split(" ")
-        self.expires_at: datetime = datetime.datetime.now() + datetime.timedelta(payload["expires_in"])
+        self.expires_at: datetime = (
+            datetime.datetime.now() + datetime.timedelta(payload["expires_in"])
+        )
+
         if id_token:
-            self.user: Optional[User] = User(id_token.get("id") or id_token.get("sub"), f"Bearer {self.token}")
-            self.user.username: str = id_token.get("preferred_username")
-            self.user.display_name: str = id_token.get("nickname")
-            self.user.headshot_uri: Optional[str] = id_token.get("picture")
-            self.user.created_at: datetime.datetime = datetime.datetime.fromtimestamp(id_token["created_at"]) if id_token.get("created_at") else None
+            self.user: Optional[User] = User(
+                id_token.get("id") or id_token.get("sub"),
+                f"Bearer {self.token}"
+            )
+            self.user.username = id_token.get("preferred_username")
+            self.user.display_name = id_token.get("nickname")
+            self.user.headshot_uri = id_token.get("picture")
+            self.user.created_at = (
+                datetime.datetime.fromtimestamp(id_token["created_at"])
+                if id_token.get("created_at") else None
+            )
         else: self.user: Optional[User] = None
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.AccessToken(token=\"{self.token[:15]}...\", user={self.user})"
+        return f"<rblxopencloud.AccessToken token=\"{self.token[:15]}...\" \
+user={self.user})"
     
     def revoke_refresh_token(self):
         """
@@ -176,15 +212,30 @@ class AccessToken(PartialAccessToken):
 
 class OAuth2App():
     """
-    Represents an OAuth2 app. It is used to exchange codes, refresh tokens, and access the API for authenticated users.
+    Represents an OAuth2 app. It is used to exchange codes, refresh tokens, \
+    and access the API for authenticated users.
 
-    id: int - The app's client ID.
-    secret: str - The app's client secret.
-    redirect_uri: str - The redirect URI that is being used for authorization. If you need to use multiple, you must make seperate :class:`rblx-open-cloud.OAuth2` objects.
-    openid_certs_cache_seconds: int - The number of seconds to cache the openid certs. You can ignore this if you don't know what it does.
+    Args:
+        id (int): The app's client ID.
+        secret (str): The app's client secret.
+        redirect_uri (str): The redirect URI that is being used for \
+        authorization. If you need to use multiple, you must make seperate \
+        objects.
+        openid_certs_cache_seconds (int): The number of seconds to cache the \
+        OpenID certs. You can ignore this if you don't know what it does.
+
+    Attributes:
+        if (int): The app's client ID.
+        secret (str): The app's client secret.
+        redirect_uri (str): The redirect URI being used for authorization.
+        openid_certs_cache_seconds (int): The number of seconds to cache the \
+        OpenID certs.
     """
 
-    def __init__(self, id: int, secret: str, redirect_uri: str, openid_certs_cache_seconds: int = 3600):
+    def __init__(
+            self, id: int, secret: str, redirect_uri: str,
+            openid_certs_cache_seconds: int = 3600
+        ):
         self.id: int = id
         self.redirect_uri: str = redirect_uri
         self.__secret: str = secret
@@ -194,27 +245,40 @@ class OAuth2App():
         self.__openid_certs_cache_updated = None
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.OAuth2App(id={self.id}, redirect_uri=\"{self.redirect_uri}\")"
+        return f"<rblxopencloud.OAuth2App(id={self.id} \
+redirect_uri=\"{self.redirect_uri}\")"
 
     def generate_code_verifier(self, length: Optional[int]=128):
         """
-        Generates a code verifier which can be provided `OAuth2App.generate_uri()` and :meth:`rblx-open-cloud.OAuth2App.exchange_code` to add extra security to the OAuth2 flow.
+        Generates a code verifier which can be provided to \
+        [`OAuth2App.generate_uri`][rblxopencloud.OAuth2App.generate_uri] and \
+        [`OAuth2App.exchange_code`][rblxopencloud.OAuth2App.exchange_code] \
+        to add extra security to the OAuth2 flow.
 
-        If a code verifier is used, it must be provided to both methods, and it should also be unique.
-        ### Parameters
-        length: Optional[int] - How long the code verifier should be.
+        If a code verifier is used, it must be provided to both methods and \
+        should also be unique.
+        
+        Args:
+            length (Optional[int]): How long the code verifier should be.
         """
 
-        return ''.join(secrets.choice(f"{string.ascii_letters}{string.digits}-._~") for _ in range(length))
+        return ''.join(
+            secrets.choice(f"{string.ascii_letters}{string.digits}-._~")
+            for _ in range(length)
+        )
 
-    def generate_uri(self, scope: Union[str, list[str]], state: Optional[str]=None, generate_code: Optional[bool]=True, code_verifier: Optional[str] = None) -> str:
+    def generate_uri(
+            self, scope: Union[str, list[str]], state: str=None,
+            generate_code: bool=True, code_verifier: str=None
+        ) -> str:
         """
         Creates an authorization uri with the client information prefilled.
-        ### Parameters
-        scope: Union[str, list[str]] - A string, or list of strings specifying the scopes for authorization. For example `['openid', 'profile']`
-        state: str - A string that will be returned on the otherside of authorization. It isn't required, but is recommend for security.
-        generate_code: bool - Wether to generate a code on return. Defaults to `True`.
-        code_verifier: Optional[str] - The code verifier generated using OAuth2App.generate_code_verifier()`
+        
+        Args:
+            scope: Union[str, list[str]] - A string, or list of strings specifying the scopes for authorization. For example `['openid', 'profile']`
+            state: str - A string that will be returned on the otherside of authorization. It isn't required, but is recommend for security.
+            generate_code: bool - Wether to generate a code on return. Defaults to `True`.
+            code_verifier: Optional[str] - The code verifier generated using OAuth2App.generate_code_verifier()`
         """
 
         params = {
