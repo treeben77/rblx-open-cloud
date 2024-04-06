@@ -1,13 +1,37 @@
-import io
-from typing import Optional, Iterable, Union
-from .datastore import DataStore, OrderedDataStore
-from . import send_request, iterate_request, Operation
-from .user import User
-from .group import Group
-from enum import Enum
-from dateutil import parser
+# MIT License
+
+# Copyright (c) 2022-2024 treeben77
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from datetime import datetime
+from enum import Enum
+import io
+from typing import Iterable, Optional, Union
 import urllib.parse
+
+from dateutil import parser
+
+from . import iterate_request, send_request
+from .datastore import DataStore, OrderedDataStore
+from .group import Group
+from .user import User
 
 __all__ = (
     "Experience",
@@ -124,7 +148,6 @@ experience={repr(self.experience)}>"
         )
 
         self.__update_params(data)
-
         return self
     
     def update(
@@ -455,6 +478,7 @@ class Experience():
             "discord": discord_social_link, "robloxGroup": group_social_link,
             "guilded": guilded_social_link
         }.items():
+            # ignore parameters with a value of None
             if value != None:
                 if value == True: raise ValueError(
                     f"{platform}_social_link should be either \
@@ -492,8 +516,8 @@ class Experience():
     
     def get_place(self, place_id: int) -> Place:
         """
-        Creates a [`rblxopencloud.Place`][rblxopencloud.Place] for a place \
-        within the experience. Does not make any API calls.
+        Creates a [`Place`][rblxopencloud.Place] class for a place within the \
+        experience. Does not make any API calls.
 
         Args:
             place_id: The ID of the place.
@@ -509,8 +533,8 @@ class Experience():
             self, name: str, scope: Optional[str] = "global"
         ) -> DataStore:
         """
-        Creates a [`rblxopencloud.DataStore`][rblxopencloud.DataStore] with \
-        the provided name and scope.
+        Creates a [`DataStore`][rblxopencloud.DataStore] with the provided \
+        name and scope.
 
         Args:
             name: The data store name.
@@ -526,8 +550,8 @@ class Experience():
             self, name: str, scope: Optional[str] = "global"
         ) -> OrderedDataStore:
         """
-        Creates a [`rblxopencloud.OrderedDataStore`]\
-        [rblxopencloud.OrderedDataStore] with the provided name and scope.
+        Creates an [`OrderedDataStore`][rblxopencloud.OrderedDataStore] with \
+        the provided name and scope.
 
         Args:
             name: The data store name.
@@ -539,8 +563,10 @@ class Experience():
         
         return OrderedDataStore(name, self, self.__api_key, scope)
 
-    def list_data_stores(self, prefix: str="", limit: int = None,
-        scope: Optional[str] = "global") -> Iterable[DataStore]:
+    def list_data_stores(
+            self, prefix: str = "", limit: int = None,
+            scope: Optional[str] = "global"
+        ) -> Iterable[DataStore]:
         """
         Iterates all data stores in the experience.
 
@@ -551,7 +577,7 @@ class Experience():
             syntax like `scope/key`.
         
         Yields:
-            [`rblxopencloud.DataStore`][rblxopencloud.DataStore]s in the \
+            [`DataStore`][rblxopencloud.DataStore] for every datastore in the \
             experience.
         """
         
@@ -559,7 +585,7 @@ class Experience():
             f"datastores/v1/universes/{self.id}/standard-datastores",
             authorization=self.__api_key, expected_status=[200],
             params={"prefix": prefix},
-            max_yields=limit, data_key="datastores", cursor_key="cursor",
+            max_yields=limit, data_key="datastores", cursor_key="cursor"
         ):
             yield DataStore(entry["name"], self, self.__api_key,
                 entry["createdTime"], scope)
@@ -591,7 +617,8 @@ classes/MessagingService).
         
     def send_notification(self, user_id: int, message_id: str, 
             launch_data: str = None, analytics_category: str = None,
-            **message_variables: dict[str, Union[str, int]]) -> None:
+            **message_variables: dict[str, Union[str, int]]
+        ) -> None:
         """
         Sends an Experience notification to the requested user.
 

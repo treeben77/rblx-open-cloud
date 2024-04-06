@@ -1,16 +1,52 @@
-from .exceptions import rblx_opencloudException, InvalidKey, ServiceUnavailable, InsufficientScope, InvalidCode
+# MIT License
+
+# Copyright (c) 2022-2024 treeben77
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+import base64
+import datetime
+import hashlib
+import jwt
+import secrets
+import string
+import time
+from typing import Optional, Union
 from urllib import parse
-import datetime, time
-from typing import Optional, Union, TYPE_CHECKING
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import (
+    Encoding, load_der_public_key, PublicFormat
+)
+
+from . import send_request
+from .exceptions import (
+    InvalidCode,
+    InvalidKey,
+    InsufficientScope,
+    rblx_opencloudException,
+    ServiceUnavailable
+)
+from .experience import Experience
 from .user import User
 from .group import Group
-from .experience import Experience
-import base64, jwt
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_der_public_key
-from cryptography.hazmat.backends import default_backend
-import hashlib, string, secrets
-from . import send_request, iterate_request
 
 __all__ = (
     "Resources",
@@ -248,6 +284,32 @@ class OAuth2App():
         return f"<rblxopencloud.OAuth2App(id={self.id} \
 redirect_uri=\"{self.redirect_uri}\")"
 
+    def __refresh_openid_certs_cache(self):
+        certs_status, certs, _ = send_request("GET", "/oauth/v1/certs")
+        if certs_status != 200:
+            raise ServiceUnavailable("Failed to retrieve OpenID certs")
+
+        self.__openid_certs_cache = []
+        self.__openid_certs_cache_updated = time.time()
+
+        for cert in certs["keys"]:
+            public_key = ec.EllipticCurvePublicNumbers(
+                int.from_bytes(
+                    base64.urlsafe_b64decode(cert['x'] + '=='), 'big'
+                ),
+                int.from_bytes(
+                    base64.urlsafe_b64decode(cert['y'] + '=='), 'big'
+                ),
+                ec.SECP256R1()
+            ).public_key(default_backend()).public_bytes(
+                Encoding.DER,
+                PublicFormat.SubjectPublicKeyInfo
+            ), default_backend()
+
+            self.__openid_certs_cache.append(
+                load_der_public_key(public_key)
+            )
+
     def generate_code_verifier(self, length: Optional[int]=128):
         """
         Generates a code verifier which can be provided to \
@@ -275,11 +337,22 @@ redirect_uri=\"{self.redirect_uri}\")"
         Creates an authorization uri with the client information prefilled.
         
         Args:
-            scope: Union[str, list[str]] - A string, or list of strings specifying the scopes for authorization. For example `['openid', 'profile']`
-            state: str - A string that will be returned on the otherside of authorization. It isn't required, but is recommend for security.
-            generate_code: bool - Wether to generate a code on return. Defaults to `True`.
-            code_verifier: Optional[str] - The code verifier generated using OAuth2App.generate_code_verifier()`
+            scope: A string, or list of strings specifying the scopes for \
+            authorization. For example `['openid', 'profile']`
+            state: A string that will be returned on the otherside of \
+            authorization. It isn't required, but is recommend for security.
+            generate_code: Wether to generate a code on return.
+            code_verifier: The code verifier generated using \
+            [`generate_code_verifier`\
+            ][rblxopencloud.OAuth2App.generate_code_verifier]
         """
+
+        if code_verifier:
+            code_challenge = base64.urlsafe_b64encode(
+                hashlib.sha256(code_verifier.encode()).digest()
+            ).replace(b"=", b"").decode()
+        else:
+            code_challenge = None
 
         params = {
             "client_id": self.id,
@@ -287,97 +360,119 @@ redirect_uri=\"{self.redirect_uri}\")"
             "state": state,
             "redirect_uri": self.redirect_uri,
             "response_type": "code" if generate_code else "none",
-            "code_challenge": base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest()).replace(b"=", b"").decode() if code_verifier else None,
+            "code_challenge": code_challenge,
             "code_challenge_method": "S256" if code_verifier else None
         }
-        return f"https://apis.roblox.com/oauth/v1/authorize?{parse.urlencode({key: value for key, value in params.items() if value is not None})}"
 
-    def from_access_token_string(self, access_token: str) -> PartialAccessToken:
+        params = parse.urlencode({
+            key: value for key, value in params.items() if value is not None
+        })
+
+        return f"https://apis.roblox.com/oauth/v1/authorize?{params}"
+
+    def from_access_token_string(
+            self, access_token: str
+        ) -> PartialAccessToken:
         """
-        Creates an `rblx-open-cloud.PartialAccessToken` from an access token string, fairly useless due to these tokens expiring after 15 minutes.
+        Creates a [`PartialAccessToken`][rblxopencloud.PartialAccessToken] \
+        from an access token string, fairly useless due to these tokens \
+        expiring after 15 minutes.
 
-        It is also advised the refresh token instead of the access token, and refresh the token each time you need to access information instead of the access_token to improve security.
-        ### Parameters
-        access_token: str - The access token string.
+        It is also advised the refresh token instead of the access token, and \
+        refresh the token each time you need to access information instead of \
+        the access_token to improve security.
+
+        Attributes:
+            access_token: the access token string.
         """
 
         return PartialAccessToken(self, access_token)
 
-    def exchange_code(self, code: str, code_verifier: Optional[str]=None) -> AccessToken:
+    def exchange_code(
+            self, code: str, code_verifier: Optional[str] = None
+        ) -> AccessToken:
         """
-        Creates an `rblx-open-cloud.AccessToken` from an authorization code returned from Roblox.
-        ### Parameters
-        code: str - The code from the authorization server.
-        code_verifier: Optional[str] - the string for this OAuth2 flow generated by `OAuth2App.generate_code_verifier()`.
+        Exchanges an authorization code for an access token which can utilize \
+        granted scopes.
+        
+        Attributes:
+            code: The code from the authorization server.
+            code_verifier: The code verifier string for this OAuth2 flow \
+            generated by [`generate_code_verifier`\
+            ][rblxopencloud.OAuth2App.generate_code_verifier]
         """
-        response = request_session.post("https://apis.roblox.com/oauth/v1/token", data={
-            "client_id": self.id,
-            "client_secret": self.__secret,
-            "redirect_uri": self.redirect_uri,
-            "grant_type": "authorization_code",
-            "code_verifier": code_verifier,
-            "code": code
-        }, headers={"user-agent": user_agent})
+
+        status, data, _ = send_request("POST", "oauth/v1/token",
+            expected_status=[200, 401], data={
+                "client_id": self.id,
+                "client_secret": self.__secret,
+                "redirect_uri": self.redirect_uri,
+                "grant_type": "authorization_code",
+                "code_verifier": code_verifier,
+                "code": code
+            }
+        )
+
+        if status == 401:
+            raise InvalidCode(
+                data.get("error_description", "The code is invalid")
+            )
+
         id_token = None
-        if response.json().get("id_token"):
-            if not self.__openid_certs_cache or time.time() - self.__openid_certs_cache_updated > self.openid_certs_cache_seconds:
-                certs = request_session.get("https://apis.roblox.com/oauth/v1/certs", headers={"user-agent": user_agent})
-                if not certs.ok: raise ServiceUnavailable("Failed to retrieve OpenID certs.")
-
-                self.__openid_certs_cache = []
-                for cert in certs.json()["keys"]:
-                    self.__openid_certs_cache.append(load_der_public_key(ec.EllipticCurvePublicNumbers(
-                        int.from_bytes(base64.urlsafe_b64decode(cert['x'] + '=='), 'big'),
-                        int.from_bytes(base64.urlsafe_b64decode(cert['y'] + '=='), 'big'),
-                        ec.SECP256R1()
-                    ).public_key(default_backend()).public_bytes(
-                        Encoding.DER,
-                        PublicFormat.SubjectPublicKeyInfo
-                    ), default_backend()))
-                self.__openid_certs_cache_updated = time.time()
-
+        if data.get("id_token"):
+            if (
+                not self.__openid_certs_cache or
+                time.time() - self.__openid_certs_cache_updated >
+                self.openid_certs_cache_seconds
+            ): self.__refresh_openid_certs_cache()
+            
             for cert in self.__openid_certs_cache:
                 try:
-                    id_token = jwt.decode(response.json()["id_token"], cert,  algorithms=['ES256'], audience=str(self.id))
+                    id_token = jwt.decode(
+                        data["id_token"], cert, algorithms=['ES256'],
+                        audience=str(self.id)
+                    )
                     break
-                except(AttributeError): raise rblx_opencloudException("jwt conflicts with PyJWT. Please uninstall jwt to fix this issue.")
+                except(AttributeError): raise rblx_opencloudException(
+                    "jwt and PyJWT installed. Please uninstall jwt."
+                )
                 except(jwt.exceptions.PyJWTError): pass
 
-        if response.ok: return AccessToken(self, response.json(), id_token)
-        elif response.status_code == 400: raise InvalidKey(response.json().get("error_description", "The client id, client secret, or redirect uri is invalid."))
-        elif response.status_code == 401: raise InvalidCode(response.json().get("error_description", "The code is invalid, or has been used."))
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+        return AccessToken(self, data, id_token)
 
     def refresh_token(self, refresh_token: str) -> AccessToken:
         """
-        Creates an `rblx-open-cloud.AccessToken` from a refresh token. The new access token will have a different refresh token, and you must store the new refresh token.
-        ### Parameters
-        refresh_token: str - The refresh token to refresh.
+        Refrehes an access token for a new access token with a refresh token. \
+        After refreshing, a new refresh token is provided to be stored.
+        
+        Attributes:
+            refresh_token: The refresh token to refresh.
         """
-        response = request_session.post("https://apis.roblox.com/oauth/v1/token", data={
-            "client_id": self.id,
-            "client_secret": self.__secret,
-            "grant_type": "refresh_token",
-            "refresh_token": refresh_token
-        }, headers={"user-agent": user_agent})
-        if response.ok: return AccessToken(self, response.json(), None)
-        elif response.status_code == 400: raise InvalidKey(response.json().get("error_description", "The code, client id, client secret, or redirect uri is invalid."))
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+
+        _, data, _ = send_request("POST", "oauth/v1/token",
+            expected_status=[200], data={
+                "client_id": self.id,
+                "client_secret": self.__secret,
+                "redirect_uri": self.redirect_uri,
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token
+            }
+        )
+
+        return AccessToken(self, data, None)
     
     def revoke_token(self, token: str):
         """
-        Revokes the authorization for a given access token or refresh token string.
+        Revokes the authorization for a given access or refresh token.
 
-        token: str - The refresh token to refresh.
+        Args:
+            token: The access or refresh token to revoke.
         """
-        response = request_session.post("https://apis.roblox.com/oauth/v1/token/revoke", data={
-            "token": token,
-            "client_id": self.id,
-            "client_secret": self.__secret
-        }, headers={"user-agent": user_agent})
-        if response.ok: return
-        elif response.status_code == 400: raise InvalidKey("The code, client id, client secret, or redirect uri is invalid.")
-        elif response.status_code >= 500: raise ServiceUnavailable("The service is unavailable or has encountered an error.")
-        else: raise rblx_opencloudException(f"Unexpected HTTP {response.status_code}")
+        
+        send_request("POST", "oauth/v1/token/revoke",
+            expected_status=[200], data={
+                "client_id": self.id,
+                "client_secret": self.__secret,
+                "token": token
+            }
+        )
