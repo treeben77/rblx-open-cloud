@@ -26,8 +26,8 @@ from typing import Iterable, Literal, Optional, TYPE_CHECKING, Union
 
 from dateutil import parser
 
-from . import iterate_request, send_request, Operation
 from .creator import Creator
+from .http import iterate_request, send_request, Operation
 
 if TYPE_CHECKING:
     from .group import GroupMember

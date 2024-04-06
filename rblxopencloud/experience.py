@@ -28,8 +28,8 @@ import urllib.parse
 
 from dateutil import parser
 
-from . import iterate_request, send_request
 from .datastore import DataStore, OrderedDataStore
+from .http import iterate_request, send_request
 from .group import Group
 from .user import User
 

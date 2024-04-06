@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional, Iterable, Union
 import io
-from . import send_request, Operation
+from .http import send_request, Operation
 from dateutil import parser
 from datetime import datetime
 

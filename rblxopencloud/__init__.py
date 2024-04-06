@@ -40,7 +40,7 @@ from .datastore import *
 from .exceptions import *
 from .experience import *
 from .group import *
-from .library import *
+from .http import *
 from .oauth2 import *
 from .user import *
 from .webhook import *

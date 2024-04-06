@@ -25,8 +25,8 @@ from typing import Iterable, Optional
 
 from dateutil import parser
 
-from . import send_request, iterate_request
 from .creator import Creator
+from .http import send_request, iterate_request
 from .user import User
 
 __all__ = (

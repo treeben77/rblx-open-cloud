@@ -36,7 +36,6 @@ from cryptography.hazmat.primitives.serialization import (
     Encoding, load_der_public_key, PublicFormat
 )
 
-from . import send_request
 from .exceptions import (
     InvalidCode,
     InvalidKey,
@@ -45,6 +44,7 @@ from .exceptions import (
     ServiceUnavailable
 )
 from .experience import Experience
+from .http import send_request
 from .user import User
 from .group import Group
 

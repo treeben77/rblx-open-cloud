@@ -27,8 +27,8 @@ import urllib.parse
 
 from dateutil import parser
 
-from . import send_request, iterate_request
 from .exceptions import rblx_opencloudException, NotFound, PreconditionFailed
+from .http import send_request, iterate_request
 
 if TYPE_CHECKING:
     from .experience import Experience

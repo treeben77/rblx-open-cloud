@@ -29,8 +29,8 @@ import urllib3
 
 from dateutil import parser
 
-from . import Operation, send_request
 from .exceptions import InvalidAsset, ModeratedText, rblx_opencloudException
+from .http import Operation, send_request
 
 if TYPE_CHECKING:
     from .group import Group
