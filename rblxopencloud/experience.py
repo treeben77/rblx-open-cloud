@@ -29,8 +29,9 @@ import urllib.parse
 from dateutil import parser
 
 from .datastore import DataStore, OrderedDataStore
-from .http import iterate_request, send_request
+from .http import iterate_request, Operation, send_request
 from .group import Group
+from .memorystore import MemoryStoreQueue, SortedMap
 from .user import User
 
 __all__ = (
@@ -590,6 +591,34 @@ class Experience():
             yield DataStore(entry["name"], self, self.__api_key,
                 entry["createdTime"], scope)
     
+    def get_sorted_map(self, name: str) -> SortedMap:
+        """
+        Creates a [`SortedMap`][rblxopencloud.SortedMap] with \
+        the provided name. This function doesn't make an API call so there is \
+        no validation.
+
+        Args:
+            name: The memory store sorted map name.
+        
+        Returns:
+            The sorted map with the provided name.
+        """
+        return SortedMap(name, self, self.__api_key)
+    
+    def get_memory_store_queue(self, name: str) -> MemoryStoreQueue:
+        """
+        Creates a [`MemoryStoreQueue`][rblxopencloud.MemoryStoreQueue] with \
+        the provided name. This function doesn't make an API call so there is \
+        no validation.
+
+        Args:
+            name: The memory store queue name.
+        
+        Returns:
+            The memory store queue with the provided name.
+        """
+        return MemoryStoreQueue(name, self, self.__api_key)
+    
     def publish_message(self, topic: str, data: str) -> None:
         """
         Publishes a message to live game servers that can be recieved with \
@@ -668,4 +697,25 @@ classes/MessagingService).
         send_request("POST",
             f"cloud/v2/universes/{self.id}:restartServers",
             authorization=self.__api_key, expected_status=[200]
+        )
+
+    def flush_memory_store(self) -> Operation[bool]:
+        """
+        Flushes all memory store sorted map and queue data.
+
+        Returns:
+            An [`Operation`][rblxopencloud.Operation] to determine when the \
+            operation is complete.
+        """
+
+        _, data, _ = send_request(
+            "POST", f"cloud/v2/universes/{self.id}/memory-store:flush",
+            authorization=self.__api_key, expected_status=[200]
+        )
+
+        op_id = data['path'].split(f"/")[-1]
+        
+        return Operation(
+            f"cloud/v2/universes/{self.id}/memory-store/operations/{op_id}",
+            self.__api_key, True,
         )

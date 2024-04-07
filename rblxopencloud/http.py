@@ -227,10 +227,10 @@ class Operation(Generic[T]):
             expected_status=[200])
         if not body.get("done"): return None
 
-        self.__cached_response = body["response"]
         self.is_done = True
         
         if callable(self.__return_type):
+            self.__cached_response = body["response"]
             return self.__return_type(body["response"], **self.__return_meta)
         else:
             return self.__return_type

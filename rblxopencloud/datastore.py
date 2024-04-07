@@ -368,7 +368,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         return None
     
     def list_versions(self, key: str, after: datetime.datetime = None,
-            before: datetime.datetime = None, limit: Optional[int] = None,
+            before: datetime.datetime = None, limit: int = None,
             descending: bool = True) -> Iterable[EntryVersion]:
         """
         Iterates all available versions of a key.

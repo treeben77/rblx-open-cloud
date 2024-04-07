@@ -365,7 +365,7 @@ class Creator():
             Asset, creator=self)
     
     def list_asset_versions(
-            self, asset_id: int, limit: Optional[int]=None
+            self, asset_id: int, limit: int = None
         ) -> Iterable[AssetVersion]:
         """
         Iterates all avaliable versions of the asset, providing the latest \

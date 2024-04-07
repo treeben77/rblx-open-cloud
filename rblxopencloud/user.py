@@ -384,7 +384,7 @@ class User(Creator):
         ) -> Operation[str]:
         """
         Fetches the user's thumbnail from Roblox and returns an \
-        [`rblxopencloud.Operation`][rblxopencloud.Operation].
+        [`Operation`][rblxopencloud.Operation].
 
         Args:
             size (Literal[48, 50, 60, 75, 100, 110, 150, 180, 352, 420, \
@@ -397,8 +397,8 @@ class User(Creator):
             cut out.
 
         Returns:
-            The [`rblxopencloud.Operation`][rblxopencloud.Operation] to get \
-            the thumbnail. In most cases, the final result will be cached and \
+            The [`Operation`][rblxopencloud.Operation] to get the thumbnail. \
+            In most cases, the final result will be cached and \
             returned immediately from \
             [`Operation.wait`][rblxopencloud.Operation.wait].
         """
@@ -416,16 +416,16 @@ class User(Creator):
 
     def list_groups(self, limit: int=None) -> Iterable["GroupMember"]:
         """
-        Iterates a [`rblxopencloud.GroupMember`][rblxopencloud.GroupMember] \
-        for every group the user is in. Use \
-        [`GroupMember.group`][rblxopencloud.GroupMember] to get the group.
+        Iterates a [`GroupMember`][rblxopencloud.GroupMember] for every group \
+        the user is in. Use [`GroupMember.group`][rblxopencloud.GroupMember] \
+        to get the group.
 
         Args:
             limit (int): The max number of groups to iterate.
 
         Yields:
-            [`rblxopencloud.GroupMember`][rblxopencloud.GroupMember] for \
-            every group the user is in.
+            [`GroupMember`][rblxopencloud.GroupMember] for every group the \
+            user is in.
         """
 
         from .group import GroupMember
