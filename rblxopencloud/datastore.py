@@ -46,7 +46,16 @@ class EntryInfo():
     """
     Contains data about an entry such as version ID, timestamps, users and \
     metadata.
+
+    Attributes:
+        version: The string ID of the entry's version
+        created: When this key was created
+        updated: When this key was last modified, or when this version was \
+        created.
+        users: a list of user ids attached to this entry.
+        metadata: the key-value pairs of metadata attached to this entry.
     """
+
     def __init__(self, version, created, updated, users, metadata) -> None:
         self.version: str = version
         self.created: datetime.datetime = parser.parse(created)
@@ -62,6 +71,13 @@ class EntryVersion():
     """
     Contains data about a version such as it's ID, timestamps, content length \
     and wether this version is deleted.
+
+    Attributes:
+        version: The string ID of this version.
+        deleted: Wether this version has been deleted.
+        content_length: The length of the value.
+        created: When this version was created.
+        key_created: When the key was first created.
     """
 
     def __init__(self, version, deleted, content_length, created, key_created,
@@ -83,7 +99,8 @@ class EntryVersion():
             self.version == object.version
         )
     
-    def get_value(self
+    def get_value(
+            self
         ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of this version. Shortcut for `DataStore.get_version`
@@ -102,6 +119,10 @@ content_length={self.content_length}>"
 class ListedEntry():
     """
     Object which contains an entry's key and scope.
+
+    Attributes:
+        key: The entry's key.
+        scope: The entry's scope, usually is `global`.
     """
     def __init__(self, key, scope) -> None:
         self.key: str = key
@@ -119,23 +140,26 @@ scope=\"{self.scope}\">"
 class DataStore():
     """
     Represents a regular data store in an experience.
+
+    Attributes:
+        name: The datastore's name.
+        scope: The datastore's scope. `scope/key` syntax is required for keys \
+        when scope is `None`.
+        experience: The experience this DataStore is a part of.
     """
 
     def __init__(self, name, experience, api_key, created, scope):
         self.name: str = name
         self.__api_key: str = api_key
-        self.scope: str = scope
+        self.scope: Optional[str] = scope
         self.experience: Experience = experience
         if created: self.created = parser.parse(created)
         else: self.created = None
     
     def __repr__(self) -> str:
-        return f"<rblxopencloud.DataStore(name=\"{self.name}\" \
-            scope=\"{self.scope}\" experience={repr(self.experience)}>"
+        return f"<rblxopencloud.DataStore name=\"{self.name}\" \
+scope=\"{self.scope}\" experience={repr(self.experience)}>"
     
-    def __str__(self) -> str:
-        return self.name
-
     def list_keys(self, prefix: str="", limit: int=None
         ) -> Iterable[ListedEntry]:
         """
@@ -143,9 +167,9 @@ class DataStore():
         prefix.
 
         Args:
-            prefix (str): Only return keys that start with this prefix.
-            limit (int): Will not return more keys than this number. Set to \
-            `None` for no limit.
+            prefix: Only return keys that start with this prefix.
+            limit: Will not return more keys than this number. Set to `None` \
+            for no limit.
         """
         
         for entry in iterate_request("GET", f"datastores/v1/universes/\
@@ -164,8 +188,8 @@ class DataStore():
         Gets the value of a key in the scope and datastore.
         
         Args:
-            key (str): The key to fetch. If `DataStore.scope` is `None`, this \
-            must include the scope in the `scope/key` syntax.
+            key: The key to fetch. If `DataStore.scope` is `None`, this must \
+            include the scope in the `scope/key` syntax.
         """
         try:
             scope = self.scope
@@ -203,19 +227,16 @@ class DataStore():
         Sets the value of a key in the datastore and scope.
         
         Args:
-            key (str): The key to update. If `DataStore.scope` is `None`, \
-            this must include the scope in the `scope/key` syntax.
-            value (Union[str, dict, list, int, float]): The new value to set.
-            users (list[int]): a list of Roblox user IDs to attach to the \
-            entry.
-            metadata (dict): a dict of metadata to attach to the entry.
-            exclusive_create (bool): Whether to update the entry if it \
-            already has a value. Raises \
-            [`PreconditionFailed`][rblxopencloud.PreconditionFailed] if it \
-            has a value.
-            previous_version (Optional[str]): If provided, the current \
-            version ID must match this string or the entry will not be \
-            updated and \
+            key: The key to update. If `DataStore.scope` is `None`, this must \
+            include the scope in the `scope/key` syntax.
+            value: The new value to set.
+            users: A list of Roblox user IDs to attach to the entry.
+            metadata: A key-value pair of metadata to attach to the entry.
+            exclusive_create: Whether to update the entry if it already has a \
+            value. If `True` and it already has a value, \
+            [`PreconditionFailed`][rblxopencloud.PreconditionFailed] is raised.
+            previous_version: The expected previous version ID. If provided, \
+            and the previous version doesn't match, \
             [`PreconditionFailed`][rblxopencloud.PreconditionFailed] is raised.
         """
         if previous_version and exclusive_create:
@@ -279,13 +300,12 @@ class DataStore():
         Increments the value of a key in the datastore and scope.
         
         Args:
-            key (str): The key to increment. If `DataStore.scope` is `None`, \
-            this must include the scope in the `scope/key` syntax.
-            delta (Union[int, float]): The number to increment the value by. \
-            Use negative numbers to decrement the value.
-            users (list[int]): a list of Roblox user IDs to attach to the \
-            entry.
-            metadata (dict): a dict of metadata to attach to the entry.
+            key: The key to increment. If `DataStore.scope` is `None`, this \
+            must include the scope in the `scope/key` syntax.
+            delta: The number to increment the value by. Use negative numbers \
+            to decrement the value.
+            users: a list of Roblox user IDs to attach to the entry.
+            metadata: a dict of metadata to attach to the entry.
         """
         
         if users == None: users = []
@@ -326,8 +346,8 @@ class DataStore():
         Removes the value of a key from the datastore and scope.
         
         Args:
-            key (str): The key to remove. If `DataStore.scope` is `None`, \
-            this must include the scope in the `scope/key` syntax.
+            key: The key to remove. If `DataStore.scope` is `None`, this must \
+            include the scope in the `scope/key` syntax.
         """
 
         try:
@@ -354,15 +374,12 @@ class DataStore():
         Iterates all available versions of a key.
 
         Args:
-            key (str): The key to find versions. If `DataStore.scope` is \
-            `None`, this must include the scope in the `scope/key` syntax.
-            after (datetime.datetime): Filters versions to only those created \
-            after this time.
-            before (datetime.datetime): Filters versions to only those \
-            created before this time.
-            limit (Optional[int]): Maximum number of versions to iterate.
-            descending (bool) When `True`, versions are iterated in \
-            descending order (oldest to youngest).
+            key: The key to find versions. If `DataStore.scope` is `None`, \
+            this must include the scope in the `scope/key` syntax.
+            after: Filters versions to only those created after this time.
+            before: Filters versions to only those created before this time.
+            limit: Maximum number of versions to iterate.
+            descending: When `True` versions are iterated oldest first.
         """
 
         try:
@@ -386,15 +403,16 @@ class DataStore():
                 entry["objectCreatedTime"], self, key,
                 self.scope if self.scope else scope)
 
-    def get_version(self, key: str, version: str
+    def get_version(
+            self, key: str, version: str
         ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key at a specific version ID.
         
         Args:
-            key (str): The key to get. If `DataStore.scope` is `None`, this \
-            must include the scope in the `scope/key` syntax.
-            version (str): The version ID string to fetch.
+            key: The key to get. If `DataStore.scope` is `None`, this must \
+            include the scope in the `scope/key` syntax.
+            version: The version ID string to fetch.
         """
 
         try:
@@ -435,6 +453,11 @@ class DataStore():
 class SortedEntry():
     """
     Object which contains a sorted entry's key, scope, and value.
+
+    Attributes:
+        key: The entry's key.
+        scope: The entry's scope.
+        value: The entry's value.
     """
     def __init__(self, key: str, value: int, scope: str="global") -> None:
         self.key: str = key
@@ -455,33 +478,43 @@ class SortedEntry():
 class OrderedDataStore():
     """
     Represents an ordered data store in an experience.
+
+    Attributes:
+        name: The ordered data store's name.
+        scope: The ordered data store's scope. If `None`, `scope/key` syntax \
+        must be used for keys.
+        experience: The experience this ordered data store is a part of.
     """
 
     def __init__(self, name, experience, api_key, scope):
-        self.name = name
+        self.name: str = name
         self.__api_key = api_key
-        self.scope = scope
-        self.experience = experience
+        self.scope: str = scope
+        self.experience: Experience = experience
     
     def __repr__(self) -> str:
         return f"<rblxopencloud.OrderedDataStore \"{self.name}\" \
 scope=\"{self.scope}\" experience={repr(self.experience)}>"
-    
-    def __str__(self) -> str:
-        return self.name
-    
-    def sort_keys(self, descending: bool=True, limit: Optional[int]=None,
-        min=None, max=None) -> Iterable[SortedEntry]:
+        
+    def sort_keys(
+            self, descending: bool=True, limit: Optional[int]=None,
+            min: int=None, max: int=None
+        ) -> Iterable[SortedEntry]:
         """
         Returns a list of keys and their values.
 
         Args:
-            descending (bool): Wether the largest number should be first, or \
-            the smallest.
-            limit (int): Max number of entries to loop through.
-            min (int): Minimum entry value to retrieve
-            max (int): Maximum entry value to retrieve.
+            descending: Wether the largest or the smallest number should be \
+            first.
+            limit: Max number of entries to loop through.
+            min: Minimum entry value to retrieve
+            max: Maximum entry value to retrieve.
+        
+        !!! note
+            `OrderedDataStore.scope` must not be `None` to sort keys. It is \
+            not possible to sort keys from all scopes.
         """
+
         if not self.scope:raise ValueError(
             "scope is required to list keys with OrderedDataStore."
         )
@@ -508,7 +541,8 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         Gets the value of a key.
         
         Args:
-            key (str): The key to find.
+            key: The key to find. If `OrderedDataStore.scope` is `None`, this \
+            must include the scope in the `scope/key` syntax.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
@@ -529,12 +563,11 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         Sets the value of a key.
 
         Args:
-            key (str): The key to create/update.
-            value (int): The new integer value. Must be positive.
-            exclusive_create (bool): Wether to fail if the key already has a \
-            value.
-            exclusive_update (bool): Wether to fail if the key does not have \
-            a value.
+            key: The key to create or update. If `OrderedDataStore.scope` is \
+            `None`, this must include the scope in the `scope/key` syntax.
+            value: The new integer value. Must be positive.
+            exclusive_create: Wether to fail if the key already has a value.
+            exclusive_update: Wether to fail if the key does not have a value.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
@@ -585,9 +618,9 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         Increments the value of a key.
         
         Args:
-            key (str): The key to increment.
-            delta (int): The amount to increment the key by. You can use \
-            negative numbers to decrease the value.
+            key: The key to increment.
+            delta: The amount to increment the key by. Negative numbers will \
+            decrease the value.
         """
         try:
             if not self.scope: scope, key = key.split("/", maxsplit=1)
@@ -619,7 +652,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         Removes a key.
         
         Args:
-            key (str): The key to remove.
+            key: The key to remove.
         """
 
         try:

@@ -30,7 +30,7 @@ import urllib3
 from dateutil import parser
 
 from .exceptions import InvalidAsset, ModeratedText, rblx_opencloudException
-from .http import Operation, send_request
+from .http import iterate_request, Operation, send_request
 
 if TYPE_CHECKING:
     from .group import Group
@@ -141,18 +141,16 @@ class AssetVersion():
     Represents a version of an asset uploaded on to Roblox.
 
     Attributes:
-        id (int): This asset version's revision ID.
-        asset_id (int): The asset's ID.
-        creator (Union[Creator, User, Group]): The user, group, or creator\
-        which uploaded the asset.
-        moderation_status (ModerationStatus): The moderation status of this\
-        version.
+        version_number: This asset version's revision ID.
+        asset_id: The asset's ID.
+        creator: The user, group, or creator which uploaded the asset.
+        moderation_status: The moderation status of this version.
     """
 
     def __init__(self, data, creator) -> None:
-        self.id: int = data["path"].split("/")[3]
-
+        self.version_number: int = data["path"].split("/")[3]
         self.asset_id: int = data["path"].split("/")[1]
+
         self.creator: Union[Creator, User, Group] = creator
 
         self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
@@ -160,8 +158,8 @@ class AssetVersion():
             ModerationStatus.Unknown)
     
     def __repr__(self) -> str:
-        return f"<rblxopencloud.AssetVersion\
- asset_id={self.asset_id}, id={self.id}>"
+        return f"<rblxopencloud.AssetVersion \
+asset_id={self.asset_id} version_number={self.version_number}>"
 
 ASSET_MIME_TYPES = {
     "mp3": "audio/mpeg",
@@ -228,9 +226,6 @@ class Creator():
         | Audio | `.mp3`, `.ogg` |
         | Model | `.fbx` |
 
-        **The `asset:read` and `asset:write` scopes are required for OAuth2 \
-        authorization.**
-
         Args:
             file: The file opened in bytes to be uploaded.
             asset_type: The [`AssetType`][rblxopencloud.AssetType] for the \
@@ -243,17 +238,6 @@ class Creator():
         Returns:
             Returns a [`Operation`][rblxopencloud.Operation] for the asset \
             upload operation where `T` is an [`Asset`][rblxopencloud.Asset].
-        
-        Raises:
-            InvalidAsset: The file is either an unsupported type, uploaded as \
-            the wrong type, or has been corrupted.
-            ModeratedText: The name or description was filtered.
-            InvalidKey: The API key isn't valid, doesn't have access to \
-            upload assets, or is from an invalid IP address.
-            RateLimited: You've exceeded the rate limits.
-            ServiceUnavailable: The Roblox servers ran into an error, or are \
-            unavailable right now.
-            rblx_opencloudException: Roblox returned an unexpected error.
         
         !!! danger
             Avoid uploading assets to Roblox that you don't have full control \
@@ -312,61 +296,59 @@ class Creator():
             Asset, creator=self)
             
     def update_asset(
-            self, asset_id: int, file: io.BytesIO
+            self, asset_id: int, file: io.BytesIO = None, name: str = None,
+            description: str = None, expected_robux_price: int = 0
         ) -> Operation[Asset]:
         """
         Updates an asset on Roblox with the provided file. The following \
-        asset types are currently supported:
+        asset types are currently supported for file uploading:
 
         | Asset Type | File Formats |
         | --- | --- |
         | Model | `.fbx` |
 
         Args:
-            file: The file opened in bytes to upload.
             asset_id: The ID of the asset to update.
+            file: The file opened in bytes to upload. The asset must be one \
+            of the supported file formats above.
+            name: The new name of the asset.
+            description: The new description for the asset.
+            expected_robux_price: The amount of robux expected to update this \
+            asset. Will fail if lower than the actual price.
 
         Returns:
             Returns a [`Operation`][rblxopencloud.Operation] for the asset \
             update operation where `T` is an [`Asset`][rblxopencloud.Asset].
-        
-        Raises:
-            InvalidAsset: The file is either an unsupported type, uploaded as \
-            the wrong type, or has been corrupted.
-            ModeratedText: The name or description was filtered.
-            InvalidKey: The API key isn't valid, doesn't have access to \
-            upload assets, or is from an invalid IP address.
-            RateLimited: You've exceeded the rate limits.
-            ServiceUnavailable: The Roblox servers ran into an error, or are \
-            unavailable right now.
-            rblx_opencloudException: Roblox returned an unexpected error.
-        
-        !!! danger
-            Avoid uploading assets to Roblox that you don't have full control \
-            over, such as AI generated assets or content created by unknown \
-            people. Assets uploaded that break Roblox's Terms of Services can \
-            get your account moderated.
-
-            For OAuth2 developers, it has been confirmed by Roblox staff [in \
-            this DevForum post](https://devforum.roblox.com/t/2401354/36), \
-            that your app will not be punished if a malicious user uses it to \
-            upload Terms of Service violating content, and instead the \
-            authorizing user's account will be punished.
         """
 
-        payload = {
-            "assetId": asset_id
-        }
+        payload, field_mask = {
+            "assetId": asset_id,
+            "creationContext": {
+                "expectedPrice": expected_robux_price
+            },
+            "displayName": name,
+            "description": description
+        }, []
 
-        body, contentType = urllib3.encode_multipart_formdata({
-            "request": json.dumps(payload),
-            "fileContent": (file.name, file.read(), ASSET_MIME_TYPES.get(
-                file.name.split(".")[-1]))
-        })
+        if name: field_mask.append("displayName")
+        if description: field_mask.append("description")
 
-        status, data, _ = send_request("PATCH", f"assets/v1/assets/{asset_id}",
-            authorization=self.__api_key, data=body,
-            headers={"content-type": contentType}, expected_status=[200, 400]
+        if file:
+            body, contentType = urllib3.encode_multipart_formdata({
+                "request": json.dumps(payload),
+                "fileContent": (file.name, file.read(), ASSET_MIME_TYPES.get(
+                    file.name.split(".")[-1]))
+            })
+        else:
+            body, contentType = urllib3.encode_multipart_formdata({
+                "request": json.dumps(payload)
+            })
+
+        status, data, _ = send_request(
+            "PATCH", f"assets/v1/assets/{asset_id}",
+            authorization=self.__api_key, expected_status=[200, 400],
+            headers={"content-type": contentType}, data=body,
+            params={"updateMask": ",".join(field_mask)}
         )
         
         if status == 400:
@@ -384,25 +366,68 @@ class Creator():
     
     def list_asset_versions(
             self, asset_id: int, limit: Optional[int]=None
-        ) -> Iterable[Asset]:
+        ) -> Iterable[AssetVersion]:
         """
+        Iterates all avaliable versions of the asset, providing the latest \
+        version first.
+
+        Args:
+            asset_id: The ID of the asset to find versions for.
+            limit: The maximum number of versions to return.
+        
+        Yields:
+            An asset version for each version of the asset.
         """
         
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            _, data, _ = send_request("GET",
-                f"assets/v1/assets/{asset_id}/versions", params={
-                    "maxPageSize":
-                        limit-yields if limit and limit-yields <= 50 else 50,
-                    "pageToken": nextcursor if nextcursor else None
-                }, authorization=self.__api_key, expected_status=[200]
-            )
+        for entry in iterate_request(
+            "GET", f"assets/v1/assets/{asset_id}/versions", params={
+                "maxPageSize": limit if limit and limit <= 50 else 50,
+            }, authorization=self.__api_key, expected_status=[200],
+            data_key="assetVersions", cursor_key="pageToken"
+        ):
+            yield AssetVersion(entry, self)
+    
+    def fetch_asset_version(
+            self, asset_id: int, version_number: int
+        ) -> AssetVersion:
+        """
+        Fetches the version for a specific version number of the asset.
 
-            for version in data["assetVersions"]:
-                yields += 1
-                yield AssetVersion(version, self)
-                if limit and yields >= limit: break
-            
-            nextcursor = data.get("nextPageToken")
-            if not nextcursor: break
+        Args:
+            asset_id: The ID of the asset to find the version for.
+            version_number: The version number to find.
+        
+        Returns:
+            The found asset version.
+        """
+        
+        _, data, _ = send_request(
+            "GET", f"assets/v1/assets/{asset_id}/versions/{version_number}",
+            authorization=self.__api_key, expected_status=[200]
+        )
+
+        return AssetVersion(data)
+
+    def rollback_asset(
+        self, asset_id: int, version_number: int
+    ) -> AssetVersion:
+        """
+        Reverts the asset to a previous version specified.
+
+        Args:
+            asset_id: The ID of the asset to rollback.
+            version_number: The version number to rollback to.
+        
+        Returns:
+            The new asset version.
+        """
+
+        _, data, _ = send_request(
+            "POST", f"assets/v1/assets/{asset_id}/versions:rollback",
+            authorization=self.__api_key, expected_status=[200],
+            json={
+                "assetVersion": f"assets/{asset_id}/versions/{version_number}"
+            }
+        )
+
+        return AssetVersion(data)
