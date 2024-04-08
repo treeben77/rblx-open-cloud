@@ -29,7 +29,7 @@ import urllib3
 
 from dateutil import parser
 
-from .exceptions import InvalidAsset, ModeratedText, rblx_opencloudException
+from .exceptions import HttpException, InvalidAsset, ModeratedText
 from .http import iterate_request, Operation, send_request
 
 if TYPE_CHECKING:
@@ -288,7 +288,7 @@ class Creator():
             if data["message"] == "AssetDescription is moderated.":
                 raise ModeratedText(f"The asset's description was moderated.")
             
-            raise rblx_opencloudException(
+            raise HttpException(
                 body["message"] if type(body) == dict else body
             )
 

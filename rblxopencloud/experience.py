@@ -66,12 +66,12 @@ class ExperienceSocialLink():
     Represents a social link in an experience.
     
     Args:
-        title (str): The text displayed for the social link.
-        uri (str): The URI of the social link.
+        title: The text displayed for the social link.
+        uri: The URI of the social link.
 
     Attributes:
-        title (str): The text displayed for the social link.
-        uri (str): The URI of the social link.
+        title: The text displayed for the social link.
+        uri: The URI of the social link.
     """
 
     def __init__(self, title: str, uri: str) -> None:
@@ -81,7 +81,7 @@ class ExperienceSocialLink():
     def __repr__(self) -> str:
         return f"<rblxopencloud.ExperienceSocialLink uri=\"{self.uri}\">"
 
-exeperience_age_rating_strings = {
+EXPERIENCE_AGE_RATING_STRINGS = {
     "AGE_RATING_UNSPECIFIED": ExperienceAgeRating.Unspecified,
     "AGE_RATING_ALL": ExperienceAgeRating.AllAges,
     "AGE_RATING_9_PLUS": ExperienceAgeRating.NinePlus,
@@ -92,19 +92,15 @@ exeperience_age_rating_strings = {
 class Place():
     """
     Represents a place within an experience on Roblox.
-    
-    !!! warning
-        This class isn't designed to be created by users. It is returned by \
-        [`Experience.get_place()`][rblxopencloud.Experience.get_place].
-    
+        
     Attributes:
-        id (int): The place's ID.
-        experience (Experience): The experience this place is a part of.
-        name (str): The place's name.
-        description (str): The place's description.
-        created_at (datetime): The time the place was created.
-        updated_at (datetime): The time the place was last updated.
-        server_size (str): The number of players the can be in a single server.
+        id: The place's ID.
+        experience: The experience this place is a part of.
+        name: The place's name.
+        description: The place's description.
+        created_at: The time the place was created.
+        updated_at: The time the place was last updated.
+        server_size: The number of players the can be in a single server.
     """
 
     def __init__(self, id, data, api_key, experience) -> None:
@@ -134,6 +130,8 @@ experience={repr(self.experience)}>"
         self.created_at = parser.parse(data["createTime"])
         self.updated_at = parser.parse(data["updateTime"])
         self.server_size = data["serverSize"]
+
+        return self
     
     def fetch_info(self) -> "Place":
         """
@@ -143,13 +141,12 @@ experience={repr(self.experience)}>"
             The place object with parameters filled.
         """
         
-        _, data, _ = send_request("GET",
-            f"cloud/v2/universes/{self.experience.id}/places/{self.id}",
+        _, data, _ = send_request(
+            "GET", f"cloud/v2/universes/{self.experience.id}/places/{self.id}",
             authorization=self.__api_key, expected_status=[200]
         )
 
-        self.__update_params(data)
-        return self
+        return self.__update_params(data)
     
     def update(
             self, name: str = None, description: str = None,
@@ -167,19 +164,15 @@ experience={repr(self.experience)}>"
             The place object with the empty parameters filled.
         """
 
-        payload, field_mask = {}, []
+        payload, field_mask = {
+            "displayName": name,
+            "description": description,
+            "serverSize": server_size
+        }, []
 
-        if name:
-            payload["displayName"] = name
-            field_mask.append("displayName")
-
-        if description:
-            payload["description"] = description
-            field_mask.append("description")
-
-        if server_size:
-            payload["serverSize"] = server_size
-            field_mask.append("serverSize")
+        if name: field_mask.append("displayName")
+        if description: field_mask.append("description")
+        if server_size: field_mask.append("serverSize")
         
         _, data, _ = send_request("PATCH",
             f"cloud/v2/universes/{self.experience.id}/places/{self.id}",
@@ -187,9 +180,7 @@ experience={repr(self.experience)}>"
             json=payload, params={"updateMask": ",".join(field_mask)}
         )
         
-        self.__update_params(data)
-
-        return self
+        return self.__update_params(data)
     
     def upload_place_file(
             self, file: io.BytesIO, publish: bool = False
@@ -205,10 +196,12 @@ experience={repr(self.experience)}>"
             The place's new version ID.
         """
 
-        _, data, _ = send_request("POST",
-            f"universes/v1/{self.experience.id}/places/{self.id}/versions",
+        _, data, _ = send_request(
+            "POST", f"universes/v1/{self.experience.id}/places/{self.id}\
+/versions",
             authorization=self.__api_key, expected_status=[200],
-            headers={"content-type": "application/octet-stream"}, params={
+            headers={"content-type": "application/octet-stream"},
+            params={
                 "versionType": "Published" if publish else "Saved"
             }, data=file.read()
         )
@@ -350,9 +343,10 @@ class Experience():
         
         self.public = data["visibility"] == "PUBLIC"
         self.voice_chat_enabled = data["voiceChatEnabled"]
-        self.private_server_price = data.get("privateServerPriceRobux",)
-        self.age_rating = exeperience_age_rating_strings.get(
-            data["ageRating"], ExperienceAgeRating.Unknown)
+        self.private_server_price = data.get("privateServerPriceRobux")
+        self.age_rating = EXPERIENCE_AGE_RATING_STRINGS.get(
+            data["ageRating"], ExperienceAgeRating.Unknown
+        )
 
         self.facebook_social_link = ExperienceSocialLink(
             data["facebookSocialLink"]["title"],
@@ -394,6 +388,8 @@ class Experience():
         self.tablet_enabled = data["tabletEnabled"]
         self.console_enabled = data["consoleEnabled"]
         self.vr_enabled = data["vrEnabled"]
+
+        return self
     
     def fetch_info(self) -> "Experience":
         """
@@ -404,12 +400,12 @@ class Experience():
             The experience object with parameters filled.
         """
 
-        _, data, _ = send_request("GET", f"cloud/v2/universes/{self.id}",
+        _, data, _ = send_request(
+            "GET", f"cloud/v2/universes/{self.id}",
             expected_status=[200], authorization=self.__api_key
         )
 
-        self.__update_params(data)
-        return self
+        return self.__update_params(data)
     
     def update(
             self, voice_chat_enabled: bool = None,
@@ -454,21 +450,31 @@ class Experience():
             start place.
         """
 
-        payload, field_mask = {}, []
+        payload, field_mask = {
+            "voiceChatEnabled": voice_chat_enabled,
+            "desktopEnabled": desktop_enabled,
+            "mobileEnabled": mobile_enabled,
+            "tabletEnabled": tablet_enabled,
+            "consoleEnabled": console_enabled,
+            "vrEnabled": vr_enabled
+        }, []
 
-        if voice_chat_enabled != None:
-            payload["voiceChatEnabled"] = voice_chat_enabled
-            field_mask.append("voiceChatEnabled")
+        # if the key values are not None then add them to the field mask
+        if voice_chat_enabled != None: field_mask.append("voiceChatEnabled")
+        if desktop_enabled != None: field_mask.append("desktopEnabled")
+        if mobile_enabled != None: field_mask.append("mobileEnabled")
+        if tablet_enabled != None: field_mask.append("tabletEnabled")
+        if console_enabled != None: field_mask.append("consoleEnabled")
+        if vr_enabled != None: field_mask.append("vrEnabled")
 
         if private_server_price != None:
             if private_server_price == True: raise ValueError(
                 "private_server_robux_price should be either int or False."
             )
 
+            # omit the private server price field if False to disable them.
             if type(private_server_price) == int:
-                payload["privateServerPriceRobux"] = (
-                    private_server_price
-                )
+                payload["privateServerPriceRobux"] = private_server_price
             
             field_mask.append("privateServerPriceRobux")
 
@@ -496,24 +502,14 @@ class Experience():
                 else:
                     # any social link is being removed
                     field_mask.append(f"{platform}SocialLink")
-
-        for platform, value in {
-            "desktop": desktop_enabled, "mobile": mobile_enabled,
-            "tablet": tablet_enabled, "console": console_enabled,
-            "vr": vr_enabled
-        }.items():
-            if value != None:
-                payload[f"{platform}Enabled"] = value
-                field_mask.append(f"{platform}Enabled")
-        
-        _, data, _ = send_request("PATCH",
-            f"cloud/v2/universes/{self.id}",
+                
+        _, data, _ = send_request(
+            "PATCH", f"cloud/v2/universes/{self.id}",
             authorization=self.__api_key, expected_status=[200],
             params={"updateMask": ",".join(field_mask)}, json=payload
         )
 
-        self.__update_params(data)
-        return self
+        return self.__update_params(data)
     
     def get_place(self, place_id: int) -> Place:
         """
@@ -582,10 +578,12 @@ class Experience():
             experience.
         """
         
-        for entry in iterate_request("GET",
-            f"datastores/v1/universes/{self.id}/standard-datastores",
+        for entry in iterate_request(
+            "GET", f"datastores/v1/universes/{self.id}/standard-datastores",
             authorization=self.__api_key, expected_status=[200],
-            params={"prefix": prefix},
+            params={
+                "prefix": prefix
+            },
             max_yields=limit, data_key="datastores", cursor_key="cursor"
         ):
             yield DataStore(entry["name"], self, self.__api_key,
@@ -603,6 +601,7 @@ class Experience():
         Returns:
             The sorted map with the provided name.
         """
+        
         return SortedMap(name, self, self.__api_key)
     
     def get_memory_store_queue(self, name: str) -> MemoryStoreQueue:
@@ -617,6 +616,7 @@ class Experience():
         Returns:
             The memory store queue with the provided name.
         """
+        
         return MemoryStoreQueue(name, self, self.__api_key)
     
     def publish_message(self, topic: str, data: str) -> None:
@@ -637,14 +637,16 @@ classes/MessagingService).
 
         topic = urllib.parse.quote(topic)
 
-        send_request("POST",
-            f"messaging-service/v1/universes/{self.id}/topics/{topic}",
-            authorization=self.__api_key, expected_status=[200], json={
+        send_request(
+            "POST", f"messaging-service/v1/universes/{self.id}/topics/{topic}",
+            authorization=self.__api_key, expected_status=[200],
+            json={
                 "message": data
             }
         )
         
-    def send_notification(self, user_id: int, message_id: str, 
+    def send_notification(
+            self, user_id: int, message_id: str, 
             launch_data: str = None, analytics_category: str = None,
             **message_variables: dict[str, Union[str, int]]
         ) -> None:
@@ -667,9 +669,10 @@ classes/MessagingService).
                 "int64_value" if type(value) == int else "string_value": value
             }
         
-        send_request("POST",
-            f"cloud/v2/users/{user_id}/notifications",
-            authorization=self.__api_key, expected_status=[200], json={
+        send_request(
+            "POST", f"cloud/v2/users/{user_id}/notifications",
+            authorization=self.__api_key, expected_status=[200],
+            json={
                 "source": {
                     "universe": f"universes/{self.id}"
                 },
@@ -694,8 +697,8 @@ classes/MessagingService).
         button on the game page.
         """
 
-        send_request("POST",
-            f"cloud/v2/universes/{self.id}:restartServers",
+        send_request(
+            "POST", f"cloud/v2/universes/{self.id}:restartServers",
             authorization=self.__api_key, expected_status=[200]
         )
 

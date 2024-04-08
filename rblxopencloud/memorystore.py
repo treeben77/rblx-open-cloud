@@ -6,11 +6,9 @@ import urllib.parse
 from dateutil import parser
 
 from .exceptions import (
-    InvalidKey,
-    PreconditionFailed,
-    RateLimited,
-    rblx_opencloudException,
-    ServiceUnavailable
+    HttpException,
+    NotFound,
+    PreconditionFailed
 )
 from .http import iterate_request, send_request
 
@@ -209,13 +207,13 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
             if exclusive_update:
                 raise PreconditionFailed(None, None, data["message"])
         
-            raise rblx_opencloudException(data["message"])
+            raise NotFound(data["message"])
 
         if status == 409:
             if data["error"] == "ALREADY_EXISTS":
                 raise PreconditionFailed(None, None, data["message"])
             
-            raise rblx_opencloudException(data["message"])
+            raise HttpException(data["message"])
 
         if not data.get("id"):
             data["id"] = key

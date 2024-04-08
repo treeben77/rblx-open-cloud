@@ -37,11 +37,10 @@ from cryptography.hazmat.primitives.serialization import (
 )
 
 from .exceptions import (
+    BaseException,
+    HttpException,
     InvalidCode,
-    InvalidKey,
-    InsufficientScope,
-    rblx_opencloudException,
-    ServiceUnavailable
+    InsufficientScope
 )
 from .experience import Experience
 from .http import send_request
@@ -123,7 +122,7 @@ class PartialAccessToken():
                     data["scope"],
                     f"Access token missing required scope:'{data['scope']}'"
                 )
-            raise InvalidKey("The key has expired, been revoked or is invalid")
+            raise HttpException("The key has expired, been revoked or is invalid")
         
         user = User(data.get("id") or data.get("sub"), f"Bearer {self.token}")
         user.username = data.get("preferred_username")
@@ -155,7 +154,7 @@ class PartialAccessToken():
                     data["scope"],
                     f"Access token missing required scope: '{data['scope']}'"
                 )
-            raise InvalidKey("The key has expired, been revoked or is invalid")
+            raise HttpException(401)
 
         experiences = []
         accounts = []
@@ -202,7 +201,7 @@ class PartialAccessToken():
             if data["error"] == "insufficient_scope":
                 raise InsufficientScope(data["scope"],
                 f"Access token missing required scope: '{data['scope']}")
-            raise InvalidKey("The key has expired, been revoked or is invalid")
+            raise HttpException(401)
         
         return AccessTokenInfo(data)
     
@@ -287,7 +286,7 @@ redirect_uri=\"{self.redirect_uri}\")"
     def __refresh_openid_certs_cache(self):
         certs_status, certs, _ = send_request("GET", "/oauth/v1/certs")
         if certs_status != 200:
-            raise ServiceUnavailable("Failed to retrieve OpenID certs")
+            raise HttpException("Failed to retrieve OpenID certs")
 
         self.__openid_certs_cache = []
         self.__openid_certs_cache_updated = time.time()
@@ -433,7 +432,7 @@ redirect_uri=\"{self.redirect_uri}\")"
                         audience=str(self.id)
                     )
                     break
-                except(AttributeError): raise rblx_opencloudException(
+                except(AttributeError): raise BaseException(
                     "jwt and PyJWT installed. Please uninstall jwt."
                 )
                 except(jwt.exceptions.PyJWTError): pass

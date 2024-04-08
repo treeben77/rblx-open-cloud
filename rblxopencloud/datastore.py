@@ -27,7 +27,7 @@ import urllib.parse
 
 from dateutil import parser
 
-from .exceptions import rblx_opencloudException, NotFound, PreconditionFailed
+from .exceptions import HttpException, NotFound, PreconditionFailed
 from .http import send_request, iterate_request
 
 if TYPE_CHECKING:
@@ -435,7 +435,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             if data["message"] == "Invalid version id.":
                 raise NotFound(data["message"])
             else:
-                raise rblx_opencloudException(data["message"])
+                raise HttpException(data["message"])
         
         if headers.get("roblox-entry-attributes"):
             metadata = json.loads(headers["roblox-entry-attributes"])
@@ -603,7 +603,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             if data["message"] == "Entry already exists.":
                 raise PreconditionFailed(None, None, data["message"])
             else:
-                raise rblx_opencloudException(data["message"])
+                raise HttpException(data["message"])
         
         if (
             status_code == 404 and exclusive_update and
@@ -643,7 +643,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             raise ValueError("Entry value outside of bounds.")
         
         if status_code == 409:
-            raise rblx_opencloudException(f"Unexpected HTTP {status_code}")
+            raise HttpException(f"Unexpected HTTP {status_code}")
         
         return int(data["value"])
 
