@@ -158,7 +158,7 @@ class DataStore():
         cursor_key="cursor", data_key="keys"):
             yield ListedEntry(entry["key"], entry["scope"])
     
-    def get(self, key: str
+    def get_entry(self, key: str
         ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key in the scope and datastore.
@@ -195,7 +195,7 @@ class DataStore():
             headers["roblox-entry-created-time"],
             headers["roblox-entry-version-created-time"], userids, metadata)
 
-    def set(self, key: str, value: Union[str, dict, list, int, float],
+    def set_entry(self, key: str, value: Union[str, dict, list, int, float],
             users: Optional[list[int]]=None, metadata: dict={},
             exclusive_create: bool=False, previous_version: Optional[str]=None
         ) -> EntryVersion:
@@ -272,7 +272,7 @@ class DataStore():
             self.scope if self.scope else scope
         )
 
-    def increment(self, key: str, delta: Union[int, float],
+    def increment_entry(self, key: str, delta: Union[int, float],
             users: Optional[list[int]]=None, metadata:dict={}
         ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
@@ -321,7 +321,7 @@ class DataStore():
             headers["roblox-entry-created-time"],
             headers["roblox-entry-version-created-time"], userids, metadata)
     
-    def remove(self, key: str) -> None:
+    def remove_entry(self, key: str) -> None:
         """
         Removes the value of a key from the datastore and scope.
         
