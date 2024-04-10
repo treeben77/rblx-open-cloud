@@ -25,7 +25,7 @@ from typing import Literal
 import requests
 
 VERSION: str = "2.0.0"
-VERSION_INFO: Literal['alpha', 'beta', 'final'] = "beta"
+VERSION_INFO: Literal['alpha', 'beta', 'final'] = "alpha"
 DEBUG: bool = VERSION_INFO == "alpha"
 
 user_agent: str = f"rblx-open-cloud/{VERSION} \
