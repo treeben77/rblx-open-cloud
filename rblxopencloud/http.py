@@ -117,7 +117,7 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
     else:
         body = response.text
 
-    if DEBUG:
+    if DEBUG == True:
         print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
 
     if expected_status and not response.status_code in expected_status:
