@@ -99,19 +99,16 @@ class Asset():
     Represents an asset uploaded by a [`Creator`][rblxopencloud.Creator].
 
     Attributes:
-        id (int): The asset's ID.
-        name (str): The filtered name of the asset.
-        description (str): The filtered description of the asset.
-        type (AssetType): The asset's type.
-        creator (Union[Creator, User, Group]): The user, group, or creator\
-        which uploaded the asset.
-        moderation_status (ModerationStatus): The asset's current moderation\
-        status.
-        revision_id (Optional[int]): The ID of the current revision of the\
-        asset. *Will be `None` if the asset type does not support updating.*
-        revision_time (Optional[datetime]): The time the current\
-        revision of the asset was created. *Will be `None` if the asset type\
-        does not support updating.*
+        id: The asset's ID.
+        name: The filtered name of the asset.
+        description: The filtered description of the asset.
+        type: The asset's type.
+        creator: The user, group, or creator which uploaded the asset.
+        moderation_status: The asset's current moderation status.
+        revision_id: The ID of the current revision of the asset. *Will be \
+        `None` if the asset type does not support updating.*
+        revision_time: The time the current revision of the asset was \
+        created. *Will be `None` if the asset type does not support updating.*
     """
     
     def __init__(self,  data: dict, creator) -> None:
@@ -121,11 +118,13 @@ class Asset():
         self.creator: Union[Creator, User, Group] = creator
         
         self.type: AssetType = ASSET_TYPE_ENUMS.get(
-            data.get("assetType"), AssetType.Unknown)
+            data.get("assetType"), AssetType.Unknown
+        )
         
         self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
             data.get("moderationResult", {}).get("moderationState"),
-            ModerationStatus.Unknown)
+            ModerationStatus.Unknown
+        )
         
         self.revision_id: Optional[int] = data.get("revisionId")
         self.revision_time: Optional[datetime] = (
@@ -134,7 +133,7 @@ class Asset():
         )
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.Asset id={self.id}, type={self.type}>"
+        return f"<rblxopencloud.Asset id={self.id} type={self.type}>"
 
 class AssetVersion():
     """
@@ -155,7 +154,8 @@ class AssetVersion():
 
         self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
             data.get("moderationResult", {}).get("moderationState"),
-            ModerationStatus.Unknown)
+            ModerationStatus.Unknown
+        )
     
     def __repr__(self) -> str:
         return f"<rblxopencloud.AssetVersion \
@@ -253,8 +253,10 @@ class Creator():
         """
 
         payload = {
-            "assetType": (asset_type.name if type(asset_type) == AssetType
-                            else asset_type),
+            "assetType": (
+                asset_type.name if type(asset_type) == AssetType
+                else asset_type
+            ),
             "creationContext": {
                 "creator": {
                     "userId": str(self.id),
@@ -269,13 +271,16 @@ class Creator():
 
         body, contentType = urllib3.encode_multipart_formdata({
             "request": json.dumps(payload),
-            "fileContent": (file.name, file.read(), ASSET_MIME_TYPES.get(
-                file.name.split(".")[-1]))
+            "fileContent": (
+                file.name, file.read(),
+                ASSET_MIME_TYPES.get(file.name.split(".")[-1])
+            )
         })
         
-        status, data, _ = send_request("POST", f"assets/v1/assets",
-            authorization=self.__api_key, data=body,
-            headers={"content-type": contentType}, expected_status=[200, 400]
+        status, data, _ = send_request(
+            "POST", f"assets/v1/assets",
+            authorization=self.__api_key, expected_status=[200, 400],
+            headers={"content-type": contentType}, data=body
         )
         
         if status == 400:
@@ -292,8 +297,9 @@ class Creator():
                 body["message"] if type(body) == dict else body
             )
 
-        return Operation(f"assets/v1/{data['path']}", self.__api_key,
-            Asset, creator=self)
+        return Operation(
+            f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
+        )
             
     def update_asset(
             self, asset_id: int, file: io.BytesIO = None, name: str = None,
@@ -336,8 +342,10 @@ class Creator():
         if file:
             body, contentType = urllib3.encode_multipart_formdata({
                 "request": json.dumps(payload),
-                "fileContent": (file.name, file.read(), ASSET_MIME_TYPES.get(
-                    file.name.split(".")[-1]))
+                "fileContent": (
+                    file.name, file.read(),
+                    ASSET_MIME_TYPES.get(file.name.split(".")[-1])
+                )
             })
         else:
             body, contentType = urllib3.encode_multipart_formdata({
@@ -361,8 +369,9 @@ class Creator():
             if data["message"] == "AssetDescription is moderated.":
                 raise ModeratedText(f"The asset's description was moderated.")
         
-        return Operation(f"assets/v1/{data['path']}", self.__api_key,
-            Asset, creator=self)
+        return Operation(
+            f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
+        )
     
     def list_asset_versions(
             self, asset_id: int, limit: int = None

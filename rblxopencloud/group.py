@@ -114,7 +114,7 @@ class GroupRolePermissions():
         self.manage_api_keys: bool = permissions["manageApiKeys"]
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.GroupRolePermissions>"
+        return "<rblxopencloud.GroupRolePermissions>"
 
 class GroupRole():
     """
@@ -144,7 +144,7 @@ class GroupRole():
             GroupRolePermissions(role["permissions"])
             if role.get("permissions") else None
         )
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.GroupRole id={self.id} name=\"{self.name}\" \
 rank={self.rank})>"
@@ -281,7 +281,7 @@ class Group(Creator):
         super().__init__(id, api_key, "Group")
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.Group({self.id})"
+        return f"<rblxopencloud.Group id={self.id}>"
     
     def fetch_info(self) -> "Group":
         """
@@ -289,8 +289,10 @@ class Group(Creator):
         with the group info.
         """
 
-        _, data, _ = send_request("GET", f"cloud/v2/groups/{self.id}",
-            authorization=self.__api_key, expected_status=[200])
+        _, data, _ = send_request(
+            "GET", f"cloud/v2/groups/{self.id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
 
         self.name = data["displayName"]
         self.description = data["description"]
@@ -429,14 +431,14 @@ class Group(Creator):
             user who has requested to join.
         """
 
-        for entry in iterate_request("GET",
-                f"cloud/v2/groups/{self.id}/join-requests",
-                authorization=self.__api_key, params={
-                    "maxPageSize": limit if limit and limit <= 100 else 100,
-                    "filter": f"user == 'users/{user_id}'" if user_id else None
-                }, data_key="groupJoinRequests", cursor_key="nextPageToken",
-                max_yields=limit, expected_status=[200]
-            ):
+        for entry in iterate_request(
+            "GET", f"cloud/v2/groups/{self.id}/join-requests",
+            authorization=self.__api_key, expected_status=[200], params={
+                "maxPageSize": limit if limit and limit <= 100 else 100,
+                "filter": f"user == 'users/{user_id}'" if user_id else None
+            }, data_key="groupJoinRequests", cursor_key="nextPageToken",
+            max_yields=limit
+        ):
             yield GroupJoinRequest(entry, self.__api_key)
 
     def fetch_shout(self) -> GroupShout:

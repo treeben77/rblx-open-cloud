@@ -536,7 +536,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         cursor_key="page_token", data_key="entries"):
             yield SortedEntry(entry["id"], entry["value"], self.scope)
     
-    def get(self, key: str) -> int:
+    def get_entry(self, key: str) -> int:
         """
         Gets the value of a key.
         
@@ -557,7 +557,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         
         return int(data["value"])
         
-    def set(self, key: str, value: int, exclusive_create: bool=False,
+    def set_entry(self, key: str, value: int, exclusive_create: bool=False,
             exclusive_update: bool=False) -> int:
         """
         Sets the value of a key.
@@ -613,7 +613,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
 
         return int(data["value"])
 
-    def increment(self, key: str, delta: int) -> None:
+    def increment_entry(self, key: str, delta: int) -> None:
         """
         Increments the value of a key.
         
@@ -630,9 +630,9 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         )
 
         status_code, data, _ = send_request("POST", f"ordered-data-stores/v1/\
-            universes/{self.experience.id}/orderedDataStores/\
-            {urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}\
-            /entries/{urllib.parse.quote(key)}:increment",
+universes/{self.experience.id}/orderedDataStores/\
+{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}\
+/entries/{urllib.parse.quote(key)}:increment",
             authorization=self.__api_key, expected_status=[200, 409], json={
                 "amount": delta
             })
@@ -647,7 +647,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         
         return int(data["value"])
 
-    def remove(self, key: str) -> None:
+    def remove_entry(self, key: str) -> None:
         """
         Removes a key.
         
@@ -662,9 +662,9 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             "'scope/key' syntax expected for key."
         )
 
-        send_request("DELETE", f"ordered-data-stores/v1/universes/\
+        send_request(
+            "DELETE", f"ordered-data-stores/v1/universes/\
 {self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/\
 {urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
-            authorization=self.__api_key, expected_status=[200, 204])
-        
-        return None
+            authorization=self.__api_key, expected_status=[200, 204]
+        )

@@ -207,13 +207,23 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
             if exclusive_update:
                 raise PreconditionFailed(None, None, data["message"])
         
-            raise NotFound(data["message"])
+            raise NotFound(
+                (
+                    data.get("message", json.dumps(data))
+                    if type(data) == dict else data
+                ) if data else 404
+            )
 
         if status == 409:
             if data["error"] == "ALREADY_EXISTS":
                 raise PreconditionFailed(None, None, data["message"])
             
-            raise HttpException(data["message"])
+            raise HttpException(
+                (
+                    data.get("message", json.dumps(data))
+                    if type(data) == dict else data
+                ) if data else 409
+            )
 
         if not data.get("id"):
             data["id"] = key

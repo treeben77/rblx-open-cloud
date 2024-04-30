@@ -24,7 +24,7 @@ import json
 import time
 from typing import Optional, Union, TypeVar, Generic, Callable
 
-from . import http_session, user_agent, DEBUG
+from . import http_session, user_agent, VERSION_INFO
 from .exceptions import (
     Forbidden,
     HttpException,
@@ -117,7 +117,7 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
     else:
         body = response.text
 
-    if DEBUG == True:
+    if VERSION_INFO == "alpha":
         print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
 
     if expected_status and not response.status_code in expected_status:
