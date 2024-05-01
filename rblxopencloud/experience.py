@@ -41,6 +41,174 @@ __all__ = (
     "Place"
 )
 
+class Platform(Enum):
+    """
+    Enum representing a platform, currently used for \
+    [`Subscription`][rblxopencloud.Subscription].
+    
+    Attributes:
+        Unknown (0): The platform is unknown or not specified. 
+        Desktop (1):
+        Mobile (2): 
+    """
+
+    Unknown = 0
+    Desktop = 1
+    Mobile = 2
+
+PLATFORM_STRINGS = {
+    "DESKTOP": Platform.Desktop,
+    "MOBILE": Platform.Mobile
+}
+
+class PaymentProvider(Enum):
+    """
+    Enum representing a payment provider, currently used for \
+    [`Subscription`][rblxopencloud.Subscription].
+    
+    Attributes:
+        Unknown (0): The provider is unknown or not specified. 
+        RobloxCredit (1):
+        Stripe (2): 
+        Google (3): 
+        Apple (4): 
+    """
+
+    Unknown = 0
+    RobloxCredit = 1
+    Stripe = 2
+    Google = 3
+    Apple = 4
+
+PAYMENT_PROVIDER_STRINGS = {
+    "ROBLOX_CREDIT": PaymentProvider.RobloxCredit,
+    "STRIPE": PaymentProvider.Stripe,
+    "GOOGLE": PaymentProvider.Google,
+    "APPLE": PaymentProvider.Apple,
+}
+
+class SubscriptionState(Enum):
+    """
+    Enum representing the current state of a \
+    [`Subscription`][rblxopencloud.Subscription].
+
+    Attributes:
+        Unknown (0): The current state is unknown or unspecified.
+        Active (1): The subscription is active and set to renew.
+        PendingCancelation (2): The subscription is active but will not renew.
+        PendingRenewal (3): The subscription is currently in the grace period \
+        and pending payment confirmation.
+        Expired (4): The subscription has expired.
+    """
+    
+    Unknown = 0
+    Active = 1
+    PendingCancelation = 2
+    PendingRenewal = 3
+    Expired = 4
+
+SUBSCRIPTION_STATE_STRINGS = {
+    "SUBSCRIBED_WILL_RENEW": SubscriptionState.Active,
+    "SUBSCRIBED_WILL_NOT_RENEW": SubscriptionState.PendingCancelation,
+    "SUBSCRIBED_RENEWAL_PAYMENT_PENDING": SubscriptionState.PendingRenewal,
+    "EXPIRED": SubscriptionState.Expired
+}
+
+class SubscriptionExpirationReason(Enum):
+    """
+    Enum representing the reason why a \
+    [`Subscription`][rblxopencloud.Subscription] expired.
+    
+    Attributes:
+        Unknown (0): The expiration reason is unknown or not specified. 
+        Cancelled (1): The subscribing user cancelled the subscription.
+        Refunded (2): The subscribing user requested a refund for the \
+        subscription.
+        Lapsed (3): Payment was not recieved when the subscription was renewed.
+        ProductInactive (4): The subscription product was set to inactive.
+        ProductDeleted (5): The subscription product was deleted.
+    """
+
+    Unknown = 0
+    Cancelled = 1
+    Refunded = 2
+    Lapsed = 3
+    ProductInactive = 4
+    ProductDeleted = 5
+
+SUBSCRIPTION_EXPIRATION_REASON_STRINGS = {
+    "PRODUCT_INACTIVE": SubscriptionExpirationReason.ProductInactive,
+    "PRODUCT_DELETED": SubscriptionExpirationReason.ProductDeleted,
+    "SUBSCRIBER_CANCELLED": SubscriptionExpirationReason.Cancelled,
+    "SUBSCRIBER_REFUNDED": SubscriptionExpirationReason.Refunded,
+    "LAPSED": SubscriptionExpirationReason.Lapsed
+}
+
+class Subscription():
+    """
+    Represents a subscription to a subscription product.
+
+    Attributes:
+        user_id: The user ID, or the subscription ID of this subscription.
+        product_id: The ID of the subscription product.
+        active: Wether the subscription is currently active (not expired).
+        will_renew: Wether the subscription will renew after `period_end_at`.
+        state: The subscriptions's current state.
+        created_at: The time the subscription was created at (subscribed at).
+        updated_at: The time the subscription was last updated at.
+        last_billed_at: The time the user last payed for the subscription.
+        period_end_at: The time the current billing period ends at. If active \
+        this is when the subscription will renew at and if not active is when \
+        the subscription will expire at.
+        payment_provider: The user's payment provider for this subscription.
+        purchase_platform: The platform the subscription was started on.
+        expiration_reason: The reason the subscription expired.
+    """
+    
+    def __init__(self, data) -> None:
+        self.user_id: int = int(data["path"].split("/")[5])
+        self.product_id: str = data["path"].split("/")[3]
+
+        self.active: bool = data["active"]
+        self.will_renew: bool = data["willRenew"]
+        self.state: SubscriptionState = SUBSCRIPTION_STATE_STRINGS.get(
+            data["state"], SubscriptionState.Unknown
+        )
+
+        self.created_at: datetime = parser.parse(data["createTime"])
+        self.updated_at: datetime = parser.parse(data["updateTime"])
+        self.last_billed_at: datetime = parser.parse(data["lastBillingTime"])
+        self.period_end_at: datetime = (
+            parser.parse(data["expireTime"]) if data.get("expireTime") else
+            parser.parse(data["nextRenewTime"])
+        )
+
+        self.payment_provider: PaymentProvider = PAYMENT_PROVIDER_STRINGS.get(
+            data["paymentProvider"], PaymentProvider.Unknown
+        )
+
+        self.purchase_platform: Platform = PLATFORM_STRINGS.get(
+            data["purchasePlatform"], Platform.Unknown
+        )
+
+        # Only provide an expiration reason if expired or a reason is specified
+        self.expiration_reason: Optional[SubscriptionExpirationReason] = (
+            SUBSCRIPTION_EXPIRATION_REASON_STRINGS.get(
+                    data["expirationDetails"]["reason"],
+                    SubscriptionExpirationReason.Unknown
+                ) if (data.get("expirationDetails", {}).get("reason") and (
+                    self.state == SubscriptionState.Expired or (
+                        data["expirationDetails"]["reason"] !=
+                        "EXPIRATION_REASON_UNSPECIFIED"
+                    )
+                )
+            ) else None
+        )
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.Subscription user_id={self.user_id} \
+product_id=\"{self.product_id}\" state={self.state}>"
+
 class ExperienceAgeRating(Enum):
     """
     Enum representing the an experience's age rating.
@@ -722,3 +890,15 @@ classes/MessagingService).
             f"cloud/v2/universes/{self.id}/memory-store/operations/{op_id}",
             self.__api_key, True,
         )
+    
+    def fetch_subscription(
+            self, product_id: str, user_id: int
+        ) -> Subscription:
+
+        _, data, _ = send_request(
+            "GET", f"cloud/v2/universes/{self.id}/subscription-products/\
+{product_id}/subscriptions/{user_id}", params={"view": "FULL"},
+            authorization=self.__api_key, expected_status=[200]
+        )
+
+        return Subscription(data)
