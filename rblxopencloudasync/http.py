@@ -24,6 +24,8 @@ import json
 import time
 from typing import Optional, Union, TypeVar, Generic, Callable
 
+import aiohttp
+
 from . import http_session, user_agent, VERSION_INFO
 from .exceptions import (
     Forbidden,
@@ -40,7 +42,7 @@ __all__ = (
 
 T = TypeVar("T")
 
-def send_request(method: str, path: str, authorization: Optional[str]=None,
+async def send_request(method: str, path: str, authorization: Optional[str]=None,
         expected_status: Optional[list[int]]=None, retry_max_attempts: int=2,
         retry_interval_seconds: float=1, retry_interval_exponent: float=2,
         **kwargs
@@ -53,7 +55,7 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
     Example:
         This is an example to send a message with the messaging service API:
         ```py
-        status, data, headers = send_request(
+        status, data, headers = await await send_request(
             "POST", f"messaging-service/v1/universes/00000000/topics/{topic}",
             authorization="insert-api-key", json={
                 "message": "Hello World!"
@@ -108,6 +110,11 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         The `send_request` function may function slightly differently between \
         the `rblxopencloud` and `rblxopencloudasync` modules.
     """
+    
+    global http_session
+    if not http_session:
+        http_session = aiohttp.ClientSession()
+    
     headers = {
         "user-agent": user_agent,
         **kwargs.get('headers', {})
@@ -119,38 +126,40 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         headers["authorization" if authorization.startswith("Bearer ")
                 else "x-api-key"] = authorization
 
-    response = http_session.request(method, f"https://apis.roblox.com/{path}",
-                                    headers=headers, **kwargs, timeout=10)
+    response = await http_session.request(
+        method, f"https://apis.roblox.com/{path}",
+        headers=headers, **kwargs, timeout=10
+    )
 
     if 'application/json' in response.headers.get('Content-Type', ''):
-        body = response.json()
+        body = await response.json()
     else:
-        body = response.text
+        body = await response.text()
 
     if VERSION_INFO == "alpha":
-        print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
+        print(f"[DEBUG] {method} /{path} - {response.status}\n{body}")
 
-    if expected_status and not response.status_code in expected_status:
+    if expected_status and not response.status in expected_status:
         msg = (
             body.get("message", json.dumps(body))
             if type(body) == dict else body
         ) if body else None
 
-        if response.status_code == 400:
+        if response.status == 400:
             raise HttpException(msg or 400)
-        elif response.status_code == 401:
+        elif response.status == 401:
             raise HttpException(401)
-        elif response.status_code == 403:
+        elif response.status == 403:
             raise Forbidden()
-        elif response.status_code == 404:
+        elif response.status == 404:
             raise NotFound(msg or 404)
-        elif response.status_code == 429:
+        elif response.status == 429:
             raise RateLimited(msg or 429)
-        elif response.status_code >= 500:
+        elif response.status >= 500:
             if retry_max_attempts > 0:
                 time.sleep(retry_interval_seconds)
 
-                return send_request(
+                return await send_request(
                     method, path, authorization,
                     expected_status, retry_max_attempts-1,
                     retry_interval_seconds*retry_interval_exponent,
@@ -158,12 +167,12 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
                 )
             
             raise HttpException(500)
-        elif response.status_code not in expected_status:
-            raise HttpException(response.status_code)
+        elif response.status not in expected_status:
+            raise HttpException(response.status)
     
-    return response.status_code, body, response.headers
+    return response.status, body, response.headers
 
-def iterate_request(*args, data_key: str, cursor_key: str,
+async def iterate_request(*args, data_key: str, cursor_key: str,
                     
         max_yields: int = None, post_request_hook: Callable = None, **kwargs
     ):
@@ -175,7 +184,7 @@ def iterate_request(*args, data_key: str, cursor_key: str,
         if not kwargs.get("params"): kwargs["params"] = {}
         kwargs["params"][cursor_key] = next_cursor if next_cursor else None
 
-        status, data, headers = send_request(*args, **kwargs)
+        status, data, headers = await send_request(*args, **kwargs)
         if post_request_hook: post_request_hook(status, data, headers)
 
         for entry in data[data_key]:
@@ -212,7 +221,7 @@ class Operation(Generic[T]):
     def __repr__(self) -> str:
         return "<rblxopencloud.Operation>"
     
-    def fetch_status(self) -> Optional[T]:
+    async def fetch_status(self) -> Optional[T]:
         """
         Fetches the current status of the operation. If it is complete, it \
         returns the expected value, otherwise returns `None`.
@@ -224,7 +233,7 @@ class Operation(Generic[T]):
             HttpException: The request was not successful.
         """
         
-        _, body, _ = send_request("GET", self.__path, self.__api_key,
+        _, body, _ = await send_request("GET", self.__path, self.__api_key,
             expected_status=[200])
         if not body.get("done"): return None
 
@@ -236,7 +245,7 @@ class Operation(Generic[T]):
         else:
             return self.__return_type
         
-    def wait(
+    async def wait(
             self, timeout_seconds: Optional[float]=60,
             interval_seconds: float=0,
             interval_exponent: float=1.3
@@ -274,7 +283,7 @@ class Operation(Generic[T]):
 
         start_time = time.time()
         while True:
-            result = self.fetch_status()
+            result = await self.fetch_status()
             if result: return result
 
             if timeout_seconds and time.time() - start_time > timeout_seconds:

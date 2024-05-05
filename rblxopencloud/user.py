@@ -100,7 +100,7 @@ class InventoryAssetType(Enum):
     CreatedPlace = 51
     PurchasedPlace = 52
 
-asset_type_strings = {
+ASSET_TYPE_STRINGS = {
     "INVENTORY_ITEM_ASSET_TYPE_UNSPECIFIED": InventoryAssetType.Unknown,
     "CLASSIC_TSHIRT": InventoryAssetType.ClassicTShirt,
     "AUDIO": InventoryAssetType.Audio,
@@ -161,7 +161,7 @@ class InventoryItemState(Enum):
     Available = 1
     Hold = 2
 
-state_type_strings = {
+STATE_TYPE_STRINGS = {
     "COLLECTIBLE_ITEM_INSTANCE_STATE_UNSPECIFIED": InventoryItemState.Unknown,
     "AVAILABLE": InventoryItemState.Available,
     "HOLD": InventoryItemState.Hold
@@ -195,7 +195,7 @@ class InventoryAsset(InventoryItem):
     def __init__(self, data: dict) -> None:
         super().__init__(data["assetId"])
         self.type: InventoryAssetType = InventoryAssetType(
-            asset_type_strings.get(data["inventoryItemAssetType"],
+            ASSET_TYPE_STRINGS.get(data["inventoryItemAssetType"],
                                    InventoryAssetType.Unknown)
         )
         self.instance_id: int = data["instanceId"]
@@ -209,7 +209,7 @@ class InventoryAsset(InventoryItem):
         collectable_state = data.get("collectibleDetails", {}
             ).get("instanceState", None)
         self.collectable_state: Optional[InventoryItemState] = (
-            InventoryItemState(state_type_strings.get(collectable_state,
+            InventoryItemState(STATE_TYPE_STRINGS.get(collectable_state,
             InventoryItemState.Unknown)) if collectable_state else None
         )
 
@@ -487,8 +487,8 @@ class User(Creator):
             asset_types = []
             for asset_type in assets:
                 asset_types.append(
-                    list(asset_type_strings.keys())
-                    [list(asset_type_strings.values()).index(asset_type)]
+                    list(ASSET_TYPE_STRINGS.keys())
+                    [list(ASSET_TYPE_STRINGS.values()).index(asset_type)]
                 )
                 
             filter["inventoryItemAssetTypes"] = ",".join(asset_types)
