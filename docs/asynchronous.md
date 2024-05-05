@@ -1,9 +1,9 @@
 # Asynchronous
 
-!!! bug "Alpha Library"
+!!! bug "Alpha Feature"
     The asynchronous version of the library is currently in Alpha. If you find any issues with it please report it in the annoucement's thread in the [Discord server](https://discord.gg/zW36pJGFnh), or on the [GitHub issue tracker](https://github.com/treeben77/rblx-open-cloud/issues).
 
-If you're using rblx-open-cloud in an asynchronous context, such as with [discord.py](https://github.com/Rapptz/discord.py), or [ro.py](https://github.com/ro-py/ro.py), then it could be beneficial to use the aynchronous version of the library.
+If you're using rblx-open-cloud in an asynchronous context, such as with [discord.py](https://github.com/Rapptz/discord.py) or [ro.py](https://github.com/ro-py/ro.py), then it could be beneficial to use the aynchronous version of the library.
 
 ## Importing the Library
 
