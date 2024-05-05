@@ -50,19 +50,19 @@ Great! Now that you've created a data store, you can now access it's entrys.
 
 ### Getting Keys
 
-To get the value of a DataStore key, you can use [`DataStore.get`][rblxopencloud.DataStore.get]. The following code will get the value for `user_287113233` in the data store.
+To get the value of a DataStore key, you can use [`DataStore.get_entry`][rblxopencloud.DataStore.get_entry]. The following code will get the value for `user_287113233` in the data store.
 
 ```py
-value, info = datastore.get("user_287113233")
+value, info = datastore.get_entry("user_287113233")
 ```
 
-[`DataStore.get`][rblxopencloud.DataStore.get] returns a tuple of two items, the key's value, and an [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object. The value can be either `str`, `int`, `float`, `list`, or `dict`, and is the equivalent value in Roblox Lua. The [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object contains metadata about the DataStore key, such as the current version ID, when it was created and last updated, a list of user IDs for GDPR tracking, and the custom metadata, learn more about this on [Roblox's DataStore Guide](https://create.roblox.com/docs/cloud-services/datastores#metadata).
+[`DataStore.get_entry`][rblxopencloud.DataStore.get_entry] returns a tuple of two items, the key's value, and an [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object. The value can be either `str`, `int`, `float`, `list`, or `dict`, and is the equivalent value in Roblox Lua. The [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object contains metadata about the DataStore key, such as the current version ID, when it was created and last updated, a list of user IDs for GDPR tracking, and the custom metadata, learn more about this on [Roblox's DataStore Guide](https://create.roblox.com/docs/cloud-services/datastores#metadata).
 
 If the requested key does not exist, then this method will raise [`rblxopencloud.NotFound`][rblxopencloud.NotFound]. So, you should create a try block and deal with errors correctly, for example:
 
 ```py
 try:
-    value, info = datastore.get("user_287113233")
+    value, info = datastore.get_entry("user_287113233")
 except(rblxopencloud.NotFound):
     print("the key doesn't exist!")
 else:
@@ -80,10 +80,10 @@ If the data store's scope is `None` this will return keys from every scope. You 
 
 ### Changing Keys
 
-DataStore values can be changed with [`DataStore.set`][rblxopencloud.DataStore.set] and [`DataStore.increment`][rblxopencloud.DataStore.increment]. Both will need the 'Create Entry' permission to create new keys, and/or 'Update Entry' permission to update existing keys. First, here's an example using [`DataStore.set`][rblxopencloud.DataStore.set]:
+DataStore values can be changed with [`DataStore.set_entry`][rblxopencloud.DataStore.set_entry] and [`DataStore.increment_entry`][rblxopencloud.DataStore.increment_entry]. Both will need the 'Create Entry' permission to create new keys, and/or 'Update Entry' permission to update existing keys. First, here's an example using [`DataStore.set_entry`][rblxopencloud.DataStore.set_entry]:
 
 ```py
-version = datastore.set("user_287113233", {"xp": 1337, "level": 7}, users=[287113233])
+version = datastore.set_entry("user_287113233", {"xp": 1337, "level": 7}, users=[287113233])
 ```
 
 This will set the key `user_287113233` to the dictionary `{"xp": 1337, "level": 7}`, with the user's ID in the list of users. The method returns [`rblxopencloud.EntryVersion`][rblxopencloud.EntryVersion], which contains metadata about the new version, such as it's version ID. The code above is equivalent to the the following lua code:
@@ -92,13 +92,13 @@ This will set the key `user_287113233` to the dictionary `{"xp": 1337, "level": 
 local version = DataStore:SetAsync("user_287113233", {["xp"] = 1337, ["level"] = 7}, {287113233})
 ```
 
-If the current value of the key is an integer, or float you can use [`DataStore.increment`][rblxopencloud.DataStore.increment] to update the value, while guaranteeing you don't overwrite the old value. The following example will increment the key `user_score_287113233` by 70:
+If the current value of the key is an integer, or float you can use [`DataStore.increment_entry`][rblxopencloud.DataStore.increment_entry] to update the value, while guaranteeing you don't overwrite the old value. The following example will increment the key `user_score_287113233` by 70:
 
 ```py
-value, info = datastore.increment("user_score_287113233", 70, users=[287113233])
+value, info = datastore.increment_entry("user_score_287113233", 70, users=[287113233])
 ```
 
-[`DataStore.increment`][rblxopencloud.DataStore.increment] actually returns the new value just like [`DataStore.get`][rblxopencloud.DataStore.get] instead.
+[`DataStore.increment_entry`][rblxopencloud.DataStore.increment_entry] actually returns the new value just like [`DataStore.get_entry`][rblxopencloud.DataStore.get_entry] instead.
 
 !!! warning
     If an entry has `users` and `metadata`, you must provide them every time you set or increment the value, otherwise they will be removed.
@@ -108,7 +108,7 @@ value, info = datastore.increment("user_score_287113233", 70, users=[287113233])
 You can remove a key from a DataStore with Open Cloud with the following code:
 
 ```py
-version = datastore.remove("user_287113233")
+version = datastore.remove_entry("user_287113233")
 ```
 
 This will mark the key as deleted, and calls to get the key will fail. However, the old version of the key can still be accessed by listing versions (explained below), and listing keys will still return the key. These are limitations with Open Cloud, not one with the library.
@@ -128,7 +128,7 @@ This will iterate [`rblxopencloud.EntryVersion`][rblxopencloud.EntryVersion] for
 value, info = datastore.get_version("user_287113233", "VERSION_ID")
 ```
 
-It returns the same as [`DataStore.get`][rblxopencloud.DataStore.get].
+It returns the same as [`DataStore.get_entry`][rblxopencloud.DataStore.get_entry].
 
 ### Ordered Data Stores
 
@@ -136,7 +136,7 @@ You can also access Ordered Data Stores with Open Cloud. There are a few differe
 
 - Ordered Data Store do not support versioning, therefore you can not use versioning functions.
 - Ordered Data Stores also do not support user IDs or metadata, and since they also don't support versioning, there is no second parameter returned on get methods.
-- [`OrderedDataStore.set`][rblxopencloud.OrderedDataStore.set] doesn't have the `previous_version` precondition, instead it has an `exclusive_update` precondition.
+- [`OrderedDataStore.set_entry`][rblxopencloud.OrderedDataStore.set_entry] doesn't have the `previous_version` precondition, instead it has an `exclusive_update` precondition.
 - Ordered Data Stores don't have a `list_keys` method, but instead [`OrderedDataStore.sort_keys`][rblxopencloud.OrderedDataStore.sort_keys]. They also iterate [`rblxopencloud.SortedEntry`][rblxopencloud.SortedEntry] which includes the key's value.
 
 To create an Ordered Data Store, you can use the [`Experience.get_ordered_data_store`][rblxopencloud.Experience.get_ordered_data_store] method, which also supports `scope` being `None`:
@@ -165,7 +165,7 @@ experience.publish_message("topic-name", "this is an example message content.")
     The messaging service only supports strings being sent. To send more complex data, such as dictionaries, you will need to JSON encode the string. See [the json built-in python library](https://docs.python.org/3/library/json.html) and [the Roblox game engine method HttpService:JSONDecode()](https://create.roblox.com/docs/reference/engine/classes/HttpService#JSONDecode).
 
 You can not recieve messages with Open Cloud.
-
+<!-- TODO: REQUIRES REWRITING
 ### Place Publishing
 
 You can upload place (`.rblx`) files to Roblox using the Place Publishing API. Given you have a place file, you can use the following code to upload a place. Replace `0000000` with the place ID:
@@ -175,4 +175,4 @@ with open("path-to/place-file.rblx", "rb") as file:
     experience.upload_place(0000000, file, publish=True)
 ```
 
-If `publish` is set to `True`, it will publish the place as well. Otherwise, it will only save the place.
+If `publish` is set to `True`, it will publish the place as well. Otherwise, it will only save the place. -->

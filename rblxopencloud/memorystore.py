@@ -331,7 +331,8 @@ queues/{urllib.parse.quote_plus(self.name)}/items:add",
         Returns:
             A list of values as the first parameter and a readid string as \
             the second parameter. The read ID string can be passed to \
-            [`MemoryStoreQueue.remove`][rblxopencloud.MemoryStoreQueue.remove].
+            [`MemoryStoreQueue.remove_items`\
+            ][rblxopencloud.MemoryStoreQueue.remove_items].
         """
         
         status, data, _ = send_request(
@@ -354,8 +355,8 @@ queues/{urllib.parse.quote_plus(self.name)}/items:read",
         Permanently removes previously read values from the queue. 
 
         Args:
-            read_id: The read ID returned by \
-            [`MemoryStoreQueue.read`][rblxopencloud.MemoryStoreQueue.read].
+            read_id: The read ID returned by [`MemoryStoreQueue.read_items`\
+            ][rblxopencloud.MemoryStoreQueue.read_items].
         """
 
         send_request(
