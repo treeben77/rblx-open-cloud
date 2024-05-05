@@ -31,6 +31,8 @@ plugins:
             show_root_heading: true
             members_order: source
             inherited_members: true
+  - git-revision-date-localized:
+      enable_creation_date: false
   - git-committers:
       enabled: true
       repository: treeben77/rblx-open-cloud
