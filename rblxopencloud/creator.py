@@ -29,7 +29,7 @@ import urllib3
 
 from dateutil import parser
 
-from .exceptions import HttpException, InvalidAsset, ModeratedText
+from .exceptions import HttpException, InvalidFile, ModeratedText
 from .http import iterate_request, Operation, send_request
 
 if TYPE_CHECKING:
@@ -285,7 +285,7 @@ class Creator():
         
         if status == 400:
             if data["message"] == "\"InvalidImage\"":
-                raise InvalidAsset(f"The file is corrupted or not supported.")
+                raise InvalidFile(f"The file is corrupted or not supported.")
             
             if data["message"] == "AssetName is moderated.":
                 raise ModeratedText(f"The asset's name was moderated.")
@@ -361,7 +361,7 @@ class Creator():
         
         if status == 400:
             if data["message"] == "\"InvalidImage\"":
-                raise InvalidAsset(f"The file is corrupted or not supported.")
+                raise InvalidFile(f"The file is corrupted or not supported.")
             
             if data["message"] == "AssetName is moderated.":
                 raise ModeratedText(f"The asset's name was moderated.")

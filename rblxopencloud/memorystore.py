@@ -1,3 +1,25 @@
+# MIT License
+
+# Copyright (c) 2022-2024 treeben77
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import datetime
 import json
 from typing import Iterable, Optional, TYPE_CHECKING, Union
@@ -126,7 +148,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
         ):
             yield SortedMapEntry(entry)
 
-    def get(self, key: str) -> SortedMapEntry:
+    def get_key(self, key: str) -> SortedMapEntry:
         """
         Fetches the value of a key.
 
@@ -146,7 +168,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
 
         return SortedMapEntry(data)
 
-    def set(
+    def set_key(
         self, key: str, value: Union[str, dict, list, int, float],
         expiration_seconds: int, sort_key: Union[int, float, str]=None,
         exclusive_create: bool=False, exclusive_update: bool=False
@@ -230,7 +252,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
         
         return SortedMapEntry(data)
         
-    def remove(self, key: str, etag: str=None) -> None:
+    def remove_key(self, key: str, etag: str=None) -> None:
         """
         Deletes a key from the sorted map.
 
@@ -267,7 +289,7 @@ class MemoryStoreQueue():
         return f"<rblxopencloud.MemoryStoreQueue \
 \"{self.name}\", experience={repr(self.experience)}>"
 
-    def add(
+    def add_item(
             self, value: Union[str, dict, list, int, float],
             expiration_seconds: int=30, priority: float=0
         ) -> None:
@@ -292,7 +314,7 @@ queues/{urllib.parse.quote_plus(self.name)}/items:add",
             }
         )
     
-    def read(
+    def read_items(
             self, count: int = 1, all_or_nothing: bool = False,
             invisibility_seconds: int = 30
         ) -> tuple[list[Union[str, dict, list, int, float]], Optional[str]]:
@@ -327,7 +349,7 @@ queues/{urllib.parse.quote_plus(self.name)}/items:read",
         
         return data["data"], data["id"]
 
-    def remove(self, read_id: str) -> None:
+    def remove_items(self, read_id: str) -> None:
         """
         Permanently removes previously read values from the queue. 
 

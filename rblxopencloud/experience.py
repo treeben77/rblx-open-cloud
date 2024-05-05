@@ -38,7 +38,12 @@ __all__ = (
     "Experience",
     "ExperienceAgeRating",
     "ExperienceSocialLink",
-    "Place"
+    "PaymentProvider",
+    "Place",
+    "Platform",
+    "Subscription",
+    "SubscriptionExpirationReason",
+    "SubscriptionState",
 )
 
 class Platform(Enum):
@@ -894,6 +899,19 @@ classes/MessagingService).
     def fetch_subscription(
             self, product_id: str, user_id: int
         ) -> Subscription:
+        """
+        Fetches information about a user's subscription to a product within \
+        the experience.
+
+        Args:
+            product_id: The subscription product ID, starting with `EXP-`, to \
+            consider.
+            user_id: The subscription ID, which is always the user's ID to \
+            fetch subscription information for.
+        
+        Returns:
+            The subscription for the product ID and user ID.
+        """
 
         _, data, _ = send_request(
             "GET", f"cloud/v2/universes/{self.id}/subscription-products/\

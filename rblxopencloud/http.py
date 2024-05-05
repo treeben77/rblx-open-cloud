@@ -28,6 +28,7 @@ from . import http_session, user_agent, VERSION_INFO
 from .exceptions import (
     Forbidden,
     HttpException,
+    RateLimited,
     NotFound
 )
 
@@ -46,6 +47,17 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
     Sends a HTTP request to `https://apis.roblox.com` and returns the result. \
     It is used internally by the library but can also be used by users for \
     unimplemented apis.
+
+    Example:
+        This is an example to send a message with the messaging service API:
+        ```py
+        status, data, headers = send_request(
+            "POST", f"messaging-service/v1/universes/00000000/topics/{topic}",
+            authorization="insert-api-key", json={
+                "message": "Hello World!"
+            }
+        )
+        ```
 
     Args:
         method: The HTTP method to use in uppercase such as `GET` or `POST`.
@@ -81,20 +93,16 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         value being the response headers.
     
     Raises:
-        InvalidKey: HTTP status `401` returned when `expected_status` is not \
-        `None` and `401` is not in the list.
-        PermissionDenied: HTTP status `403` returned when `expected_status` \
+        HttpException: HTTP status `400`, `401` 5xx`, or another unepexted \
+        status returned which is not in `expected_status` and is not `None`.
+        Forbidden: HTTP status `403` returned when `expected_status` \
         is not `None` and `403` is not in the list.
         NotFound: HTTP status `401` returned when `expected_status` is not \
         `None` and `401` is not in the list.
         RateLimited: HTTP status `429` returned when `expected_status` is not \
         `None` and `429` is not in the list.
-        ServiceUnavailable: HTTP status `5xx` returned when `expected_status` \
-        is not `None` and the status is not in the list.
-        rblx_opencloudException: Any other status returned when \
-        `expected_status` is not `None` and the status is not in the list.
     
-    !!! note
+    Note:
         The `send_request` function may function slightly differently between \
         the `rblxopencloud` and `rblxopencloudasync` modules.
     """
@@ -135,7 +143,7 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         elif response.status_code == 404:
             raise NotFound(msg or 404)
         elif response.status_code == 429:
-            raise HttpException(429)
+            raise RateLimited(msg or 429)
         elif response.status_code >= 500:
             if retry_max_attempts > 0:
                 time.sleep(retry_interval_seconds)
@@ -213,12 +221,7 @@ class Operation(Generic[T]):
             The return type as defined by `T`, or `None` if not completed yet.
 
         Raises:
-            InvalidKey: The API key isn't valid, doesn't have access to \
-            this api, or is from an invalid IP address.
-            RateLimited: You've exceeded the rate limits.
-            ServiceUnavailable: The Roblox servers ran into an error, or are \
-            unavailable right now.
-            rblx_opencloudException: Roblox returned an unexpected error.
+            HttpException: The request was not successful.
         """
         
         _, body, _ = send_request("GET", self.__path, self.__api_key,
@@ -256,13 +259,8 @@ class Operation(Generic[T]):
             The return type as defined by `T`.
 
         Raises:
-            TimeoutError: `timeout_seconds` was exceeded. 
-            InvalidKey: The API key isn't valid, doesn't have access to \
-            this api, or is from an invalid IP address.
-            RateLimited: You've exceeded the rate limits.
-            ServiceUnavailable: The Roblox servers ran into an error, or are \
-            unavailable right now.
-            rblx_opencloudException: Roblox returned an unexpected error.
+            HttpException: The request was not successful.
+            TimeoutError: `timeout_seconds` was exceeded.
         """
 
         if self.__cached_response:
