@@ -24,7 +24,7 @@ from datetime import datetime
 from enum import Enum
 import io
 import json
-from typing import Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, AsyncGenerator, Optional, TYPE_CHECKING, Union
 import urllib3
 
 from dateutil import parser
@@ -375,7 +375,7 @@ class Creator():
     
     async def list_asset_versions(
             self, asset_id: int, limit: int = None
-        ) -> Iterable[AssetVersion]:
+        ) -> AsyncGenerator[Any, Any, AssetVersion]:
         """
         Iterates all avaliable versions of the asset, providing the latest \
         version first.

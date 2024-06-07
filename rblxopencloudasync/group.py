@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import datetime
-from typing import Iterable, Optional
+from typing import Any, AsyncGenerator, Optional
 
 from dateutil import parser
 
@@ -361,7 +361,7 @@ class Group(Creator):
 
     async def list_members(
             self, limit: int = None, role_id: int = None
-        ) -> Iterable[GroupMember]:
+        ) -> AsyncGenerator[Any, Any, GroupMember]:
         """
         Iterates each member in the group, optionally limited to a specific \
         role.
@@ -391,7 +391,7 @@ class Group(Creator):
             ):
             yield GroupMember(entry, self.__api_key, self)
 
-    async def list_roles(self, limit: int = None) -> Iterable[GroupRole]:
+    async def list_roles(self, limit: int = None) -> AsyncGenerator[Any, Any, GroupRole]:
         """
         Iterates every role in the group.
         
@@ -416,7 +416,7 @@ class Group(Creator):
     
     async def list_join_requests(
             self, limit: int = None, user_id: int = None
-        ) -> Iterable["GroupJoinRequest"]:
+        ) -> AsyncGenerator[Any, Any, "GroupJoinRequest"]:
         """
         Iterates every group join request for private groups.
         

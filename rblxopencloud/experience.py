@@ -832,12 +832,15 @@ classes/MessagingService).
             analytics_category: The category string used for analytics.
             launch_data: The launch data used if the player joins.
             **message_variables: values to fill variables in the notification \
-            string.
+            string. Message variables for user mentions should be formatted \
+            as `userid_<key>`, where `<key>` is the variable key.
         """
 
         # format params the way roblox expects {key: {"int64_value": value}}
         parameters_dict = {}
         for key, value in message_variables.items():
+            if key.startswith("userid_"):
+                key = f"UserId-{key[7:]}"
             parameters_dict[key] = {
                 "int64_value" if type(value) == int else "string_value": value
             }

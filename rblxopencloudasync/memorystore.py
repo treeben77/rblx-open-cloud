@@ -22,7 +22,7 @@
 
 import datetime
 import json
-from typing import Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, AsyncGenerator, Optional, TYPE_CHECKING, Union
 import urllib.parse
 
 from dateutil import parser
@@ -92,7 +92,7 @@ class SortedMap():
         upper_bound_key: Union[str, int] = None,
         lower_bound_sort_key: Union[str, int] = None,
         upper_bound_sort_key: Union[str, int] = None
-    ) -> Iterable[SortedMapEntry]:
+    ) -> AsyncGenerator[Any, Any, SortedMapEntry]:
         """
         Returns an Iterable of keys in the sorted map.
 

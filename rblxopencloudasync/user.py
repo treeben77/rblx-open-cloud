@@ -22,7 +22,7 @@
 
 import datetime
 from enum import Enum
-from typing import Iterable, Literal, Optional, TYPE_CHECKING, Union
+from typing import Any, AsyncGenerator, Literal, Optional, TYPE_CHECKING, Union
 
 from dateutil import parser
 
@@ -414,7 +414,9 @@ class User(Creator):
             cached_response=data.get("response"))
 
 
-    async def list_groups(self, limit: int=None) -> Iterable["GroupMember"]:
+    async def list_groups(
+            self, limit: int=None
+        ) -> AsyncGenerator[Any, Any, "GroupMember"]:
         """
         Iterates a [`GroupMember`][rblxopencloud.GroupMember] for every group \
         the user is in. Use [`GroupMember.group`][rblxopencloud.GroupMember] \
@@ -430,7 +432,8 @@ class User(Creator):
 
         from .group import GroupMember
 
-        for entry in await iterate_request("GET", "cloud/v2/groups/-/memberships",
+        for entry in await iterate_request(
+            "GET", "cloud/v2/groups/-/memberships",
             authorization=self.__api_key, params={
                 "maxPageSize": limit if limit and limit <= 99 else 99,
                 "filter": f"user == 'users/{self.id}'",
@@ -439,12 +442,13 @@ class User(Creator):
         ):
             yield GroupMember(entry, self.__api_key)
     
-    async def list_inventory(self, limit: int=None, only_collectibles: bool=False,
+    async def list_inventory(self, limit: int=None,
+        only_collectibles: bool=False,
         assets: Union[list[InventoryAssetType], list[int], bool]=None,
         badges: Union[list[int], bool]=False,
         game_passes: Union[list[int], bool]=False,
         private_servers: Union[list[int], bool]=False
-    ) -> Iterable[Union[InventoryAsset, InventoryBadge,
+    ) -> AsyncGenerator[Any, Any, Union[InventoryAsset, InventoryBadge,
         InventoryGamePass, InventoryPrivateServer]]:
         """
         Interates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \

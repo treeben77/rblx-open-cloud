@@ -23,7 +23,7 @@
 from datetime import datetime
 from enum import Enum
 import io
-from typing import Iterable, Optional, Union
+from typing import Any, AsyncGenerator, Optional, Union
 import urllib.parse
 
 from dateutil import parser
@@ -699,7 +699,7 @@ class Experience():
         
         return Place(place_id, None, self.__api_key, self)
     
-    def get_data_store(
+    def get_datastore(
             self, name: str, scope: Optional[str] = "global"
         ) -> DataStore:
         """
@@ -716,7 +716,7 @@ class Experience():
         
         return DataStore(name, self, self.__api_key, None, scope)
     
-    def get_ordered_data_store(
+    def get_ordered_datastore(
             self, name: str, scope: Optional[str] = "global"
         ) -> OrderedDataStore:
         """
@@ -733,10 +733,10 @@ class Experience():
         
         return OrderedDataStore(name, self, self.__api_key, scope)
 
-    async def list_data_stores(
+    async def list_datastores(
             self, prefix: str = "", limit: int = None,
             scope: Optional[str] = "global"
-        ) -> Iterable[DataStore]:
+        ) -> AsyncGenerator[Any, Any, DataStore]:
         """
         Iterates all data stores in the experience.
 
@@ -832,12 +832,15 @@ classes/MessagingService).
             analytics_category: The category string used for analytics.
             launch_data: The launch data used if the player joins.
             **message_variables: values to fill variables in the notification \
-            string.
+            string. Message variables for user mentions should be formatted \
+            as `userid_<key>`, where `<key>` is the variable key.
         """
 
         # format params the way roblox expects {key: {"int64_value": value}}
         parameters_dict = {}
         for key, value in message_variables.items():
+            if key.startswith("userid_"):
+                key = f"UserId-{key[7:]}"
             parameters_dict[key] = {
                 "int64_value" if type(value) == int else "string_value": value
             }

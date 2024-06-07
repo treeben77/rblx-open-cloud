@@ -22,7 +22,7 @@
 
 import datetime
 import json
-from typing import Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, AsyncGenerator, Optional, TYPE_CHECKING, Union
 import urllib.parse
 
 from dateutil import parser
@@ -161,7 +161,7 @@ class DataStore():
 scope=\"{self.scope}\" experience={repr(self.experience)}>"
     
     async def list_keys(self, prefix: str="", limit: int=None
-        ) -> Iterable[ListedEntry]:
+        ) -> AsyncGenerator[Any, Any, ListedEntry]:
         """
         Iterates all keys in the database and scope, optionally matching a \
         prefix.
@@ -369,7 +369,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
     
     async def list_versions(self, key: str, after: datetime.datetime = None,
             before: datetime.datetime = None, limit: int = None,
-            descending: bool = True) -> Iterable[EntryVersion]:
+            descending: bool = True) -> AsyncGenerator[Any, Any, EntryVersion]:
         """
         Iterates all available versions of a key.
 
@@ -499,7 +499,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
     async def sort_keys(
             self, descending: bool=True, limit: Optional[int]=None,
             min: int=None, max: int=None
-        ) -> Iterable[SortedEntry]:
+        ) -> AsyncGenerator[Any, Any, SortedEntry]:
         """
         Returns a list of keys and their values.
 
