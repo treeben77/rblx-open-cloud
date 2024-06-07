@@ -699,7 +699,7 @@ class Experience():
         
         return Place(place_id, None, self.__api_key, self)
     
-    def get_data_store(
+    def get_datastore(
             self, name: str, scope: Optional[str] = "global"
         ) -> DataStore:
         """
@@ -716,7 +716,7 @@ class Experience():
         
         return DataStore(name, self, self.__api_key, None, scope)
     
-    def get_ordered_data_store(
+    def get_ordered_datastore(
             self, name: str, scope: Optional[str] = "global"
         ) -> OrderedDataStore:
         """
@@ -733,7 +733,7 @@ class Experience():
         
         return OrderedDataStore(name, self, self.__api_key, scope)
 
-    def list_data_stores(
+    def list_datastores(
             self, prefix: str = "", limit: int = None,
             scope: Optional[str] = "global"
         ) -> Iterable[DataStore]:
