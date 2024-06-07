@@ -25,8 +25,7 @@ from typing import Literal
 import requests
 
 VERSION: str = "2.0.0"
-VERSION_INFO: Literal['alpha', 'beta', 'final'] = "beta"
-DEBUG: bool = VERSION_INFO == "alpha"
+VERSION_INFO: Literal['alpha', 'beta', 'final'] = "alpha"
 
 user_agent: str = f"rblx-open-cloud/{VERSION} \
 (https://github.com/treeben77/rblx-open-cloud)"
@@ -41,7 +40,7 @@ from .exceptions import *
 from .experience import *
 from .group import *
 from .http import *
+from .memorystore import *
 from .oauth2 import *
 from .user import *
 from .webhook import *
-# from .memorystore import *

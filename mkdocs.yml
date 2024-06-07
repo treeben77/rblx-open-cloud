@@ -31,6 +31,12 @@ plugins:
             show_root_heading: true
             members_order: source
             inherited_members: true
+  - git-revision-date-localized:
+      enable_creation_date: false
+  - git-committers:
+      enabled: true
+      repository: treeben77/rblx-open-cloud
+      branch: v2
 extra: 
   social: 
     - icon: simple/discord
@@ -71,5 +77,6 @@ nav:
     - OAuth2: reference/oauth2.md
     - Webhook: reference/webhook.md
     - Data Store: reference/datastore.md
+    - Memory Store: reference/memorystore.md
     - Exceptions: reference/exceptions.md
     - Creator: reference/creator.md

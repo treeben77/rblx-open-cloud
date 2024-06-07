@@ -100,7 +100,7 @@ class InventoryAssetType(Enum):
     CreatedPlace = 51
     PurchasedPlace = 52
 
-asset_type_strings = {
+ASSET_TYPE_STRINGS = {
     "INVENTORY_ITEM_ASSET_TYPE_UNSPECIFIED": InventoryAssetType.Unknown,
     "CLASSIC_TSHIRT": InventoryAssetType.ClassicTShirt,
     "AUDIO": InventoryAssetType.Audio,
@@ -161,7 +161,7 @@ class InventoryItemState(Enum):
     Available = 1
     Hold = 2
 
-state_type_strings = {
+STATE_TYPE_STRINGS = {
     "COLLECTIBLE_ITEM_INSTANCE_STATE_UNSPECIFIED": InventoryItemState.Unknown,
     "AVAILABLE": InventoryItemState.Available,
     "HOLD": InventoryItemState.Hold
@@ -195,7 +195,7 @@ class InventoryAsset(InventoryItem):
     def __init__(self, data: dict) -> None:
         super().__init__(data["assetId"])
         self.type: InventoryAssetType = InventoryAssetType(
-            asset_type_strings.get(data["inventoryItemAssetType"],
+            ASSET_TYPE_STRINGS.get(data["inventoryItemAssetType"],
                                    InventoryAssetType.Unknown)
         )
         self.instance_id: int = data["instanceId"]
@@ -209,7 +209,7 @@ class InventoryAsset(InventoryItem):
         collectable_state = data.get("collectibleDetails", {}
             ).get("instanceState", None)
         self.collectable_state: Optional[InventoryItemState] = (
-            InventoryItemState(state_type_strings.get(collectable_state,
+            InventoryItemState(STATE_TYPE_STRINGS.get(collectable_state,
             InventoryItemState.Unknown)) if collectable_state else None
         )
 
@@ -384,7 +384,7 @@ class User(Creator):
         ) -> Operation[str]:
         """
         Fetches the user's thumbnail from Roblox and returns an \
-        [`rblxopencloud.Operation`][rblxopencloud.Operation].
+        [`Operation`][rblxopencloud.Operation].
 
         Args:
             size (Literal[48, 50, 60, 75, 100, 110, 150, 180, 352, 420, \
@@ -397,8 +397,8 @@ class User(Creator):
             cut out.
 
         Returns:
-            The [`rblxopencloud.Operation`][rblxopencloud.Operation] to get \
-            the thumbnail. In most cases, the final result will be cached and \
+            The [`Operation`][rblxopencloud.Operation] to get the thumbnail. \
+            In most cases, the final result will be cached and \
             returned immediately from \
             [`Operation.wait`][rblxopencloud.Operation.wait].
         """
@@ -416,16 +416,16 @@ class User(Creator):
 
     def list_groups(self, limit: int=None) -> Iterable["GroupMember"]:
         """
-        Iterates a [`rblxopencloud.GroupMember`][rblxopencloud.GroupMember] \
-        for every group the user is in. Use \
-        [`GroupMember.group`][rblxopencloud.GroupMember] to get the group.
+        Iterates a [`GroupMember`][rblxopencloud.GroupMember] for every group \
+        the user is in. Use [`GroupMember.group`][rblxopencloud.GroupMember] \
+        to get the group.
 
         Args:
             limit (int): The max number of groups to iterate.
 
         Yields:
-            [`rblxopencloud.GroupMember`][rblxopencloud.GroupMember] for \
-            every group the user is in.
+            [`GroupMember`][rblxopencloud.GroupMember] for every group the \
+            user is in.
         """
 
         from .group import GroupMember
@@ -487,8 +487,8 @@ class User(Creator):
             asset_types = []
             for asset_type in assets:
                 asset_types.append(
-                    list(asset_type_strings.keys())
-                    [list(asset_type_strings.values()).index(asset_type)]
+                    list(ASSET_TYPE_STRINGS.keys())
+                    [list(ASSET_TYPE_STRINGS.values()).index(asset_type)]
                 )
                 
             filter["inventoryItemAssetTypes"] = ",".join(asset_types)

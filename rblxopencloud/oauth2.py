@@ -37,11 +37,9 @@ from cryptography.hazmat.primitives.serialization import (
 )
 
 from .exceptions import (
-    InvalidCode,
-    InvalidKey,
-    InsufficientScope,
-    rblx_opencloudException,
-    ServiceUnavailable
+    BaseException,
+    HttpException,
+    InvalidCode
 )
 from .experience import Experience
 from .http import send_request
@@ -58,7 +56,20 @@ __all__ = (
 
 class AccessTokenInfo():
     """
-    Contains information about a access token. 
+    Contains information about a access token.
+
+    Attributes:
+        active: Wether this access token has not yet expired. Will be `True` \
+        even if the authorization has been revoked by the user.
+        id: The unique ID for this access token.
+        client_id: The ID of the application that the access token belongs to.
+        user_id: The ID of the user that the access token belongs to.
+        scope: A list of string scopes that were authorized for this access \
+        token.
+        expires_at: The time this token will expire at, usually 15 minutes \
+        after `issued_at`.
+        issued_at: The time this token was created by either exchanging a \
+        code or refreshing the refresh token.
     """
 
     def __init__(self, data: dict):
@@ -82,6 +93,12 @@ class Resources():
     """
     Contains the authorized users, groups, and experiences for the \
     authorization.
+
+    Attributes:
+        experiences: A list of authorized \
+        [`Experience`][rblxopencloud.Experience] objects.
+        accounts: A list of authorized [`User`][rblxopencloud.User] and \
+        [`Group`][rblxopencloud.Group] objects for asset uploading.
     """
 
     def __init__(self, experiences, accounts):
@@ -97,6 +114,13 @@ class PartialAccessToken():
     Represents an access token via OAuth2 consent without all information. It \
     allows access to all resources authorized by the user, but not other \
     information like the refresh token.
+
+    Attributes:
+        app: The app which this access token belongs to.
+        token: The string token which can be stored in a database and later \
+        used with [`OAuth2App.from_access_token_string`\
+        ][rblxopencloud.OAuth2App.from_access_token_string] to access the \
+        resources again.
     """
 
     def __init__(self, app, access_token) -> None:
@@ -109,22 +133,16 @@ class PartialAccessToken():
 
     def fetch_userinfo(self) -> User:
         """
-        Returns a [`User`][rblxopencloud.User] object for this authorization. \
-        This object can be used to directly access granted user resources \
-        (such as like uploading files).
+        Fetches user information for this access token.
+
+        Returns:
+            The user information with the access token to access authorized \
+            apis (such as uploading files).
         """
 
-        status, data, _ = send_request("GET", "oauth/v1/userinfo",
-            authorization=f"Bearer {self.token}", expected_status=[200, 401])
+        _, data, _ = send_request("GET", "oauth/v1/userinfo",
+            authorization=f"Bearer {self.token}", expected_status=[200])
 
-        if status == 401:
-            if data["error"] == "insufficient_scope":
-                raise InsufficientScope(
-                    data["scope"],
-                    f"Access token missing required scope:'{data['scope']}'"
-                )
-            raise InvalidKey("The key has expired, been revoked or is invalid")
-        
         user = User(data.get("id") or data.get("sub"), f"Bearer {self.token}")
         user.username = data.get("preferred_username")
         user.display_name = data.get("nickname")
@@ -139,23 +157,18 @@ class PartialAccessToken():
     def fetch_resources(self) -> Resources:
         """
         Fetches the authorized accounts (users and groups) and experiences.
+
+        Returns:
+            The objects for authorized accounts and experiences.
         """
 
         status, data, _ = send_request("GET", "oauth/v1/token/resources",
-            expected_status=[200, 401], data={
+            expected_status=[200], data={
                 "token": self.token,
                 "client_id": self.app.id,
                 "client_secret": self.app._OAuth2App__secret
             }
         )
-
-        if status == 401:
-            if data["error"] == "insufficient_scope":
-                raise InsufficientScope(
-                    data["scope"],
-                    f"Access token missing required scope: '{data['scope']}'"
-                )
-            raise InvalidKey("The key has expired, been revoked or is invalid")
 
         experiences = []
         accounts = []
@@ -188,32 +201,46 @@ class PartialAccessToken():
         """
         Fetches token information such as the user's id, the authorized \
         scope, and it's expiry time.
+
+        Returns:
+            The information about the access token.
         """
 
-        status, data, _ = send_request("GET", "oauth/v1/token/introspect",
-            expected_status=[200, 401], data={
+        _, data, _ = send_request("GET", "oauth/v1/token/introspect",
+            expected_status=[200], data={
                 "token": self.token,
                 "client_id": self.app.id,
                 "client_secret": self.app._OAuth2App__secret
             }
         )
-        
-        if status == 401:
-            if data["error"] == "insufficient_scope":
-                raise InsufficientScope(data["scope"],
-                f"Access token missing required scope: '{data['scope']}")
-            raise InvalidKey("The key has expired, been revoked or is invalid")
-        
+                
         return AccessTokenInfo(data)
     
     def revoke(self):
+        """
+        Shortcut to revoke the access token.
+        """
         self.app.revoke_token(self.token)
 
 class AccessToken(PartialAccessToken):
     """
     Represents access via OAuth2 consent. It allows access to all resources \
     authorized by the user.
+
+    Attributes:
+        app: The app which this access token belongs to.
+        token: The string token which can be stored in a database and later \
+        used with [`OAuth2App.from_access_token_string`\
+        ][rblxopencloud.OAuth2App.from_access_token_string] to access the \
+        resources again.
+        refresh_token: The string token which can be stored in a database \
+        and later used with [`OAuth2App.refresh_token`\
+        ][rblxopencloud.OAuth2App.refresh_token] to get a new refresh token.
+        scope: A list of the string scopes authorized for this access token.
+        expires_at: The approximate time this access token will expire at.
+        user: If `openid` was authorized, the user who granted access. 
     """
+
     def __init__(self, app, payload, id_token) -> None:
         super().__init__(app, payload["access_token"])
         self.refresh_token: str = payload["refresh_token"]
@@ -287,7 +314,7 @@ redirect_uri=\"{self.redirect_uri}\")"
     def __refresh_openid_certs_cache(self):
         certs_status, certs, _ = send_request("GET", "/oauth/v1/certs")
         if certs_status != 200:
-            raise ServiceUnavailable("Failed to retrieve OpenID certs")
+            raise HttpException("Failed to retrieve OpenID certs")
 
         self.__openid_certs_cache = []
         self.__openid_certs_cache_updated = time.time()
@@ -310,7 +337,7 @@ redirect_uri=\"{self.redirect_uri}\")"
                 load_der_public_key(public_key)
             )
 
-    def generate_code_verifier(self, length: Optional[int]=128):
+    def generate_code_verifier(self, length: Optional[int]=128) -> str:
         """
         Generates a code verifier which can be provided to \
         [`OAuth2App.generate_uri`][rblxopencloud.OAuth2App.generate_uri] and \
@@ -322,6 +349,11 @@ redirect_uri=\"{self.redirect_uri}\")"
         
         Args:
             length (Optional[int]): How long the code verifier should be.
+
+        Returns:
+            A string with a length of `length` containing cryptographically \
+            generated characters from ascii letters (a-z, A-Z), digits (0-9), \
+            `-`, `.`, `_`, and `~`.
         """
 
         return ''.join(
@@ -345,6 +377,10 @@ redirect_uri=\"{self.redirect_uri}\")"
             code_verifier: The code verifier generated using \
             [`generate_code_verifier`\
             ][rblxopencloud.OAuth2App.generate_code_verifier]
+
+        Returns:
+            The authorization URI starting with \
+            `https://apis.roblox.com/oauth/v1/authorize`
         """
 
         if code_verifier:
@@ -382,8 +418,11 @@ redirect_uri=\"{self.redirect_uri}\")"
         refresh the token each time you need to access information instead of \
         the access_token to improve security.
 
-        Attributes:
+        Args:
             access_token: the access token string.
+
+        Returns:
+            A partial access token for the provided access token string.
         """
 
         return PartialAccessToken(self, access_token)
@@ -400,6 +439,9 @@ redirect_uri=\"{self.redirect_uri}\")"
             code_verifier: The code verifier string for this OAuth2 flow \
             generated by [`generate_code_verifier`\
             ][rblxopencloud.OAuth2App.generate_code_verifier]
+        
+        Returns:
+            The access token created from the provided code.
         """
 
         status, data, _ = send_request("POST", "oauth/v1/token",
@@ -433,7 +475,7 @@ redirect_uri=\"{self.redirect_uri}\")"
                         audience=str(self.id)
                     )
                     break
-                except(AttributeError): raise rblx_opencloudException(
+                except(AttributeError): raise BaseException(
                     "jwt and PyJWT installed. Please uninstall jwt."
                 )
                 except(jwt.exceptions.PyJWTError): pass
@@ -447,6 +489,9 @@ redirect_uri=\"{self.redirect_uri}\")"
         
         Attributes:
             refresh_token: The refresh token to refresh.
+
+        Returns:
+            The new access token from the refresh token.
         """
 
         _, data, _ = send_request("POST", "oauth/v1/token",

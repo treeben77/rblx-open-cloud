@@ -114,7 +114,7 @@ class GroupRolePermissions():
         self.manage_api_keys: bool = permissions["manageApiKeys"]
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.GroupRolePermissions>"
+        return "<rblxopencloud.GroupRolePermissions>"
 
 class GroupRole():
     """
@@ -144,7 +144,7 @@ class GroupRole():
             GroupRolePermissions(role["permissions"])
             if role.get("permissions") else None
         )
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.GroupRole id={self.id} name=\"{self.name}\" \
 rank={self.rank})>"
@@ -203,9 +203,9 @@ class GroupJoinRequest(User):
         join the Group.
     
     !!! tip
-        This class bases [`rblxopencloud.User`][rblxopencloud.User], so all \
-        methods of it can be used from this object, such as \
-        [`User.list_inventory()`][rblxopencloud.User.list_inventory].
+        This class bases [`User`][rblxopencloud.User], so all methods of it \
+        can be used from this object, such as \
+        [`User.list_inventory`][rblxopencloud.User.list_inventory].
     """
 
     def __init__(self, member, api_key, group=None) -> None:
@@ -281,7 +281,7 @@ class Group(Creator):
         super().__init__(id, api_key, "Group")
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.Group({self.id})"
+        return f"<rblxopencloud.Group id={self.id}>"
     
     def fetch_info(self) -> "Group":
         """
@@ -289,8 +289,10 @@ class Group(Creator):
         with the group info.
         """
 
-        _, data, _ = send_request("GET", f"cloud/v2/groups/{self.id}",
-            authorization=self.__api_key, expected_status=[200])
+        _, data, _ = send_request(
+            "GET", f"cloud/v2/groups/{self.id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
 
         self.name = data["displayName"]
         self.description = data["description"]
@@ -320,7 +322,7 @@ class Group(Creator):
         is not a member of the group.
 
         Args:
-            user_id (int): The user ID to fetch member info for.
+            user_id: The user ID to fetch member info for.
 
         Returns:
             The [`GroupMember`][rblxopencloud.GroupMember] for the provided \
@@ -335,15 +337,16 @@ class Group(Creator):
         if not data["groupMemberships"]: return None
         return GroupMember(data["groupMemberships"][0], self.__api_key, self)
     
-    def fetch_role(self, role_id: int, skip_cache: bool = False
+    def fetch_role(
+            self, role_id: int, skip_cache: bool = False
         ) -> Optional[GroupRole]:
         """
         Returns the role info for the provided role ID or `None` if the role \
         ID isn't found.
 
         Args:
-            role_id (int): The ID of the role to find.
-            skip_cache (bool): Wether to forcably refetch role information.
+            role_id: The ID of the role to find.
+            skip_cache: Wether to forcably refetch role information.
 
         Returns:
             The [`GroupRole`][rblxopencloud.GroupRole] for the provided role \
@@ -356,20 +359,22 @@ class Group(Creator):
         role_entry = self.__role_cache.get(role_id)
         return GroupRole(role_entry) if role_entry else None
 
-    def list_members(self, limit: int = None, role_id: int = None
+    def list_members(
+            self, limit: int = None, role_id: int = None
         ) -> Iterable[GroupMember]:
         """
-        Interates `rblx-open-cloud.GroupMember` for each user in the group.
+        Iterates each member in the group, optionally limited to a specific \
+        role.
                 
         Args:
-            limit: Optional[int] - The maximum number of members to iterate. \
+            limit: The maximum number of members to iterate. \
             This can be `None` to return all members.
-            role_id: Optional[int] - If present, the api will only provide \
+            role_id: If present, the api will only provide \
             members with this role.
         
         Yields:
-            [`rblxopencloud.GroupMember`][rblxopencloud.GroupMember] for \
-            every member in the group.
+            [`GroupMember`][rblxopencloud.GroupMember] for every member in \
+            the group.
         """
         filter = None
         
@@ -386,29 +391,31 @@ class Group(Creator):
             ):
             yield GroupMember(entry, self.__api_key, self)
 
-    def list_roles(self, limit: int=None) -> Iterable[GroupRole]:
+    def list_roles(self, limit: int = None) -> Iterable[GroupRole]:
         """
         Iterates every role in the group.
         
         Args:
-            limit (int): The maximum number of roles to iterate. This can be \
+            limit: The maximum number of roles to iterate. This can be \
             `None` to return all role.
         
         Yields:
             [`GroupRole`][rblxopencloud.GroupRole] for every role in the group.
         """
 
-        for entry in iterate_request("GET", f"cloud/v2/groups/{self.id}/roles",
-                authorization=self.__api_key, params={
-                    "maxPageSize": limit if limit and limit <= 20 else 20
-                }, data_key="groupRoles", cursor_key="pageToken",
-                max_yields=limit, expected_status=[200]
-            ):
+        for entry in iterate_request(
+            "GET", f"cloud/v2/groups/{self.id}/roles",
+            authorization=self.__api_key, params={
+                "maxPageSize": limit if limit and limit <= 20 else 20
+            }, data_key="groupRoles", cursor_key="pageToken",
+            max_yields=limit, expected_status=[200]
+        ):
             self.__role_cache[int(entry["id"])] = entry
 
             yield GroupRole(entry)
     
-    def list_join_requests(self, limit: int=None, user_id: int = None
+    def list_join_requests(
+            self, limit: int = None, user_id: int = None
         ) -> Iterable["GroupJoinRequest"]:
         """
         Iterates every group join request for private groups.
@@ -424,14 +431,14 @@ class Group(Creator):
             user who has requested to join.
         """
 
-        for entry in iterate_request("GET",
-                f"cloud/v2/groups/{self.id}/join-requests",
-                authorization=self.__api_key, params={
-                    "maxPageSize": limit if limit and limit <= 100 else 100,
-                    "filter": f"user == 'users/{user_id}'" if user_id else None
-                }, data_key="groupJoinRequests", cursor_key="nextPageToken",
-                max_yields=limit, expected_status=[200]
-            ):
+        for entry in iterate_request(
+            "GET", f"cloud/v2/groups/{self.id}/join-requests",
+            authorization=self.__api_key, expected_status=[200], params={
+                "maxPageSize": limit if limit and limit <= 100 else 100,
+                "filter": f"user == 'users/{user_id}'" if user_id else None
+            }, data_key="groupJoinRequests", cursor_key="nextPageToken",
+            max_yields=limit
+        ):
             yield GroupJoinRequest(entry, self.__api_key)
 
     def fetch_shout(self) -> GroupShout:
@@ -445,8 +452,10 @@ class Group(Creator):
             the group's shout.
         """
 
-        _, data, _ = send_request("GET", f"cloud/v2/groups/{self.id}/shout",
-            authorization=self.__api_key, expected_status=[200])
+        _, data, _ = send_request(
+            "GET", f"cloud/v2/groups/{self.id}/shout",
+            authorization=self.__api_key, expected_status=[200]
+        )
         
         return GroupShout(data, self.__api_key)
 
@@ -459,9 +468,11 @@ class Group(Creator):
             requested to join.
         """
 
-        send_request("DELETE",
+        send_request(
+            "DELETE",
             f"cloud/v2/groups/{self.id}/join-requests/{user_id}:accept",
-            authorization=self.__api_key, expected_status=[200])
+            authorization=self.__api_key, expected_status=[200]
+        )
     
     def decline_join_request(self, user_id: int):
         """
@@ -472,7 +483,9 @@ class Group(Creator):
             requested to join.
         """
 
-        send_request("DELETE",
+        send_request(
+            "DELETE",
             f"cloud/v2/groups/{self.id}/join-requests/{user_id}:decline",
-            authorization=self.__api_key, expected_status=[200])
+            authorization=self.__api_key, expected_status=[200]
+        )
         

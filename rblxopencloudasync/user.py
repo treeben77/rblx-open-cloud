@@ -1,11 +1,33 @@
-from .exceptions import rblx_opencloudException, InvalidKey, PermissionDenied, NotFound, RateLimited, ServiceUnavailable
-from .creator import Creator
-from .exceptions import rblx_opencloudException, InvalidKey, NotFound, RateLimited, ServiceUnavailable
-import datetime
+# MIT License
 
-from typing import Optional, Iterable, Union, AsyncIterator, TYPE_CHECKING
+# Copyright (c) 2022-2024 treeben77
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+import datetime
 from enum import Enum
-from . import user_agent, request_session, preform_request
+from typing import Any, AsyncGenerator, Literal, Optional, TYPE_CHECKING, Union
+
+from dateutil import parser
+
+from .creator import Creator
+from .http import iterate_request, send_request, Operation
 
 if TYPE_CHECKING:
     from .group import GroupMember
@@ -18,7 +40,9 @@ __all__ = (
     "InventoryAsset",
     "InventoryBadge",
     "InventoryGamePass",
-    "InventoryPrivateServer"
+    "InventoryPrivateServer",
+    "UserSocialLinks",
+    "UserVisibility"
 )
 
 class InventoryAssetType(Enum):
@@ -76,12 +100,7 @@ class InventoryAssetType(Enum):
     CreatedPlace = 51
     PurchasedPlace = 52
 
-class InventoryItemState(Enum):
-    Unknown = 0
-    Available = 1
-    Hold = 2
-
-asset_type_strings = {
+ASSET_TYPE_STRINGS = {
     "INVENTORY_ITEM_ASSET_TYPE_UNSPECIFIED": InventoryAssetType.Unknown,
     "CLASSIC_TSHIRT": InventoryAssetType.ClassicTShirt,
     "AUDIO": InventoryAssetType.Audio,
@@ -137,7 +156,12 @@ asset_type_strings = {
     "PURCHASED_PLACE": InventoryAssetType.PurchasedPlace
 }
 
-state_type_strings = {
+class InventoryItemState(Enum):
+    Unknown = 0
+    Available = 1
+    Hold = 2
+
+STATE_TYPE_STRINGS = {
     "COLLECTIBLE_ITEM_INSTANCE_STATE_UNSPECIFIED": InventoryItemState.Unknown,
     "AVAILABLE": InventoryItemState.Available,
     "HOLD": InventoryItemState.Hold
@@ -151,47 +175,163 @@ class InventoryItem():
         return f"rblxopencloud.InventoryItem(id={self.id}"
 
 class InventoryAsset(InventoryItem):
-    def __init__(self, data) -> None:
-        super().__init__(data["assetId"])
-        self.type: InventoryAssetType = InventoryAssetType(asset_type_strings.get(data["inventoryItemAssetType"], InventoryAssetType.Unknown))
-        self.instance_id: int = data["instanceId"]
-        self.collectable_item_id: Optional[str] = data.get("collectibleDetails", {}).get("itemId", None)
-        self.collectable_instance_id: Optional[str] = data.get("collectibleDetails", {}).get("instanceId", None)
-        self.serial_number: Optional[int] = data.get("collectibleDetails", {}).get("serialNumber", None)
+    """
+    Represents an asset in a user's inventory such as clothing and \
+    development items.
 
-        collectable_state = data.get("collectibleDetails", {}).get("instanceState", None)
-        self.collectable_state: Optional[InventoryItemState] = InventoryItemState(state_type_strings.get(collectable_state, InventoryItemState.Unknown)) if collectable_state else None
+    Attributes:
+        id (int): The ID of the inventory item.
+        type (InventoryAssetType): The asset's type.
+        instance_id (int): The unique ID of this asset's instance.
+        collectable_item_id (Optional[str]): A unique item UUID for \
+        collectables.
+        collectable_instance_id (Optional[str]): A unique instance UUID for \
+        collectables.
+        serial_number (Optional[int]): The serial number of the collectable.
+        collectable_state (Optional[InventoryItemState]): Wether the item is \
+        ready for sale or in hold.
+    """
+     
+    def __init__(self, data: dict) -> None:
+        super().__init__(data["assetId"])
+        self.type: InventoryAssetType = InventoryAssetType(
+            ASSET_TYPE_STRINGS.get(data["inventoryItemAssetType"],
+                                   InventoryAssetType.Unknown)
+        )
+        self.instance_id: int = data["instanceId"]
+        self.collectable_item_id: Optional[str] = data.get(
+            "collectibleDetails", {}).get("itemId", None)
+        self.collectable_instance_id: Optional[str] = data.get(
+            "collectibleDetails", {}).get("instanceId", None)
+        self.serial_number: Optional[int] = data.get("collectibleDetails", {}
+            ).get("serialNumber", None)
+
+        collectable_state = data.get("collectibleDetails", {}
+            ).get("instanceState", None)
+        self.collectable_state: Optional[InventoryItemState] = (
+            InventoryItemState(STATE_TYPE_STRINGS.get(collectable_state,
+            InventoryItemState.Unknown)) if collectable_state else None
+        )
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryAsset(id={self.id}, type={self.type})"
+        return f"<rblxopencloud.InventoryAsset id={self.id} type={self.type}>"
 
 class InventoryBadge(InventoryItem):
+    """
+    Represents a badge in a user's inventory.
+
+    Attributes:
+        id (int): The ID of the badge.
+    """
+
     def __init__(self, data) -> None:
         super().__init__(data["badgeId"])
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryBadge(id={self.id})"
+        return f"<rblxopencloud.InventoryBadge id={self.id}>"
 
 class InventoryGamePass(InventoryItem):
+    """
+    Represents a game pass in a user's inventory.
+
+    Attributes:
+        id (int): The ID of the game pass.
+    """
+
     def __init__(self, data) -> None:
         super().__init__(data["gamePassId"])
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryGamePass(id={self.id})"
+        return f"<rblxopencloud.InventoryGamePass id={self.id}>"
 
 class InventoryPrivateServer(InventoryItem):
+    """
+    Represents a game pass in a user's inventory.
+
+    Attributes:
+        id (int): The ID of the game pass.
+    """
     def __init__(self, data) -> None:
         super().__init__(data["privateServerId"])
     
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryPrivateServer(id={self.id})"
+        return f"<rblxopencloud.InventoryPrivateServer id={self.id}>"
+
+class UserVisibility(Enum):
+    """
+    Enum denoting what visibility a resource has. Currently only applies to \
+    social links.
+
+    Attributes:
+        Unknown (0): The visiblity type is unknown
+        Noone (1): It is visible to no one.
+        Friends (2): It is visible to only the user's friends.
+        Following (3): It is visible to the user's friends and users they \
+        follow.
+        Followers (4): It is visible to the user's friends, users they \
+        follow, and users that follow them.
+        Everyone (5): It is visible to everyone.
+    """
+    Unknown = 0
+    Noone = 1
+    Friends = 2
+    Following = 3
+    Followers = 4
+    Everyone = 5
+
+user_visiblity_strings = {
+    "NO_ONE": UserVisibility.Noone,
+    "FRIENDS": UserVisibility.Friends,
+    "FRIENDS_AND_FOLLOWING": UserVisibility.Following,
+    "FRIENDS_FOLLOWING_AND_FOLLOWERS": UserVisibility.Followers,
+    "EVERYONE": UserVisibility.Everyone
+}
+
+class UserSocialLinks():
+    """
+    Data class storing information about a user's social links.
+
+    Attributes:
+        facebook_uri (str): Facebook profile URI, empty string if not provided.
+        guilded_uri (str): Guilded profile URI, empty string if not provided.
+        twitch_uri (str): Twitch profile URI, empty string if not provided.
+        twitter_uri (str): Twitter profile URI, empty string if not provided.
+        youtube_uri (str): YouTube profile URI, empty string if not provided.
+        visibility (UserVisibility): The visiblity of these social links to \
+        user's on the platform.
+    """
+
+    def __repr__(self) -> str:
+        social_links_params = ["facebook_uri", "guilded_uri", "twitch_uri",
+            "twitter_uri", "youtube_uri"]
+        social_links = []
+
+        for param in social_links_params:
+            if self.__getattribute__(param): social_links.append(
+                f"{param}=\"{self.__getattribute__(param)}\"")
+
+        return f"<rblxopencloud.UserSocialLinks {' '.join(social_links)}\
+{' ' if social_links else ''}visibility={self.visibility}>"
+
+    def __init__(self, data):
+        self.facebook_uri: str = data.get("facebook", "")
+        self.guilded_uri: str = data.get("guilded", "")
+        self.twitch_uri: str = data.get("twitch", "")
+        self.twitter_uri: str = data.get("twitter", "")
+        self.youtube_uri: str = data.get("youtube", "")
+        self.visibility: UserVisibility = user_visiblity_strings.get(
+            data.get("visibility", ""), UserVisibility.Unknown)
 
 class User(Creator):
     """
-    Represents a user on Roblox. It is used to provide information about a user in OAuth2, and to upload assets to a user.
-    ### Paramaters
-    id: int - The user's ID.
-    api_key: str - Your API key created from [Creator Dashboard](https://create.roblox.com/credentials) with access to this user.
+    Represents a user on Roblox. It is used to provide information about a \
+    user in OAuth2, and to upload assets to a user.
+    
+    Attributes:
+        id (int): The user's ID.
+        api_key (str): Your API key created from \
+        [Creator Dashboard](https://create.roblox.com/credentials) with \
+        access to this user.
     """
     def __init__(self, id: int, api_key: str) -> None:
         self.username: Optional[str] = None
@@ -200,120 +340,194 @@ class User(Creator):
         self.profile_uri: str = f"https://roblox.com/users/{self.id}/profile"
         self.headshot_uri: Optional[str] = None
         self.created_at: Optional[datetime.datetime] = None
+        self.about: Optional[str] = None
+        self.locale: Optional[str] = None
+        self.premium: Optional[bool] = None
+        self.id_verified: Optional[bool] = None
+        self.social_links: Optional[UserSocialLinks] = None
 
         self.__api_key = api_key
 
         super().__init__(id, api_key, "User")
-
+        
     def __repr__(self) -> str:
-        return f"rblxopencloud.User({self.id})"
+        return f"<rblxopencloud.User id={self.id}>"
+    
+    async def fetch_info(self) -> "User":
+        """
+        Updates the empty attributes in the class with the user info.
 
-    async def list_groups(self, limit: Optional[int]=None) -> AsyncIterator["GroupMember"]:
+        Returns:
+            The class itself.
+        """
+
+        _, data, _ = await send_request("GET", f"cloud/v2/users/{self.id}",
+            authorization=self.__api_key, expected_status=[200])
+
+        self.username = data["name"]
+        self.display_name = data["displayName"]
+        self.created_at = parser.parse(data["createTime"])
+        self.about = data["about"]
+        self.locale = data["locale"]
+        self.premium = data.get("premium")
+        self.id_verified = data.get("idVerified")
+        self.social_links = (
+            UserSocialLinks(data["socialNetworkProfiles"])
+            if data.get("socialNetworkProfiles") else None
+        )
+
+        return self
+    
+    async def generate_headshot(self, size: Literal[48, 50, 60, 75, 100, 110,
+            150, 180, 352, 420, 720] = 420,
+            format: Literal["png", "jpeg"] = "png", is_circular: bool = False
+        ) -> Operation[str]:
+        """
+        Fetches the user's thumbnail from Roblox and returns an \
+        [`Operation`][rblxopencloud.Operation].
+
+        Args:
+            size (Literal[48, 50, 60, 75, 100, 110, 150, 180, 352, 420, \
+            720]): The size in pixels of the generated headshot. Must be one \
+            of: `48`, `50`, `60`, `75`, `100`, `110`, `150`, `180`, `352`, \
+            `420` or `720`.
+            format (Literal["png", "jpeg"]): The file format of the generated \
+            image.
+            is_circular (bool): Wether the generated thumbnail has a circular \
+            cut out.
+
+        Returns:
+            The [`Operation`][rblxopencloud.Operation] to get the thumbnail. \
+            In most cases, the final result will be cached and \
+            returned immediately from \
+            [`Operation.wait`][rblxopencloud.Operation.wait].
+        """
+
+        _, data, _ = await send_request("GET",
+            f"cloud/v2/users/{self.id}:generateThumbnail", params={
+                "shape": "SQUARE" if not is_circular else None,
+                "size": size, "format": format.upper()
+            }, authorization=self.__api_key, expected_status=[200])
+
+        return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+            lambda response: response['imageUri'],
+            cached_response=data.get("response"))
+
+
+    async def list_groups(
+            self, limit: int=None
+        ) -> AsyncGenerator[Any, Any, "GroupMember"]:
+        """
+        Iterates a [`GroupMember`][rblxopencloud.GroupMember] for every group \
+        the user is in. Use [`GroupMember.group`][rblxopencloud.GroupMember] \
+        to get the group.
+
+        Args:
+            limit (int): The max number of groups to iterate.
+
+        Yields:
+            [`GroupMember`][rblxopencloud.GroupMember] for every group the \
+            user is in.
+        """
+
         from .group import GroupMember
 
-        filter = None
-
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            status, data, headers = await preform_request("GET", f"cloud/v2/groups/-/memberships", authorization=self.__api_key, params={
-                "maxPageSize": limit if limit and limit <= 100 else 100,
+        for entry in await iterate_request(
+            "GET", "cloud/v2/groups/-/memberships",
+            authorization=self.__api_key, params={
+                "maxPageSize": limit if limit and limit <= 99 else 99,
                 "filter": f"user == 'users/{self.id}'",
-                "pageToken": nextcursor if nextcursor else None
-            })
-
-            if status == 400: raise rblx_opencloudException(data["message"])
-            elif status == 401: raise InvalidKey(data)
-            elif status == 404: raise NotFound(data["message"])
-            elif status == 429: raise RateLimited("You're being rate limited!")
-            elif status >= 500: raise ServiceUnavailable(f"Internal Server Error: '{data}'")
-            elif not 200 <= status < 300: raise rblx_opencloudException(f"Unexpected HTTP {status}: '{data}'")
-            
-            data = data
-            for member in data["groupMemberships"]:
-                yields += 1
-                
-                yield GroupMember(member, self.__api_key)
-            nextcursor = data.get("nextPageToken")
-            if not nextcursor: break
+            }, data_key="groupMemberships", cursor_key="nextPageToken",
+            expected_status=[200]
+        ):
+            yield GroupMember(entry, self.__api_key)
     
-    async def list_inventory(self, limit: Optional[int]=None, only_collectibles: Optional[bool]=False, assets: Optional[Union[list[InventoryAssetType], list[int], bool]]=None, badges: Optional[Union[list[int], bool]]=False, game_passes: Optional[Union[list[int], bool]]=False, private_servers: Optional[Union[list[int], bool]]=False) -> AsyncIterator[Union[InventoryAsset, InventoryBadge, InventoryGamePass, InventoryPrivateServer]]:
+    async def list_inventory(self, limit: int=None,
+        only_collectibles: bool=False,
+        assets: Union[list[InventoryAssetType], list[int], bool]=None,
+        badges: Union[list[int], bool]=False,
+        game_passes: Union[list[int], bool]=False,
+        private_servers: Union[list[int], bool]=False
+    ) -> AsyncGenerator[Any, Any, Union[InventoryAsset, InventoryBadge,
+        InventoryGamePass, InventoryPrivateServer]]:
         """
-        Interates `rblx-open-cloud.InventoryItem` for items in the user's inventory. If `only_collectibles`, `assets`, `badges`, `game_passes`, and `private_servers` are `False`, then all inventory items are returned.
+        Interates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \
+        the user's inventory. If `only_collectibles`, `assets`, `badges`, \
+        `game_passes`, and `private_servers` are `False`, then all inventory \
+        items are returned.
         
-        The example below would iterate through every item in the user's inventory.
-        
-        ```py
-            for item in user.list_inventory():
-                print(item)
-        ```
-        
-        The `user.inventory-item:read` scope is required if authorized via OAuth2`.
-        ### Parameters
-        limit: Optional[bool] - he maximum number of inventory items to iterate. This can be `None` to return all items.
-        only_collectibles: Optional[bool] - Wether the only inventory assets iterated are collectibles (limited items).
-        assets: Optional[Union[list[InventoryAssetType], list[int], bool]] - If this is `True`, then it will return all assets, if it is a list of IDs, it will only return assets with the provided IDs, and if it is a list of :class:`rblx-open-cloud.InventoryAssetType` then it will only return assets of these types.
-        badges: Optional[Union[list[int], bool]] - If this is `True`, then it will return all badges, but if it is a list of IDs, it will only return badges with the provided IDs.
-        game_passes: Optional[Union[list[int], bool]] - If this is `True`, then it will return all game passes, but if it is a list of IDs, it will only return game passes with the provided IDs.
-        private_servers: Optional[Union[list[int], bool]] - If this is `True`, then it will return all private servers, but if it is a list of IDs, it will only return private servers with the provided IDs.
+        Args:
+            limit (bool): The maximum number of inventory items to iterate. \
+            This can be `None` to return all items.
+            only_collectibles (bool): Wether the only inventory assets \
+            returned are collectibles (limited items).
+            assets (Union[list[InventoryAssetType], list[int], bool]): If \
+            `True`, then it will return all assets, if it is a list of IDs, \
+            it will only return assets with the provided IDs, and if it is a \
+            list of [`InventoryAssetType`][rblxopencloud.InventoryAssetType] \
+            then it will only return assets of these types.
+            badges (Union[list[int], bool]): If `True`, then it will return \
+            all badges, but if it is a list of IDs, it will only return \
+            badges with the provided IDs.
+            game_passes (Union[list[int], bool]): If `True`, then it will \
+            return all game passes, but if it is a list of IDs, it will only \
+            return game passes with the provided IDs.
+            private_servers (Union[list[int], bool]): If `True`, then it will \
+            return all private servers, but if it is a list of IDs, it will \
+            only return private servers with the provided IDs.
         """
 
-        filter_dict = {}
+        filter = {}
 
         if only_collectibles:
-            filter_dict["onlyCollectibles"] = only_collectibles
+            filter["onlyCollectibles"] = only_collectibles
             if assets == None: assets = True
 
         if assets == True:
-            filter_dict["inventoryItemAssetTypes"] = "*"
-        elif type(assets) == list and isinstance(assets[0], InventoryAssetType):
-            filter_dict["inventoryItemAssetTypes"] = ",".join([list(asset_type_strings.keys())[list(asset_type_strings.values()).index(asset_type)] for asset_type in assets])
+            filter["inventoryItemAssetTypes"] = "*"
+        elif (type(assets) == list and
+            isinstance(assets[0], InventoryAssetType)):
+
+            asset_types = []
+            for asset_type in assets:
+                asset_types.append(
+                    list(ASSET_TYPE_STRINGS.keys())
+                    [list(ASSET_TYPE_STRINGS.values()).index(asset_type)]
+                )
+                
+            filter["inventoryItemAssetTypes"] = ",".join(asset_types)
         elif type(assets) == list:
-            filter_dict["assetIds"] = ",".join([str(asset) for asset in assets])
+            filter["assetIds"] = ",".join([str(id) for id in assets])
 
         if badges == True:
-            filter_dict["badges"] = "true"
+            filter["badges"] = "true"
         elif type(badges) == list:
-            filter_dict["badgeIds"] = ",".join([str(badge) for badge in badges])
+            filter["badgeIds"] = ",".join([str(id) for id in badges])
             
         if game_passes == True:
-            filter_dict["gamePasses"] = "true"
-        elif type(badges) == list:
-            filter_dict["gamePassIds"] = ",".join([str(game_pass) for game_pass in game_passes])
+            filter["gamePasses"] = "true"
+        elif type(game_passes) == list:
+            filter["gamePassIds"] = (
+                ",".join([str(id) for id in game_passes])
+            )
             
         if private_servers == True:
-            filter_dict["privateServers"] = "true"
+            filter["privateServers"] = "true"
         elif type(badges) == list:
-            filter_dict["privateServerIds"] = ",".join([str(private_server) for private_server in private_servers])
+            filter["privateServerIds"] = ",".join([
+                str(private_server) for private_server in private_servers])
 
-        nextcursor = ""
-        yields = 0
-        while limit == None or yields < limit:
-            status, data, headers = await preform_request("GET", f"cloud/v2/users/{self.id}/inventory-items", authorization=self.__api_key, params={
+        for entry in await iterate_request("GET",
+            f"cloud/v2/users/{self.id}/inventory-items", params={
                 "maxPageSize": limit if limit and limit <= 100 else 100,
-                "filter": ";".join([f"{k}={v}" for k, v in filter_dict.items()]),
-                "pageToken": nextcursor if nextcursor else None
-            })
-
-            if status == 400: raise rblx_opencloudException(data["message"])
-            elif status == 401: raise InvalidKey(data)
-            elif status == 403: raise PermissionDenied(data["message"])
-            elif status == 404: raise NotFound(data["message"])
-            elif status == 429: raise RateLimited("You're being rate limited!")
-            elif status >= 500: raise ServiceUnavailable(f"Internal Server Error: '{data}'")
-            elif not 200 <= status < 300: raise rblx_opencloudException(f"Unexpected HTTP {status}: '{data}'")
-            
-            data = data
-            for item in data["inventoryItems"]:
-                yields += 1
-                if "assetDetails" in item.keys():
-                    yield InventoryAsset(item["assetDetails"])
-                elif "badgeDetails" in item.keys():
-                    yield InventoryBadge(item["badgeDetails"])
-                elif "gamePassDetails" in item.keys():
-                    yield InventoryGamePass(item["gamePassDetails"])
-                elif "privateServerDetails" in item.keys():
-                    yield InventoryPrivateServer(item["privateServerDetails"])
-                if limit != None and yields >= limit: break
-            nextcursor = data.get("nextPageToken")
-            if not nextcursor: break
+                "filter": ";".join([f"{k}={v}" for k, v in filter.items()])
+            }, authorization=self.__api_key, data_key="inventoryItems",
+            cursor_key="pageToken", expected_status=[200]):
+                if "assetDetails" in entry.keys():
+                    yield InventoryAsset(entry["assetDetails"])
+                elif "badgeDetails" in entry.keys():
+                    yield InventoryBadge(entry["badgeDetails"])
+                elif "gamePassDetails" in entry.keys():
+                    yield InventoryGamePass(entry["gamePassDetails"])
+                elif "privateServerDetails" in entry.keys():
+                    yield InventoryPrivateServer(entry["privateServerDetails"])

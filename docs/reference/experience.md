@@ -9,3 +9,13 @@
 ::: rblxopencloud.ExperienceSocialLink
 
 ::: rblxopencloud.ExperienceAgeRating
+
+::: rblxopencloud.Subscription
+
+::: rblxopencloud.SubscriptionState
+
+::: rblxopencloud.SubscriptionExpirationReason
+
+::: rblxopencloud.PaymentProvider
+
+::: rblxopencloud.Platform
