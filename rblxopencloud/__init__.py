@@ -26,6 +26,7 @@ import requests
 
 VERSION: str = "2.0.0"
 VERSION_INFO: Literal['alpha', 'beta', 'final'] = "beta"
+print(VERSION_INFO)
 
 user_agent: str = f"rblx-open-cloud/{VERSION} \
 (https://github.com/treeben77/rblx-open-cloud)"
