@@ -4,11 +4,10 @@
 [![DevForum Post](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdevforum.roproxy.com%2Ft%2F1991959.json&query=%24.like_count&suffix=%20Likes&style=for-the-badge&logo=robloxstudio&logoColor=white&label=DevForum%20Post&labelColor=%23009fff&color=%23353535)](https://devforum.roblox.com/t/1991959)
 [![Downloads](https://img.shields.io/pypi/dm/rblx-open-cloud?style=for-the-badge&logo=pypi&logoColor=white&label=PyPi%20Downloads&labelColor=%23006dad&color=%23353535)](https://pypi.org/project/rblx-open-cloud)
 
-rblx-open-cloud is a Python API wrapper for [Roblox's Open Cloud](https://create.roblox.com/docs/cloud/open-cloud). It supports all experience and creator APIs, OAuth2, and incoming webhooks, and OAuth2.
+rblx-open-cloud is a Python API wrapper for [Roblox's Open Cloud](https://create.roblox.com/docs/cloud/open-cloud). It supports all experience and creator APIs, OAuth2, and incoming webhooks.
 
-## Getting Started
-
-### Instalation
+## Installation Process
+To install rblx-open-cloud from PyPI package, you can install it from pip:
 
 === "Windows"
     ```console
@@ -21,44 +20,44 @@ rblx-open-cloud is a Python API wrapper for [Roblox's Open Cloud](https://create
     ```
 
 ### Basic Usage
+In order to use this library, you will need an OpenCloud API key or OAuth application to proceed further. You can see [Roblox's documentation of this here.](https://create.roblox.com/docs/cloud/open-cloud/api-keys)
 
-Here are examples of creating classes for experiences, and groups.
+In rblxopencloud, we provide OAuth & API key of OpenCloud, so you can use one library for all of them:
 
-=== "Experience"
+=== "API Keys"
 
-    This example will create an experience object, with `0000000` as the experience/universe ID, and `apikey` is the API key (see below).
+    This example will be if you used mulitple different API Keys and do not want one API Key to manage your requests.
 
     ```py
     from rblxopencloud import Experience
 
-    experience = Experience(0000000, "apikey")
+    experience = Experience(experience_id, "api_key")
     ```
 
-    Check out the experience [guide](guides/experience.md) and [reference](reference/experience.md) to learn more.
-
-=== "Group"
-
-    This example will create an experience object, with `0000000` as the group ID, and `apikey` is the API key (see below).
+    This example will be if you use only one API Key for everything, and you do not want to do the above example.
 
     ```py
-    from rblxopencloud import Group
+    from rblxopencloud import ApiKey
 
-    group = Group(0000000, "apikey")
+    api_key = ApiKey("api key")
+
+    group = api_key.get_group(123422)
     ```
 
-    Check out the group [guide](guides/group.md) and [reference](reference/group.md) to learn more.
+    More in-depth example is at [guide](guides/api.md) 
+    
+=== "OAuth Application"
+    This example, we are setting up and configuring our client secret, client ID, and our redirect. 
 
-### API Keys
+    ```py
+    from rblxopencloud import OAuth2App
 
-To use Open Cloud APIs you need to create an API key. An API key is a string which is provided to Roblox is prove who you are, and that you have permission to use these APIs. Here's how to create an API key:
+    rblxapp = OAuth2App(0000000000000000000, "your-client-secret", "https://example.com/redirect")
+    ```
+    More in-depth example is at [guide](guides/oauth.md) 
+    
 
-1. Go to the [Creator Dashboard](https://create.roblox.com/dashboard/credentials), and navigate to the Open Cloud API Keys section.
-2. Press 'CREATE API KEY'.
-3. Give your API key a name to identify it.
-4. Under 'Access Permissions', select the API system from the drop down you'd like to use
-5. Configure the permissions to allow the required experiences and/or scopes.
-
-Each guide gives more detailed information about how to create API keys for that guide. Most APIs are also able to be authentiated with [OAuth2](guides/oauth2.md).
+We have more in-depth examples for API Keys at [this link](guides/api.md) and [reference](reference/experience.md) to learn more.
 
 ## Getting Help
 
