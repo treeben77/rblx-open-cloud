@@ -126,6 +126,10 @@ async def send_request(method: str, path: str, authorization: Optional[str]=None
         headers["authorization" if authorization.startswith("Bearer ")
                 else "x-api-key"] = authorization
 
+    if kwargs.get("params"):
+        for k, v in kwargs["params"].copy().items():
+            if v == None: del kwargs["params"][k]
+
     response = await http_session.request(
         method, f"https://apis.roblox.com/{path}",
         headers=headers, **kwargs, timeout=10
