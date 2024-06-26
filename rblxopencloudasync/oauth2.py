@@ -331,7 +331,7 @@ redirect_uri=\"{self.redirect_uri}\")"
             ).public_key(default_backend()).public_bytes(
                 Encoding.DER,
                 PublicFormat.SubjectPublicKeyInfo
-            ), default_backend()
+            )
 
             self.__openid_certs_cache.append(
                 load_der_public_key(public_key)
