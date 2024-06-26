@@ -21,7 +21,7 @@ When installing rblxopencloud, both `rblxopencloud` and `rblxopencloudasync` mod
 
 ## Syntax Differences
 
-All classes, methods, and attributes still persist the same values/returns, so you can still use the library reference. The difference is all methods that call to the Roblox API need to be awaited. For example, [`Experience.get_data_store`][rblxopencloud.Experience.get_data_store] does not need to be awaited, but [`Experience.publish_message`][rblxopencloud.Experience.publish_message] does. Here is an example of the differences between the two libraries for fetching a key, and listing it's versions:
+All classes, methods, and attributes still persist the same values/returns, so you can still use the library reference. The difference is all methods that call to the Roblox API need to be awaited. For example, [`Experience.get_datastore`][rblxopencloud.Experience.get_datastore] does not need to be awaited, but [`Experience.publish_message`][rblxopencloud.Experience.publish_message] does. Here is an example of the differences between the two libraries for fetching a key, and listing it's versions:
 
 === "Normal"
     ```py
@@ -29,7 +29,7 @@ All classes, methods, and attributes still persist the same values/returns, so y
 
     experience = Experience(0000000000, "api-key")
 
-    datastore = experience.get_data_store("playerData")
+    datastore = experience.get_datastore("playerData")
 
     value, info = datastore.get_entry("287113233")
     print(value, info)
@@ -44,7 +44,7 @@ All classes, methods, and attributes still persist the same values/returns, so y
 
     experience = Experience(0000000000, "api-key")
 
-    datastore = experience.get_data_store("playerData")
+    datastore = experience.get_datastore("playerData")
 
     value, info = await datastore.get_entry("287113233")
     print(value, info)

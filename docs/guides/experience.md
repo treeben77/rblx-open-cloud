@@ -139,7 +139,7 @@ You can also access Ordered Data Stores with Open Cloud. There are a few differe
 - [`OrderedDataStore.set_entry`][rblxopencloud.OrderedDataStore.set_entry] doesn't have the `previous_version` precondition, instead it has an `exclusive_update` precondition.
 - Ordered Data Stores don't have a `list_keys` method, but instead [`OrderedDataStore.sort_keys`][rblxopencloud.OrderedDataStore.sort_keys]. They also iterate [`rblxopencloud.SortedEntry`][rblxopencloud.SortedEntry] which includes the key's value.
 
-To create an Ordered Data Store, you can use the [`Experience.get_ordered_data_store`][rblxopencloud.Experience.get_ordered_data_store] method, which also supports `scope` being `None`:
+To create an Ordered Data Store, you can use the [`Experience.get_ordered_datastore`][rblxopencloud.Experience.get_ordered_datastore] method, which also supports `scope` being `None`:
 
 ```py
 datastore = experience.get_ordered_data_store("ExampleStore", scope="global")
@@ -147,14 +147,13 @@ datastore = experience.get_ordered_data_store("ExampleStore", scope="global")
 
 ## Other Experience APIs
 
-You can also use the Place Publishing, and Messaging Service APIs with Open Cloud.
+You can also use other experience APIs with open cloud, some of which are shown below.
 
 ### Messaging Service
 
 You can publish messages with Open Cloud that live game servers will recieve. Here's an example to send a messsage top the topic `topic-name`:
 
 ```py
-
 experience.publish_message("topic-name", "this is an example message content.")
 ```
 
@@ -165,14 +164,34 @@ experience.publish_message("topic-name", "this is an example message content.")
     The messaging service only supports strings being sent. To send more complex data, such as dictionaries, you will need to JSON encode the string. See [the json built-in python library](https://docs.python.org/3/library/json.html) and [the Roblox game engine method HttpService:JSONDecode()](https://create.roblox.com/docs/reference/engine/classes/HttpService#JSONDecode).
 
 You can not recieve messages with Open Cloud.
-<!-- TODO: REQUIRES REWRITING
-### Place Publishing
 
-You can upload place (`.rblx`) files to Roblox using the Place Publishing API. Given you have a place file, you can use the following code to upload a place. Replace `0000000` with the place ID:
+### User Restrictions (Banning) API
+
+You can fetch, ban and unban users from the experience with Open Cloud. Here is an example to ban and then unban a user from the entire experience:
 
 ```py
-with open("path-to/place-file.rblx", "rb") as file:
-    experience.upload_place(0000000, file, publish=True)
+experience.ban_user(
+    287113233, duration_seconds=86400,
+    display_reason="Breaking the rules.",
+    private_reason="Top secret!"
+)
 ```
 
-If `publish` is set to `True`, it will publish the place as well. Otherwise, it will only save the place. -->
+Display reason is shown to the client, whereas private reason is not. `287113233` is the ID of the user that will be banned, and detected alternative accounts will also be banned by default. The duration in section is how long it will last. If you want to ban them permemently, set it to `None`. You can unban a user as such:
+
+```py
+experience.ban_user(287113233)
+```
+
+Additionally, you can check whether a user is banned and get information about why they are banned with the following code:
+
+```py
+restriction = experience.fetch_user_restriction(287113233)
+
+if restriction.active:
+    print(f"The user is banned because: {restriction.private_reason}")
+else:
+    print(f"The user is not banned right now!")
+```
+
+The previous methods can also be used on a place-level by using a them from a [`Place`][rblxopencloud.Place] object.

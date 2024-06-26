@@ -35,7 +35,7 @@ group.fetch_info()
 print(f"{group.name} has {group.member_count} members!")
 ```
 
-There are no permission restrictions for basic group information, anyone can get basic information for any group.
+There are no permission restrictions for basic group information, any API key/OAuth2 bearer can get basic information for any group.
 
 ### Listing Group Members
 
@@ -80,20 +80,14 @@ Note that the authorizing user requires the 'View group shout' permission on the
 
 ## Uploading Assets
 
-You can upload images, audio, and models to a Group using the [`Group.upload_asset`][rblxopencloud.Group.upload_asset] method. It requires an API key owned by the Group with read and write Asset API permissions. The following example will upload the image at the path `path-to/image.png`:
+You can upload images, audio, and models to a Group using the [`Group.upload_asset`][rblxopencloud.Group.upload_asset] method. It requires an API key owned by the Group with read and write Asset API permissions. The following example will upload the image at the path `path-to/image.png` and wait until it is complete:
 
 ```py
 with open("path-to/image.png", "rb") as file:
-    status = group.upload_asset(file, rblxopencloud.AssetType.Decal, "asset name", "asset description")
+    operation = group.upload_asset(file, rblxopencloud.AssetType.Decal, "asset name", "asset description")
 
-if isinstance(asset, rblxopencloud.Asset):
-    print(asset)
-else:
-    while True:
-        status = asset.fetch_status()
-        if status:
-            print(status)
-            break
+asset = operation.wait()
+print(asset)
 ```
 
 !!! danger

@@ -63,6 +63,7 @@ markdown_extensions:
 use_directory_urls: false
 nav:
   - Introduction: index.md
+  - Migrating to v2: v2.md
   - Asynchronous: asynchronous.md
   - Guides:
     - Experience: guides/experience.md

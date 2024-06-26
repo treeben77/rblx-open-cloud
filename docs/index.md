@@ -20,34 +20,6 @@ rblx-open-cloud is a Python API wrapper for [Roblox's Open Cloud](https://create
     python3 -m pip install rblx-open-cloud --upgrade
     ```
 
-### Basic Usage
-
-Here are examples of creating classes for experiences, and groups.
-
-=== "Experience"
-
-    This example will create an experience object, with `0000000` as the experience/universe ID, and `apikey` is the API key (see below).
-
-    ```py
-    from rblxopencloud import Experience
-
-    experience = Experience(0000000, "apikey")
-    ```
-
-    Check out the experience [guide](guides/experience.md) and [reference](reference/experience.md) to learn more.
-
-=== "Group"
-
-    This example will create an experience object, with `0000000` as the group ID, and `apikey` is the API key (see below).
-
-    ```py
-    from rblxopencloud import Group
-
-    group = Group(0000000, "apikey")
-    ```
-
-    Check out the group [guide](guides/group.md) and [reference](reference/group.md) to learn more.
-
 ### API Keys
 
 To use Open Cloud APIs you need to create an API key. An API key is a string which is provided to Roblox is prove who you are, and that you have permission to use these APIs. Here's how to create an API key:
