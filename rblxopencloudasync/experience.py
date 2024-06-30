@@ -301,7 +301,7 @@ class UserRestriction():
             )
         elif data.get("place"):
             self.place: Optional[Place] = Place(
-                int(data["place"].split("/")[1]), None, api_key, None
+                int(data["place"].split("/")[-1]), None, api_key, None
             )
 
         self.user: User = User(int(data["user"].split("/")[1]), api_key)
@@ -326,7 +326,11 @@ class UserRestriction():
             restriction_info["excludeAltAccounts"]
         )
 
-        self.duration_seconds: Optional[int] = restriction_info.get("duration")
+        duration = restriction_info.get("duration")
+        self.duration_seconds: Optional[int] = (
+            duration if not (type(duration) == str and duration.endswith("s"))
+            else int(duration[0:-1])
+        )
         self.start_timestamp: Optional[datetime] = (
             parser.parse(restriction_info["startTime"])
             if restriction_info.get("startTime") else None
@@ -502,7 +506,9 @@ experience={repr(self.experience)}>"
             authorization=self.__api_key, expected_status=[200], json={
                 "gameJoinRestriction": {
                     "active": True,
-                    "duration": f"{duration_seconds}s",
+                    "duration": (
+                        f"{duration_seconds}s" if duration_seconds else None
+                    ),
                     "excludeAltAccounts": exclude_alt_accounts,
                     "displayReason": display_reason,
                     "privateReason": private_reason
@@ -1161,7 +1167,9 @@ classes/MessagingService).
             authorization=self.__api_key, expected_status=[200], json={
                 "gameJoinRestriction": {
                     "active": True,
-                    "duration": f"{duration_seconds}s",
+                    "duration": (
+                        f"{duration_seconds}s" if duration_seconds else None
+                    ),
                     "excludeAltAccounts": exclude_alt_accounts,
                     "displayReason": display_reason,
                     "privateReason": private_reason
