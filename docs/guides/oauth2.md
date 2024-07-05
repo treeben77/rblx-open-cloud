@@ -5,16 +5,13 @@ OAuth2 allows app developers to access user's Roblox accounts on their behalf fo
 This guide is assuming you came from [Authentication Guide](/docs/guides/authentication.md) and [Basic Guide](/docs/guide/basic.md), and will be based on that. 
 
 ### The OAuth2 Object
-
-Now that you've created your OAuth2 app, it's time to use it in your code. In your script, add these lines below your imports but near the top:
+You should end up with something like below, and this is what we will be basing it on during this guide.
 
 ```py
 from rblxopencloud import OAuth2App
 
 rblxapp = OAuth2App(0000000000000000000, "your-client-secret", "https://example.com/redirect")
 ```
-
-Change `0000000000000000000` to your app's client ID, `your-client-secret` to your app's client secret, and `https://example.com/redirect` to the redirect URI you'll use for testing that you configured in the dashboard. You've created a [`rblxopencloud.OAuth2App`][rblxopencloud.OAuth2App] which can be used for generating redirect URIs, and processing OAuth2 requests.
 
 ## Basic OAuth2 Flow
 
