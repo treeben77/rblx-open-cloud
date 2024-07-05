@@ -416,7 +416,7 @@ class User(Creator):
 
     async def list_groups(
             self, limit: int=None
-        ) -> AsyncGenerator[Any, Any, "GroupMember"]:
+        ) -> AsyncGenerator[Any, "GroupMember"]:
         """
         Iterates a [`GroupMember`][rblxopencloud.GroupMember] for every group \
         the user is in. Use [`GroupMember.group`][rblxopencloud.GroupMember] \
@@ -448,7 +448,7 @@ class User(Creator):
         badges: Union[list[int], bool]=False,
         game_passes: Union[list[int], bool]=False,
         private_servers: Union[list[int], bool]=False
-    ) -> AsyncGenerator[Any, Any, Union[InventoryAsset, InventoryBadge,
+    ) -> AsyncGenerator[Any, Union[InventoryAsset, InventoryBadge,
         InventoryGamePass, InventoryPrivateServer]]:
         """
         Interates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \

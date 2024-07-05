@@ -375,7 +375,7 @@ class Creator():
     
     async def list_asset_versions(
             self, asset_id: int, limit: int = None
-        ) -> AsyncGenerator[Any, Any, AssetVersion]:
+        ) -> AsyncGenerator[Any, AssetVersion]:
         """
         Iterates all avaliable versions of the asset, providing the latest \
         version first.

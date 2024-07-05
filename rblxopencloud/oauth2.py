@@ -312,7 +312,7 @@ class OAuth2App():
 redirect_uri=\"{self.redirect_uri}\")"
 
     def __refresh_openid_certs_cache(self):
-        certs_status, certs, _ = send_request("GET", "/oauth/v1/certs")
+        certs_status, certs, _ = send_request("GET", "oauth/v1/certs")
         if certs_status != 200:
             raise HttpException("Failed to retrieve OpenID certs")
 
@@ -331,7 +331,7 @@ redirect_uri=\"{self.redirect_uri}\")"
             ).public_key(default_backend()).public_bytes(
                 Encoding.DER,
                 PublicFormat.SubjectPublicKeyInfo
-            ), default_backend()
+            )
 
             self.__openid_certs_cache.append(
                 load_der_public_key(public_key)

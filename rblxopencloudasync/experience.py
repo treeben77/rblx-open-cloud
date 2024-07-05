@@ -44,6 +44,7 @@ __all__ = (
     "Subscription",
     "SubscriptionExpirationReason",
     "SubscriptionState",
+    "UserRestriction",
 )
 
 class Platform(Enum):
@@ -262,6 +263,83 @@ EXPERIENCE_AGE_RATING_STRINGS = {
     "AGE_RATING_17_PLUS": ExperienceAgeRating.SeventeenPlus,
 }
 
+class UserRestriction():
+    """
+    Represents a user restriction (or ban) within an experience or place on \
+    Roblox.
+        
+    Attributes:
+        place: The place object this restriction belongs to. `None` if it is \
+        universe-wide.
+        user: The user object that this restriction relates to.
+        active: Whether the restriction is currently active.
+        display_reason: The reason for this restriction shown to the client.
+        private_reason: The reason for this restriction never shwon to the \
+        client. Can be used to store sensitive information about the ban.
+        inherited: For bans specific to a place, whether the ban was \
+        inherited from a universe-wide ban.
+        exclude_alt_accounts: Whether the ban should not attempt to prevent \
+        alternate accounts.
+        duration_seconds: The number of seconds this restriction is for. \
+        `None` means it is indefinite or not active.
+        start_timestamp: The timestamp this restriction started at.
+        issuer_user_id: Only for \
+        [`Experience.list_ban_logs`][rblxopencloud.Experience.list_ban_logs], \
+        the user ID identified to have issued the ban. `None` if issued by a \
+        game script.
+    """
+
+    def __init__(self, data, api_key, place=None) -> None:
+        if data.get("path"):
+            if "places" not in data["path"].split("/"):
+                self.place: Optional[Place] = None
+            elif place:
+                self.place: Optional[Place] = place
+            else:
+                self.place: Optional[Place] = Place(
+                int(data["path"].split("/")[3]), None, api_key, None
+            )
+        elif data.get("place"):
+            self.place: Optional[Place] = Place(
+                int(data["place"].split("/")[-1]), None, api_key, None
+            )
+
+        self.user: User = User(int(data["user"].split("/")[1]), api_key)
+
+        if data.get("path"):
+            restriction_info = data["gameJoinRestriction"]
+            self.issuer_user_id: Optional[int] = None
+        else:
+            restriction_info = data
+
+            self.issuer_user_id: Optional[int] = (
+                int(restriction_info["moderator"]["robloxUser"].split("/")[-1])
+                if restriction_info["moderator"].get("robloxUser") else None
+            )
+
+        self.active: bool = restriction_info["active"]
+
+        self.display_reason: str = restriction_info["displayReason"]
+        self.private_reason: str = restriction_info["privateReason"]
+        self.inherited: Optional[bool] = restriction_info.get("inherited")
+        self.exclude_alt_accounts: bool = (
+            restriction_info["excludeAltAccounts"]
+        )
+
+        duration = restriction_info.get("duration")
+        self.duration_seconds: Optional[int] = (
+            duration if not (type(duration) == str and duration.endswith("s"))
+            else int(duration[0:-1])
+        )
+        self.start_timestamp: Optional[datetime] = (
+            parser.parse(restriction_info["startTime"])
+            if restriction_info.get("startTime") else None
+        )
+    
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.UserRestriction active={self.active} \
+user={repr(self.user)}>"
+
 class Place():
     """
     Represents a place within an experience on Roblox.
@@ -380,6 +458,89 @@ experience={repr(self.experience)}>"
         )
         
         return data["versionNumber"]
+
+    async def fetch_user_restriction(self, user_id: int) -> UserRestriction:
+        """
+        Fetches the current restriction information for the specific place.
+
+        Args:
+            user_id: The user ID to fetch restriction information for.
+        
+        Returns:
+            The current restriction information for the requested user.
+        """
+
+        _, data, _ = await send_request(
+            "GET", f"cloud/v2/universes/{self.experience.id}/places/{self.id}\
+/user-restrictions/{user_id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
+
+        return UserRestriction(data, self.__api_key)
+
+    async def ban_user(
+            self, user_id: int, duration_seconds: Optional[int],
+            display_reason: str="", private_reason: str="",
+            exclude_alt_accounts: bool=False
+        ) -> UserRestriction:
+        """
+        Updates the current user restriction for a user within the place.
+
+        Args:
+            user_id: The ID of the user to update restrictions for.
+            duration_seconds: The number of seconds the ban should last. \
+            Provide `None` for an indefinite restriction.
+            display_reason: The reason for the ban shown to the client.
+            private_reason: The reason for the ban never shown to the client.
+            exclude_alt_accounts: Whether the user's detected alt accounts \
+            shouldn't be banned as well.
+        
+        Returns:
+            The updated restriction information for the requested user.
+        """
+
+        _, data, _ = await send_request(
+            "PATCH",
+            f"cloud/v2/universes/{self.experience.id}/places/{self.id}\
+/user-restrictions/{user_id}",
+            authorization=self.__api_key, expected_status=[200], json={
+                "gameJoinRestriction": {
+                    "active": True,
+                    "duration": (
+                        f"{duration_seconds}s" if duration_seconds else None
+                    ),
+                    "excludeAltAccounts": exclude_alt_accounts,
+                    "displayReason": display_reason,
+                    "privateReason": private_reason
+                }
+            }
+        )
+
+        return UserRestriction(data, self.__api_key)
+    
+    async def unban_user(self, user_id: int) -> UserRestriction:
+        """
+        Removes the current user restriction for a user within the place.
+
+        Args:
+            user_id: The ID of the user to remove restrictions for.
+        
+        Returns:
+            The updated restriction information for the requested user.
+        """
+
+        _, data, _ = await send_request(
+            "PATCH",
+            f"cloud/v2/universes/{self.experience.id}/places/{self.id}\
+/user-restrictions/{user_id}",
+            authorization=self.__api_key, expected_status=[200], json={
+                "gameJoinRestriction": {
+                    "active": False
+                }
+            }
+        )
+
+        return UserRestriction(data, self.__api_key)
 
     # def list_root_children(self) -> Operation[list[InstanceType]]:
     #     _, data, _ = await send_request("GET", "cloud/v2/universes/"+
@@ -736,7 +897,7 @@ class Experience():
     async def list_datastores(
             self, prefix: str = "", limit: int = None,
             scope: Optional[str] = "global"
-        ) -> AsyncGenerator[Any, Any, DataStore]:
+        ) -> AsyncGenerator[Any, DataStore]:
         """
         Iterates all data stores in the experience.
 
@@ -751,7 +912,7 @@ class Experience():
             experience.
         """
         
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET", f"datastores/v1/universes/{self.id}/standard-datastores",
             authorization=self.__api_key, expected_status=[200],
             params={
@@ -840,7 +1001,7 @@ classes/MessagingService).
         parameters_dict = {}
         for key, value in message_variables.items():
             if key.startswith("userid_"):
-                key = f"UserId-{key[7:]}"
+                key = f"userId-{key[7:]}"
             parameters_dict[key] = {
                 "int64_value" if type(value) == int else "string_value": value
             }
@@ -923,3 +1084,121 @@ classes/MessagingService).
         )
 
         return Subscription(data)
+
+    async def list_ban_logs(
+            self, user_id: int=None, place_id: int=None, limit: int=None
+        ) -> AsyncGenerator[Any, UserRestriction]:
+        """
+        Lists all ban and unban logs within the universe, optionally filtered \
+        to a specific user and/ or place.
+
+        Args:
+            user_id: The user ID to fetch history for.
+            place_id: Only include ban logs for this specific place ID.
+        
+        Yields:
+            Restriction information for each restriction log found.
+        """
+
+        filter = []
+        
+        if user_id: filter.append(f"user == 'users/{user_id}'")
+        if place_id: filter.append(f"place == 'places/{place_id}'")
+
+        print({
+            "maxPageSize": limit if limit and limit <= 100 else 100,
+            "filter": "&&".join(filter)
+        })
+        async for entry in iterate_request(
+            "GET", f"cloud/v2/universes/{self.id}/user-restrictions:listLogs",
+            authorization=self.__api_key, expected_status=[200],
+            params={
+                "maxPageSize": str(limit if limit and limit <= 100 else 100),
+                "filter": "&&".join(filter)
+            },
+            max_yields=limit, data_key="logs", cursor_key="pageToken"
+        ):
+            yield UserRestriction(entry, self.__api_key)
+
+    async def fetch_user_restriction(self, user_id: int) -> UserRestriction:
+        """
+        Fetches the current restriction information for a user universe-wide. \
+        (e.g. whether they are banned.)
+
+        Args:
+            user_id: The user ID to fetch restriction information for.
+        
+        Returns:
+            The current restriction information for the requested user.
+        """
+
+        _, data, _ = await send_request(
+            "GET", f"cloud/v2/universes/{self.id}/user-restrictions/{user_id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
+
+        return UserRestriction(data, self.__api_key)
+
+    async def ban_user(
+            self, user_id: int, duration_seconds: Optional[int],
+            display_reason: str="", private_reason: str="",
+            exclude_alt_accounts: bool=False
+        ) -> UserRestriction:
+        """
+        Updates the current user restriction for a user on the universe-wide \
+        level.
+
+        Args:
+            user_id: The ID of the user to update restrictions for.
+            duration_seconds: The number of seconds the ban should last. \
+            Provide `None` for an indefinite restriction.
+            display_reason: The reason for the ban shown to the client.
+            private_reason: The reason for the ban never shown to the client.
+            exclude_alt_accounts: Whether the user's detected alt accounts \
+            shouldn't be banned as well.
+        
+        Returns:
+            The updated restriction information for the requested user.
+        """
+
+        _, data, _ = await send_request(
+            "PATCH",
+            f"cloud/v2/universes/{self.id}/user-restrictions/{user_id}",
+            authorization=self.__api_key, expected_status=[200], json={
+                "gameJoinRestriction": {
+                    "active": True,
+                    "duration": (
+                        f"{duration_seconds}s" if duration_seconds else None
+                    ),
+                    "excludeAltAccounts": exclude_alt_accounts,
+                    "displayReason": display_reason,
+                    "privateReason": private_reason
+                }
+            }
+        )
+
+        return UserRestriction(data, self.__api_key)
+    
+    async def unban_user(self, user_id: int) -> UserRestriction:
+        """
+        Removes the current user restriction for a user on the universe-wide \
+        level.
+
+        Args:
+            user_id: The ID of the user to remove restrictions for.
+        
+        Returns:
+            The updated restriction information for the requested user.
+        """
+
+        _, data, _ = await send_request(
+            "PATCH",
+            f"cloud/v2/universes/{self.id}/user-restrictions/{user_id}",
+            authorization=self.__api_key, expected_status=[200], json={
+                "gameJoinRestriction": {
+                    "active": False
+                }
+            }
+        )
+
+        return UserRestriction(data, self.__api_key)

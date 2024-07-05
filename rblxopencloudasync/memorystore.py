@@ -92,7 +92,7 @@ class SortedMap():
         upper_bound_key: Union[str, int] = None,
         lower_bound_sort_key: Union[str, int] = None,
         upper_bound_sort_key: Union[str, int] = None
-    ) -> AsyncGenerator[Any, Any, SortedMapEntry]:
+    ) -> AsyncGenerator[Any, SortedMapEntry]:
         """
         Returns an Iterable of keys in the sorted map.
 
@@ -215,9 +215,9 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
 /sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
                 authorization=self.__api_key, expected_status=[200, 409],
                 json={
-                    "Id": key,
-                    "Value": value,
-                    "Ttl": f"{expiration_seconds}s",
+                    "id": key,
+                    "value": value,
+                    "ttl": f"{expiration_seconds}s",
                     (
                         "stringSortKey" if type(sort_key) == str
                         else "numericSortKey"
