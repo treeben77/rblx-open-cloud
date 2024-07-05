@@ -19,48 +19,11 @@ To install rblx-open-cloud from PyPI package, you can install it from pip:
     python3 -m pip install rblx-open-cloud --upgrade
     ```
 
-### Basic Usage
-In order to use this library, you will need an OpenCloud API key or OAuth application to proceed further. You can see [Roblox's documentation of this here.](https://create.roblox.com/docs/cloud/open-cloud/api-keys)
-
-In rblxopencloud, we provide OAuth & API key of OpenCloud, so you can use one library for all of them:
-
-=== "API Keys"
-
-    This example will be if you used mulitple different API Keys and do not want one API Key to manage your requests.
-
-    ```py
-    from rblxopencloud import Experience
-
-    experience = Experience(experience_id, "api_key")
-    ```
-
-    This example will be if you use only one API Key for everything, and you do not want to do the above example.
-
-    ```py
-    from rblxopencloud import ApiKey
-
-    api_key = ApiKey("api key")
-
-    group = api_key.get_group(123422)
-    ```
-
-    More in-depth example is at [guide](guides/api.md) 
-    
-=== "OAuth Application"
-    This example, we are setting up and configuring our client secret, client ID, and our redirect. 
-
-    ```py
-    from rblxopencloud import OAuth2App
-
-    rblxapp = OAuth2App(0000000000000000000, "your-client-secret", "https://example.com/redirect")
-    ```
-    More in-depth example is at [guide](guides/oauth.md) 
-    
-
-We have more in-depth examples for API Keys at [this link](guides/api.md) and [reference](reference/experience.md) to learn more.
+## Getting Started 
+You can begin getting started with our [Authentication Guide](/docs/guides/authentication.md) and then after, take a look at a [basic example](/docs/guides/basic.md) on how to implement it into code!
 
 ## Getting Help
 
-You can ask for help in the [Discord server](https://discord.gg/4CSc9E5uQy) or the [DevForum Post](https://devforum.roblox.com/t/1991959), and you can report bugs on the [GitHub repository](https://github.com/treeben77/rblx-open-cloud/issues).
+You can ask for help in the [Discord Server](https://discord.gg/4CSc9E5uQy) or the [DevForum Post](https://devforum.roblox.com/t/1991959), and you can report bugs on the [GitHub Repository](https://github.com/treeben77/rblx-open-cloud/issues).
 
 **Thank you for using rblx-open-cloud!**

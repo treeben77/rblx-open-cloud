@@ -1,25 +1,8 @@
 # OAuth2
 
 OAuth2 allows app developers to access user's Roblox accounts on their behalf for many different use cases. You could use OAuth2 to allow users to securely identify themselves to allow signing in with Roblox, or so app developers can create intergrations with the user's account, experiences, or groups.
-
-## Getting Started
-
-### Creating Your Application
-
-!!! note
-    You must be [ID verified](https://create.roblox.com/docs/production/publishing/account-verification) on Roblox to create OAuth2 applications.
-
-To create an OAuth2 application, you must go to the [Creator Dashboard](https://create.roblox.com/dashboard/credentials) click the 'OAUTH2.0 APPS' tab, and then press 'CREATE APP'. In the modal, give your app a name, and accept the Third-Party App Terms. After pressing 'CREATE' you will get a prompt asking you to copy the Client ID and secret, you should copy both of these values and keep them somewhere safe.
-
-Once you've saved the Client ID and secret, press 'CONTINUE TO EDIT', in the edit screen you can fill out the description, links, and upload a thumbnail. In the 'Redirect URLs' section at the bottom of the edit page, put in the URLs for where you want the users to go after they authorize, this should be a special route within your website to handle the OAuth2 requests.
-
-After you've finished developing your app, and it is accessible on the internet, you will need to go back to the Creator Dashboard and submit your app for review. Roblox moderators will go through your app and ensure it isn't malicious. If you do not do this, then your app will be limited to 100 users authorizing it.
-
-### Choosing Scopes
-
-Scopes define what resources you're trying to access. For example, most apps will need to use the `openid` and `profile` scopes to identify the user. Other scopes have different purposes, such as `user.inventory-item:read` allows the app to view all items in the user's inventory, even if it is private.
-
-You should consider what scopes your app will need to complete the tasks it needs to. In the edit page of your app, you will see a 'Permissions' section, this is where you select the scopes your app will need to use. Once you've selected the scopes you will need to use, make sure to press 'SAVE CHANGES'.
+# OAuth2
+This guide is assuming you came from [Authentication Guide](/docs/guides/authentication.md) and [Basic Guide](/docs/guide/basic.md), and will be based on that. 
 
 ### The OAuth2 Object
 

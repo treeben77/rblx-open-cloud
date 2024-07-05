@@ -65,11 +65,8 @@ nav:
   - Introduction: index.md
   - Asynchronous: asynchronous.md
   - Guides:
-    - Getting Started: guides/getstarted.md
-    - API Key:
-      - Basic: guides/api keys/basic.md
-    - OAuth Application:
-      - Basic: guides/oauth/basic.md
+    - Authentication: guides/authentication.md
+    - Basic: guides/basic.md
     - Experience: guides/experience.md
     - Group: guides/group.md
     - User: guides/user.md
