@@ -1,10 +1,6 @@
 # OAuth2
-
-OAuth2 allows app developers to access user's Roblox accounts on their behalf for many different use cases. You could use OAuth2 to allow users to securely identify themselves to allow signing in with Roblox, or so app developers can create intergrations with the user's account, experiences, or groups.
-# OAuth2
 This guide is assuming you came from [Authentication Guide](/docs/guides/authentication.md) and [Basic Guide](/docs/guide/basic.md), and will be based on that. 
 
-### The OAuth2 Object
 You should end up with something like below, and this is what we will be basing it on during this guide.
 
 ```py
