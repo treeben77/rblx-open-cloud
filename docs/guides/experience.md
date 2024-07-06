@@ -1,5 +1,4 @@
 # Experience
-
 The experience object allows access to an experience's resources such as data stores, messaging service, or uploading places.
 
 ## Getting Started
@@ -16,48 +15,48 @@ experience = Experience(00000000, "your-api-key")
 
 Replace `00000000` with your experience/universe ID (NOT place ID), and `your-api-key` with the API key string you just generated. Now that you've created an [`rblxopencloud.Experience`][rblxopencloud.Experience] object, you can start using the experience APIs!
 
-## DataStore APIs
+## Datastore APIs
 
-### Getting Data Stores
+### Getting Datastores
 
-You can use Open Cloud to access your experience's [DataStores](https://create.roblox.com/docs/cloud-services/datastores) in Python, including Ordered Data Stores. This could be useful if you're creating a Discord bot, or website to remotly manage user data, or to control certain settings.
+You can use Open Cloud to access your experience's [Datastores](https://create.roblox.com/docs/cloud-services/Datastores) in Python, including Ordered Datastores. This could be useful if you're creating a Discord bot, or website to remotly manage user data, or to control certain settings.
 
-To get started, you will need to create a [`rblxopencloud.DataStore`][rblxopencloud.DataStore] object. The following code example creates a [`rblxopencloud.DataStore`][rblxopencloud.DataStore] with the name 'ExampleStore' and the scope 'global' (global is the default scope in Lua):
+To get started, you will need to create a [`rblxopencloud.Datastore`][rblxopencloud.Datastore] object. The following code example creates a [`rblxopencloud.Datastore`][rblxopencloud.Datastore] with the name 'ExampleStore' and the scope 'global' (global is the default scope in Lua):
 
 ```py
-datastore = experience.get_data_store("ExampleStore", scope="global")
+Datastore = experience.get_Datastore("ExampleStore", scope="global")
 ```
 
-Great! Now that you've created a data store, you can now access it's entrys.  
+Great! Now that you've created a Datastore, you can now access it's entrys.  
 
 !!! tip
     You can set the `scope` parameter to `None` if you want to access all scopes. You will be required to format keys in the `scope/key` syntax. For example, in `pets/user_287113233`, the scope is `pets`, and `user_287113233` is the key.
 
 ### Getting Keys
 
-To get the value of a DataStore key, you can use [`DataStore.get_entry`][rblxopencloud.DataStore.get_entry]. The following code will get the value for `user_287113233` in the data store.
+To get the value of a Datastore key, you can use [`Datastore.get_entry`][rblxopencloud.Datastore.get_entry]. The following code will get the value for `user_287113233` in the data store.
 
 ```py
-value, info = datastore.get_entry("user_287113233")
+value, info = Datastore.get_entry("user_287113233")
 ```
 
-[`DataStore.get_entry`][rblxopencloud.DataStore.get_entry] returns a tuple of two items, the key's value, and an [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object. The value can be either `str`, `int`, `float`, `list`, or `dict`, and is the equivalent value in Roblox Lua. The [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object contains metadata about the DataStore key, such as the current version ID, when it was created and last updated, a list of user IDs for GDPR tracking, and the custom metadata, learn more about this on [Roblox's DataStore Guide](https://create.roblox.com/docs/cloud-services/datastores#metadata).
+[`Datastore.get_entry`][rblxopencloud.Datastore.get_entry] returns a tuple of two items, the key's value, and an [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object. The value can be either `str`, `int`, `float`, `list`, or `dict`, and is the equivalent value in Roblox Lua. The [`rblxopencloud.EntryInfo`][rblxopencloud.EntryInfo] object contains metadata about the Datastore key, such as the current version ID, when it was created and last updated, a list of user IDs for GDPR tracking, and the custom metadata, learn more about this on [Roblox's Datastore Guide](https://create.roblox.com/docs/cloud-services/Datastores#metadata).
 
 If the requested key does not exist, then this method will raise [`rblxopencloud.NotFound`][rblxopencloud.NotFound]. So, you should create a try block and deal with errors correctly, for example:
 
 ```py
 try:
-    value, info = datastore.get_entry("user_287113233")
+    value, info = Datastore.get_entry("user_287113233")
 except(rblxopencloud.NotFound):
     print("the key doesn't exist!")
 else:
     print(f"the key's value is {value}.")
 ```
 
-You can list all keys in a Data Store using [`DataStore.list_keys`][rblxopencloud.DataStore.list_keys], it will iterate all keys in the DataStore, and can be used like this:
+You can list all keys in a Data Store using [`Datastore.list_keys`][rblxopencloud.Datastore.list_keys], it will iterate all keys in the Datastore, and can be used like this:
 
 ```py
-for key in datastore.list_keys():
+for key in Datastore.list_keys():
     print(key.key, key.scope)
 ```
 
@@ -65,55 +64,55 @@ If the data store's scope is `None` this will return keys from every scope. You 
 
 ### Changing Keys
 
-DataStore values can be changed with [`DataStore.set_entry`][rblxopencloud.DataStore.set_entry] and [`DataStore.increment_entry`][rblxopencloud.DataStore.increment_entry]. Both will need the 'Create Entry' permission to create new keys, and/or 'Update Entry' permission to update existing keys. First, here's an example using [`DataStore.set_entry`][rblxopencloud.DataStore.set_entry]:
+Datastore values can be changed with [`Datastore.set_entry`][rblxopencloud.Datastore.set_entry] and [`Datastore.increment_entry`][rblxopencloud.Datastore.increment_entry]. Both will need the 'Create Entry' permission to create new keys, and/or 'Update Entry' permission to update existing keys. First, here's an example using [`Datastore.set_entry`][rblxopencloud.Datastore.set_entry]:
 
 ```py
-version = datastore.set_entry("user_287113233", {"xp": 1337, "level": 7}, users=[287113233])
+version = Datastore.set_entry("user_287113233", {"xp": 1337, "level": 7}, users=[287113233])
 ```
 
 This will set the key `user_287113233` to the dictionary `{"xp": 1337, "level": 7}`, with the user's ID in the list of users. The method returns [`rblxopencloud.EntryVersion`][rblxopencloud.EntryVersion], which contains metadata about the new version, such as it's version ID. The code above is equivalent to the the following lua code:
 
 ```lua
-local version = DataStore:SetAsync("user_287113233", {["xp"] = 1337, ["level"] = 7}, {287113233})
+local version = Datastore:SetAsync("user_287113233", {["xp"] = 1337, ["level"] = 7}, {287113233})
 ```
 
-If the current value of the key is an integer, or float you can use [`DataStore.increment_entry`][rblxopencloud.DataStore.increment_entry] to update the value, while guaranteeing you don't overwrite the old value. The following example will increment the key `user_score_287113233` by 70:
+If the current value of the key is an integer, or float you can use [`Datastore.increment_entry`][rblxopencloud.Datastore.increment_entry] to update the value, while guaranteeing you don't overwrite the old value. The following example will increment the key `user_score_287113233` by 70:
 
 ```py
-value, info = datastore.increment_entry("user_score_287113233", 70, users=[287113233])
+value, info = Datastore.increment_entry("user_score_287113233", 70, users=[287113233])
 ```
 
-[`DataStore.increment_entry`][rblxopencloud.DataStore.increment_entry] actually returns the new value just like [`DataStore.get_entry`][rblxopencloud.DataStore.get_entry] instead.
+[`Datastore.increment_entry`][rblxopencloud.Datastore.increment_entry] actually returns the new value just like [`Datastore.get_entry`][rblxopencloud.Datastore.get_entry] instead.
 
 !!! warning
     If an entry has `users` and `metadata`, you must provide them every time you set or increment the value, otherwise they will be removed.
 
 ### Removing Keys
 
-You can remove a key from a DataStore with Open Cloud with the following code:
+You can remove a key from a Datastore with Open Cloud with the following code:
 
 ```py
-version = datastore.remove_entry("user_287113233")
+version = Datastore.remove_entry("user_287113233")
 ```
 
 This will mark the key as deleted, and calls to get the key will fail. However, the old version of the key can still be accessed by listing versions (explained below), and listing keys will still return the key. These are limitations with Open Cloud, not one with the library.
 
 ### Key Versioning
 
-Data Stores retain previous versions of the key for 30 days. You can list all previous versions with [`DataStore.list_versions`][rblxopencloud.DataStore.list_versions], like this:
+Data Stores retain previous versions of the key for 30 days. You can list all previous versions with [`Datastore.list_versions`][rblxopencloud.Datastore.list_versions], like this:
 
 ```py
-for version in datastore.list_versions("user_287113233"):
+for version in Datastore.list_versions("user_287113233"):
     print(version, version.get_value())
 ```
 
-This will iterate [`rblxopencloud.EntryVersion`][rblxopencloud.EntryVersion] for every version in the key. It contains information like the version ID, when the version was created, the content length, and wether it has been deleted. You can fetch a version's value with [`EntryVersion.get_value`][rblxopencloud.EntryVersion.get_value], but if you already have the version ID, and don't need to list versions you can use [`DataStore.get_version`][rblxopencloud.DataStore.get_version].
+This will iterate [`rblxopencloud.EntryVersion`][rblxopencloud.EntryVersion] for every version in the key. It contains information like the version ID, when the version was created, the content length, and wether it has been deleted. You can fetch a version's value with [`EntryVersion.get_value`][rblxopencloud.EntryVersion.get_value], but if you already have the version ID, and don't need to list versions you can use [`Datastore.get_version`][rblxopencloud.Datastore.get_version].
 
 ```py
-value, info = datastore.get_version("user_287113233", "VERSION_ID")
+value, info = Datastore.get_version("user_287113233", "VERSION_ID")
 ```
 
-It returns the same as [`DataStore.get_entry`][rblxopencloud.DataStore.get_entry].
+It returns the same as [`Datastore.get_entry`][rblxopencloud.Datastore.get_entry].
 
 ### Ordered Data Stores
 
@@ -121,13 +120,13 @@ You can also access Ordered Data Stores with Open Cloud. There are a few differe
 
 - Ordered Data Store do not support versioning, therefore you can not use versioning functions.
 - Ordered Data Stores also do not support user IDs or metadata, and since they also don't support versioning, there is no second parameter returned on get methods.
-- [`OrderedDataStore.set_entry`][rblxopencloud.OrderedDataStore.set_entry] doesn't have the `previous_version` precondition, instead it has an `exclusive_update` precondition.
-- Ordered Data Stores don't have a `list_keys` method, but instead [`OrderedDataStore.sort_keys`][rblxopencloud.OrderedDataStore.sort_keys]. They also iterate [`rblxopencloud.SortedEntry`][rblxopencloud.SortedEntry] which includes the key's value.
+- [`OrderedDatastore.set_entry`][rblxopencloud.OrderedDatastore.set_entry] doesn't have the `previous_version` precondition, instead it has an `exclusive_update` precondition.
+- Ordered Data Stores don't have a `list_keys` method, but instead [`OrderedDatastore.sort_keys`][rblxopencloud.OrderedDatastore.sort_keys]. They also iterate [`rblxopencloud.SortedEntry`][rblxopencloud.SortedEntry] which includes the key's value.
 
-To create an Ordered Data Store, you can use the [`Experience.get_ordered_datastore`][rblxopencloud.Experience.get_ordered_datastore] method, which also supports `scope` being `None`:
+To create an Ordered Data Store, you can use the [`Experience.get_ordered_Datastore`][rblxopencloud.Experience.get_ordered_Datastore] method, which also supports `scope` being `None`:
 
 ```py
-datastore = experience.get_ordered_data_store("ExampleStore", scope="global")
+Datastore = experience.get_ordered_data_store("ExampleStore", scope="global")
 ```
 
 ## Other Experience APIs

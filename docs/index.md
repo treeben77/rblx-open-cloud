@@ -11,7 +11,7 @@ To install rblx-open-cloud from PyPI package, you can install it from pip:
 
 === "Windows"
     ```console
-    py -3 -m pip install rblx-open-cloud --upgrade
+    python -m pip install rblx-open-cloud --upgrade
     ```
 
 === "Linux"

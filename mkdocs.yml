@@ -6,6 +6,8 @@ repo_url: https://github.com/treeben77/rblx-open-cloud
 edit_uri: tree/main/docs/
 theme:
   name: material
+  # logo: assets/logo.svg
+  # favicon: assets/logo.svg
   features:
     - content.code.copy
     - content.action.edit
