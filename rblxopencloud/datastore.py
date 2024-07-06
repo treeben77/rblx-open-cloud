@@ -515,7 +515,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             not possible to sort keys from all scopes.
         """
 
-        if not self.scope:raise ValueError(
+        if not self.scope: raise ValueError(
             "scope is required to list keys with OrderedDataStore."
         )
 
@@ -629,21 +629,14 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             "'scope/key' syntax expected for key."
         )
 
-        status_code, data, _ = send_request("POST", f"ordered-data-stores/v1/\
+        _, data, _ = send_request("POST", f"ordered-data-stores/v1/\
 universes/{self.experience.id}/orderedDataStores/\
 {urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}\
 /entries/{urllib.parse.quote(key)}:increment",
-            authorization=self.__api_key, expected_status=[200, 409], json={
+            authorization=self.__api_key, expected_status=[200], json={
                 "amount": delta
             })
         
-        if (status_code == 409 and
-            data["message"] == "Entry value outside of bounds."
-        ):
-            raise ValueError("Entry value outside of bounds.")
-        
-        if status_code == 409:
-            raise HttpException(status_code, data)
         
         return int(data["value"])
 

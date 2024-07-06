@@ -10,6 +10,8 @@
 
 ::: rblxopencloud.ExperienceAgeRating
 
+::: rblxopencloud.UserRestriction
+
 ::: rblxopencloud.Subscription
 
 ::: rblxopencloud.SubscriptionState
