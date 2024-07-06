@@ -285,7 +285,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
                 headers["roblox-entry-version"],
                 headers["roblox-entry-created-time"],
                 headers["roblox-entry-version-created-time"], userids, metadata
-            ), error)
+            ), status_code, error)
         
         return EntryVersion(
             data["version"], data["deleted"], data["contentLength"],
@@ -433,9 +433,9 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
 
         if status_code == 400:
             if data["message"] == "Invalid version id.":
-                raise NotFound(data["message"])
+                raise NotFound(status_code, data)
             else:
-                raise HttpException(data["message"])
+                raise HttpException(status_code, data)
         
         if headers.get("roblox-entry-attributes"):
             metadata = json.loads(headers["roblox-entry-attributes"])
@@ -601,15 +601,15 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         
         if status_code == 400:
             if data["message"] == "Entry already exists.":
-                raise PreconditionFailed(None, None, data["message"])
+                raise PreconditionFailed(None, None, status_code, data)
             else:
-                raise HttpException(data["message"])
+                raise HttpException(status_code, data)
         
-        if (
-            status_code == 404 and exclusive_update and
-            data["code"] == "NOT_FOUND"
-        ):
-            raise PreconditionFailed(data["message"])
+        if status_code == 404:
+            if exclusive_update and data["code"] == "NOT_FOUND":
+                raise PreconditionFailed(None, None, status_code, data)
+            else:
+                raise NotFound(status_code, data)
 
         return int(data["value"])
 
@@ -643,7 +643,7 @@ universes/{self.experience.id}/orderedDataStores/\
             raise ValueError("Entry value outside of bounds.")
         
         if status_code == 409:
-            raise HttpException(f"Unexpected HTTP {status_code}")
+            raise HttpException(status_code, data)
         
         return int(data["value"])
 

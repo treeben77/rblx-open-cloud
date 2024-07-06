@@ -313,11 +313,11 @@ redirect_uri=\"{self.redirect_uri}\")"
 
     def __refresh_openid_certs_cache(self):
         certs_status, certs, _ = send_request("GET", "oauth/v1/certs")
-        if certs_status != 200:
-            raise HttpException("Failed to retrieve OpenID certs")
-
         self.__openid_certs_cache = []
         self.__openid_certs_cache_updated = time.time()
+        
+        if certs_status != 200:
+            raise HttpException(certs_status, "Failed to fetch OpenID certs")
 
         for cert in certs["keys"]:
             public_key = ec.EllipticCurvePublicNumbers(
@@ -457,7 +457,7 @@ redirect_uri=\"{self.redirect_uri}\")"
 
         if status == 401:
             raise InvalidCode(
-                data.get("error_description", "The code is invalid")
+                status, data.get("error_description", "The code is invalid")
             )
 
         id_token = None

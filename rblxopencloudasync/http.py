@@ -144,21 +144,14 @@ async def send_request(method: str, path: str, authorization: Optional[str]=None
         print(f"[DEBUG] {method} /{path} - {response.status}\n{body}")
 
     if expected_status and not response.status in expected_status:
-        msg = (
-            body.get("message", json.dumps(body))
-            if type(body) == dict else body
-        ) if body else None
-
-        if response.status == 400:
-            raise HttpException(msg or 400)
-        elif response.status == 401:
-            raise HttpException(401)
+        if response.status in [400, 401]:
+            raise HttpException(response.status, body)
         elif response.status == 403:
-            raise Forbidden()
+            raise Forbidden(response.status, body)
         elif response.status == 404:
-            raise NotFound(msg or 404)
+            raise NotFound(response.status, body)
         elif response.status == 429:
-            raise RateLimited(msg or 429)
+            raise RateLimited(response.status, body)
         elif response.status >= 500:
             if retry_max_attempts > 0:
                 time.sleep(retry_interval_seconds)
@@ -170,9 +163,9 @@ async def send_request(method: str, path: str, authorization: Optional[str]=None
                     retry_interval_exponent, **kwargs
                 )
             
-            raise HttpException(500)
+            raise HttpException(response.status, body)
         elif response.status not in expected_status:
-            raise HttpException(response.status)
+            raise HttpException(response.status, body)
     
     return response.status, body, response.headers
 

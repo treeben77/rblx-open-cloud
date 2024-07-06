@@ -74,21 +74,56 @@ class HttpException(BaseException):
 
     Functions in the library that raise different exception from those above \
     will be documented in the method itself.
-    """
-    def __init__(self, *args: object) -> None:
-        
-        if len(args) and args[0] == 401:
-            args = ("Authorization was denied",)
-        elif len(args) and args[0] == 404:
-            args = ("Resource not found",)
-        elif len(args) and args[0] == 429:
-            args = ("The resource is being rate limited",)
-        elif len(args) and args[0] == 500:
-            args = ("Internal server error",)
-        elif len(args) and type(args[0]) == int:
-            args = (f"Unexpected HTTP {args[0]}",)
 
-        super().__init__(*args)
+    Attributes:
+        status_code: The HTTP status code returned by Roblox for this error.
+        error_code: The error code returned by Roblox, if available.
+        message: A string message returned by Roblox if available. This will \
+        not always be the same message as the one that appears in the console.
+        details: A list of dict returned by Roblox if available which \
+        provides more details about an error.
+    """
+    
+    def __init__(
+            self, status: int = None, body: Union[dict, str] = None
+        ) -> None:
+
+        self.status_code: Optional[int] = status
+
+        if type(body) == dict and body.get("errors"):
+            self.error_code: Optional[Union[str, int]] = (
+                body["errors"][0].get("code")
+            )
+            self.message: Optional[str] = body["errors"][0].get("message")
+            self.details: Optional[list[dict]] = body["errors"]
+        elif type(body) == dict:
+            self.error_code: Optional[Union[str, int]] = (
+                body.get("code") or body.get("error")
+            )
+            self.message: Optional[str] = body.get("message")
+            self.details: Optional[list[dict]] = (
+                body.get("details") or body.get("errorDetails")
+            )
+        elif type(body) == str:
+            self.error_code: Optional[Union[str, int]] = None
+            self.message = body
+            self.details: Optional[list[dict]] = None
+        
+        message = self.message
+
+        if not message:
+            if status == 401:
+                message = "Authorization was denied"
+            elif status == 404:
+                message = "Resource not found"
+            elif status == 429:
+                message = "The resource is being rate limited"
+            elif status >= 500:
+                message = "Internal server error"
+            elif status:
+                message = f"Unexpected HTTP {self.status_code}"
+
+        super().__init__(message)
 
 class NotFound(HttpException):
     """

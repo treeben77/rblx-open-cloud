@@ -285,17 +285,15 @@ class Creator():
         
         if status == 400:
             if data["message"] == "\"InvalidImage\"":
-                raise InvalidFile(f"The file is corrupted or not supported.")
+                raise InvalidFile(status, body)
             
             if data["message"] == "AssetName is moderated.":
-                raise ModeratedText(f"The asset's name was moderated.")
+                raise ModeratedText(status, body)
             
             if data["message"] == "AssetDescription is moderated.":
-                raise ModeratedText(f"The asset's description was moderated.")
+                raise ModeratedText(status, body)
             
-            raise HttpException(
-                body["message"] if type(body) == dict else body
-            )
+            raise HttpException(status, data)
 
         return Operation(
             f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
@@ -361,13 +359,13 @@ class Creator():
         
         if status == 400:
             if data["message"] == "\"InvalidImage\"":
-                raise InvalidFile(f"The file is corrupted or not supported.")
+                raise InvalidFile(status, body)
             
             if data["message"] == "AssetName is moderated.":
-                raise ModeratedText(f"The asset's name was moderated.")
+                raise ModeratedText(status, body)
             
             if data["message"] == "AssetDescription is moderated.":
-                raise ModeratedText(f"The asset's description was moderated.")
+                raise ModeratedText(status, body)
         
         return Operation(
             f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
