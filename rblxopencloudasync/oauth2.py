@@ -312,12 +312,12 @@ class OAuth2App():
 redirect_uri=\"{self.redirect_uri}\")"
 
     async def __refresh_openid_certs_cache(self):
-        certs_status, certs, _ = await send_request("GET", "/oauth/v1/certs")
-        if certs_status != 200:
-            raise HttpException(certs_status, "Failed to fetch OpenID certs")
-
+        certs_status, certs, _ = await send_request("GET", "oauth/v1/certs")
         self.__openid_certs_cache = []
         self.__openid_certs_cache_updated = time.time()
+        
+        if certs_status != 200:
+            raise HttpException(certs_status, "Failed to fetch OpenID certs")
 
         for cert in certs["keys"]:
             public_key = ec.EllipticCurvePublicNumbers(
