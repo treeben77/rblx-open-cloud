@@ -533,7 +533,7 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             "order_by": "desc" if descending else None,
             "filter": filter
         }, expected_status=[200], authorization=self.__api_key,
-        cursor_key="page_token", data_key="entries"):
+        cursor_key="page_token", data_key="entries", max_yields=limit):
             yield SortedEntry(entry["id"], entry["value"], self.scope)
     
     def get_entry(self, key: str) -> int:
