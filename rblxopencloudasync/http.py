@@ -129,6 +129,7 @@ async def send_request(method: str, path: str, authorization: Optional[str]=None
     if kwargs.get("params"):
         for k, v in kwargs["params"].copy().items():
             if v == None: del kwargs["params"][k]
+            if type(v) == bool: kwargs["params"][k] = str(v).lower()
 
     response = await http_session.request(
         method, f"https://apis.roblox.com/{path}",
