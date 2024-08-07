@@ -42,7 +42,8 @@ __all__ = (
     "InventoryGamePass",
     "InventoryPrivateServer",
     "UserSocialLinks",
-    "UserVisibility"
+    "UserVisibility",
+    "UserExperienceFollowing"
 )
 
 class InventoryAssetType(Enum):
@@ -322,6 +323,24 @@ class UserSocialLinks():
         self.visibility: UserVisibility = user_visiblity_strings.get(
             data.get("visibility", ""), UserVisibility.Unknown)
 
+class UserExperienceFollowing():
+    """
+    Data class storing information about an experience followed by a user.
+
+    Attributes:
+        experience (Experience): The experience that has been followed.
+        followed_at (datetime): The time that the user followed the experience.
+    """    
+    def __init__(self, api_key, universe_id, timestamp):
+        from .experience import Experience
+
+        self.experience: Experience = Experience(int(universe_id), api_key)
+        self.followed_at: datetime = parser.parse(timestamp)
+    
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.UserExperienceFollowing \
+experience={self.experience}>"
+    
 class User(Creator):
     """
     Represents a user on Roblox. It is used to provide information about a \
@@ -530,3 +549,32 @@ class User(Creator):
                     yield InventoryGamePass(entry["gamePassDetails"])
                 elif "privateServerDetails" in entry.keys():
                     yield InventoryPrivateServer(entry["privateServerDetails"])
+
+    def fetch_experience_followings(self) -> list["UserExperienceFollowing"]:
+        """
+        Fetches the list of experiences the user is following.
+        
+        Returns:
+            A list of experiences the user is following, and the time they \
+            followed at.
+
+        !!! warning
+            This endpoint uses the legacy followings API. Roblox has noted on \
+the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
+may change without notice and break your application, therefore they should \
+be used with caution.  
+        """
+
+        _, data, _ = send_request(
+            "GET", f"legacy-followings/v2/users/{self.id}/universes",
+            authorization=self.__api_key, expected_status=[200]
+        )
+
+        followings = []
+
+        for k, v in data["followedSources"].items():
+            followings.append(UserExperienceFollowing(self.__api_key, k, v))
+
+        return followings
+
+
