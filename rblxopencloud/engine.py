@@ -41,7 +41,7 @@ class Instance():
 name=\"{self.name}\">"
     
     def list_children(self) -> Operation[list["Instance"]]:
-        _, data, _ = send_request("GET", "cloud/v2/universes/"+
+        _, data, _ = send_request("GET", "/universes/"+
             f"{self.place.experience.id}/places/{self.place.id}/instances/"+
             f"{self.id}:listChildren", authorization=self.__api_key,
             expected_status=[200])
@@ -57,14 +57,15 @@ name=\"{self.name}\">"
 
             return instance_objects
 
-        return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+        return Operation(f"/{data['path']}", self.__api_key,
                          operation_callable)
     
     def _update_raw(self, instance_type: str, details: dict
         ) -> Operation[True]:
-        _, data, _ = send_request("PATCH", "cloud/v2/universes/"+
-            f"{self.place.experience.id}/places/{self.place.id}/instances/"+
-            f"{self.id}", authorization=self.__api_key, expected_status=[200],
+        _, data, _ = send_request(
+            "PATCH", f"/universes/{self.place.experience.id}/places/"+
+            f"{self.place.id}/instances/{self.id}",
+            authorization=self.__api_key, expected_status=[200],
             json={
                 "engineInstance": {
                     "Details": {
@@ -73,7 +74,7 @@ name=\"{self.name}\">"
                 }
             })
         
-        return Operation(f"cloud/v2/{data['path']}", self.__api_key, True)
+        return Operation(f"/{data['path']}", self.__api_key, True)
 
 class Script(Instance):
     def __init__(self, id, data=None, place=None,

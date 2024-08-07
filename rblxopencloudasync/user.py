@@ -361,8 +361,10 @@ class User(Creator):
             The class itself.
         """
 
-        _, data, _ = await send_request("GET", f"cloud/v2/users/{self.id}",
-            authorization=self.__api_key, expected_status=[200])
+        _, data, _ = await send_request(
+            "GET", f"/users/{self.id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
 
         self.username = data["name"]
         self.display_name = data["displayName"]
@@ -404,12 +406,12 @@ class User(Creator):
         """
 
         _, data, _ = await send_request("GET",
-            f"cloud/v2/users/{self.id}:generateThumbnail", params={
+            f"/users/{self.id}:generateThumbnail", params={
                 "shape": "SQUARE" if not is_circular else None,
                 "size": size, "format": format.upper()
             }, authorization=self.__api_key, expected_status=[200])
 
-        return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+        return Operation(f"/{data['path']}", self.__api_key,
             lambda response: response['imageUri'],
             cached_response=data.get("response"))
 
@@ -433,7 +435,7 @@ class User(Creator):
         from .group import GroupMember
 
         for entry in await iterate_request(
-            "GET", "cloud/v2/groups/-/memberships",
+            "GET", "/groups/-/memberships",
             authorization=self.__api_key, params={
                 "maxPageSize": limit if limit and limit <= 99 else 99,
                 "filter": f"user == 'users/{self.id}'",
@@ -517,8 +519,8 @@ class User(Creator):
             filter["privateServerIds"] = ",".join([
                 str(private_server) for private_server in private_servers])
 
-        for entry in await iterate_request("GET",
-            f"cloud/v2/users/{self.id}/inventory-items", params={
+        for entry in await iterate_request(
+            "GET", f"/users/{self.id}/inventory-items", params={
                 "maxPageSize": limit if limit and limit <= 100 else 100,
                 "filter": ";".join([f"{k}={v}" for k, v in filter.items()])
             }, authorization=self.__api_key, data_key="inventoryItems",

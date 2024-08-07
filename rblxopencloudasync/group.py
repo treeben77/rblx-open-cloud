@@ -290,7 +290,7 @@ class Group(Creator):
         """
 
         _, data, _ = await send_request(
-            "GET", f"cloud/v2/groups/{self.id}",
+            "GET", f"/groups/{self.id}",
             authorization=self.__api_key, expected_status=[200]
         )
 
@@ -329,8 +329,8 @@ class Group(Creator):
             user or `None` if the user isn't a member of the group.
         """
 
-        _, data, _ = await send_request("GET",
-            f"cloud/v2/groups/{self.id}/memberships", params={
+        _, data, _ = await send_request(
+            "GET", f"/groups/{self.id}/memberships", params={
                 "limit": 1, "filter": f"user == 'users/{user_id}'"
             }, expected_status=[200], authorization=self.__api_key)
         
@@ -381,14 +381,14 @@ class Group(Creator):
         if role_id:
             filter = f"role == 'groups/{self.id}/roles/{role_id}'"
 
-        for entry in await iterate_request("GET",
-                f"cloud/v2/groups/{self.id}/memberships",
-                authorization=self.__api_key, params={
-                    "maxPageSize": limit if limit and limit <= 99 else 99,
-                    "filter": filter
-                }, data_key="groupMemberships", cursor_key="pageToken",
-                max_yields=limit, expected_status=[200]
-            ):
+        for entry in await iterate_request(
+            "GET", f"/groups/{self.id}/memberships",
+            authorization=self.__api_key, params={
+                "maxPageSize": limit if limit and limit <= 99 else 99,
+                "filter": filter
+            }, data_key="groupMemberships", cursor_key="pageToken",
+            max_yields=limit, expected_status=[200]
+        ):
             yield GroupMember(entry, self.__api_key, self)
 
     async def list_roles(self, limit: int = None) -> AsyncGenerator[Any, GroupRole]:
@@ -404,7 +404,7 @@ class Group(Creator):
         """
 
         for entry in await iterate_request(
-            "GET", f"cloud/v2/groups/{self.id}/roles",
+            "GET", f"/groups/{self.id}/roles",
             authorization=self.__api_key, params={
                 "maxPageSize": limit if limit and limit <= 20 else 20
             }, data_key="groupRoles", cursor_key="pageToken",
@@ -432,7 +432,7 @@ class Group(Creator):
         """
 
         for entry in await iterate_request(
-            "GET", f"cloud/v2/groups/{self.id}/join-requests",
+            "GET", f"/groups/{self.id}/join-requests",
             authorization=self.__api_key, expected_status=[200], params={
                 "maxPageSize": limit if limit and limit <= 100 else 100,
                 "filter": f"user == 'users/{user_id}'" if user_id else None
@@ -453,7 +453,7 @@ class Group(Creator):
         """
 
         _, data, _ = await send_request(
-            "GET", f"cloud/v2/groups/{self.id}/shout",
+            "GET", f"/groups/{self.id}/shout",
             authorization=self.__api_key, expected_status=[200]
         )
         
@@ -469,8 +469,7 @@ class Group(Creator):
         """
 
         await send_request(
-            "DELETE",
-            f"cloud/v2/groups/{self.id}/join-requests/{user_id}:accept",
+            "DELETE", f"/groups/{self.id}/join-requests/{user_id}:accept",
             authorization=self.__api_key, expected_status=[200]
         )
     
@@ -484,8 +483,7 @@ class Group(Creator):
         """
 
         await send_request(
-            "DELETE",
-            f"cloud/v2/groups/{self.id}/join-requests/{user_id}:decline",
+            "DELETE", f"/groups/{self.id}/join-requests/{user_id}:decline",
             authorization=self.__api_key, expected_status=[200]
         )
         

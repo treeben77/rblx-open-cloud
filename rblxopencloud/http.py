@@ -118,6 +118,9 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
     if authorization:
         headers["authorization" if authorization.startswith("Bearer ")
                 else "x-api-key"] = authorization
+        
+    if path.startswith("/"):
+        path = f"cloud/v2{path}"
 
     response = http_session.request(method, f"https://apis.roblox.com/{path}",
                                     headers=headers, **kwargs, timeout=10)

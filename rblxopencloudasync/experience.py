@@ -393,7 +393,7 @@ experience={repr(self.experience)}>"
         """
         
         _, data, _ = await send_request(
-            "GET", f"cloud/v2/universes/{self.experience.id}/places/{self.id}",
+            "GET", f"/universes/{self.experience.id}/places/{self.id}",
             authorization=self.__api_key, expected_status=[200]
         )
 
@@ -425,8 +425,8 @@ experience={repr(self.experience)}>"
         if description: field_mask.append("description")
         if server_size: field_mask.append("serverSize")
         
-        _, data, _ = await send_request("PATCH",
-            f"cloud/v2/universes/{self.experience.id}/places/{self.id}",
+        _, data, _ = await send_request(
+            "PATCH", f"/universes/{self.experience.id}/places/{self.id}",
             authorization=self.__api_key, expected_status=[200],
             json=payload, params={"updateMask": ",".join(field_mask)}
         )
@@ -471,7 +471,7 @@ experience={repr(self.experience)}>"
         """
 
         _, data, _ = await send_request(
-            "GET", f"cloud/v2/universes/{self.experience.id}/places/{self.id}\
+            "GET", f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
             authorization=self.__api_key, expected_status=[200]
         )
@@ -500,8 +500,7 @@ experience={repr(self.experience)}>"
         """
 
         _, data, _ = await send_request(
-            "PATCH",
-            f"cloud/v2/universes/{self.experience.id}/places/{self.id}\
+            "PATCH", f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
             authorization=self.__api_key, expected_status=[200], json={
                 "gameJoinRestriction": {
@@ -530,8 +529,7 @@ experience={repr(self.experience)}>"
         """
 
         _, data, _ = await send_request(
-            "PATCH",
-            f"cloud/v2/universes/{self.experience.id}/places/{self.id}\
+            "PATCH", f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
             authorization=self.__api_key, expected_status=[200], json={
                 "gameJoinRestriction": {
@@ -543,7 +541,7 @@ experience={repr(self.experience)}>"
         return UserRestriction(data, self.__api_key)
 
     # def list_root_children(self) -> Operation[list[InstanceType]]:
-    #     _, data, _ = await send_request("GET", "cloud/v2/universes/"+
+    #     _, data, _ = await send_request("GET", "/universes/"+
     #         f"{self.experience.id}/places/{self.id}/instances/"+
     #         "root:listChildren", authorization=self.__api_key,
     #         expected_status=[200])
@@ -560,16 +558,16 @@ experience={repr(self.experience)}>"
 
     #         return instance_objects
 
-    #     return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+    #     return Operation(f"/{data['path']}", self.__api_key,
     #                      operation_callable)
 
     # def fetch_instance(self, instance_id: str) -> Operation[InstanceType]:
 
-    #     _, data, _ = await send_request("GET", "cloud/v2/universes/"+
+    #     _, data, _ = await send_request("GET", "/universes/"+
     #         f"{self.experience.id}/places/{self.id}/instances/{instance_id}",
     #         authorization=self.__api_key, expected_status=[200])
         
-    #     return Operation(f"cloud/v2/{data['path']}", self.__api_key,
+    #     return Operation(f"/{data['path']}", self.__api_key,
     #         lambda r: Instance._determine_instance_subclass(r)
     #         (r["engineInstance"]["Id"], r, place=self, api_key=self.__api_key))
 
@@ -735,7 +733,7 @@ class Experience():
         """
 
         _, data, _ = await send_request(
-            "GET", f"cloud/v2/universes/{self.id}",
+            "GET", f"/universes/{self.id}",
             expected_status=[200], authorization=self.__api_key
         )
 
@@ -838,7 +836,7 @@ class Experience():
                     field_mask.append(f"{platform}SocialLink")
                 
         _, data, _ = await send_request(
-            "PATCH", f"cloud/v2/universes/{self.id}",
+            "PATCH", f"/universes/{self.id}",
             authorization=self.__api_key, expected_status=[200],
             params={"updateMask": ",".join(field_mask)}, json=payload
         )
@@ -1007,7 +1005,7 @@ classes/MessagingService).
             }
         
         await send_request(
-            "POST", f"cloud/v2/users/{user_id}/notifications",
+            "POST", f"/users/{user_id}/notifications",
             authorization=self.__api_key, expected_status=[200],
             json={
                 "source": {
@@ -1035,7 +1033,7 @@ classes/MessagingService).
         """
 
         await send_request(
-            "POST", f"cloud/v2/universes/{self.id}:restartServers",
+            "POST", f"/universes/{self.id}:restartServers",
             authorization=self.__api_key, expected_status=[200]
         )
 
@@ -1049,14 +1047,14 @@ classes/MessagingService).
         """
 
         _, data, _ = await send_request(
-            "POST", f"cloud/v2/universes/{self.id}/memory-store:flush",
+            "POST", f"/universes/{self.id}/memory-store:flush",
             authorization=self.__api_key, expected_status=[200]
         )
 
         op_id = data['path'].split(f"/")[-1]
         
         return Operation(
-            f"cloud/v2/universes/{self.id}/memory-store/operations/{op_id}",
+            f"/universes/{self.id}/memory-store/operations/{op_id}",
             self.__api_key, True,
         )
     
@@ -1078,7 +1076,7 @@ classes/MessagingService).
         """
 
         _, data, _ = await send_request(
-            "GET", f"cloud/v2/universes/{self.id}/subscription-products/\
+            "GET", f"/universes/{self.id}/subscription-products/\
 {product_id}/subscriptions/{user_id}", params={"view": "FULL"},
             authorization=self.__api_key, expected_status=[200]
         )
@@ -1110,7 +1108,7 @@ classes/MessagingService).
             "filter": "&&".join(filter)
         })
         async for entry in iterate_request(
-            "GET", f"cloud/v2/universes/{self.id}/user-restrictions:listLogs",
+            "GET", f"/universes/{self.id}/user-restrictions:listLogs",
             authorization=self.__api_key, expected_status=[200],
             params={
                 "maxPageSize": str(limit if limit and limit <= 100 else 100),
@@ -1133,7 +1131,7 @@ classes/MessagingService).
         """
 
         _, data, _ = await send_request(
-            "GET", f"cloud/v2/universes/{self.id}/user-restrictions/{user_id}",
+            "GET", f"/universes/{self.id}/user-restrictions/{user_id}",
             authorization=self.__api_key, expected_status=[200]
         )
 
@@ -1162,8 +1160,7 @@ classes/MessagingService).
         """
 
         _, data, _ = await send_request(
-            "PATCH",
-            f"cloud/v2/universes/{self.id}/user-restrictions/{user_id}",
+            "PATCH", f"/universes/{self.id}/user-restrictions/{user_id}",
             authorization=self.__api_key, expected_status=[200], json={
                 "gameJoinRestriction": {
                     "active": True,
@@ -1192,8 +1189,7 @@ classes/MessagingService).
         """
 
         _, data, _ = await send_request(
-            "PATCH",
-            f"cloud/v2/universes/{self.id}/user-restrictions/{user_id}",
+            "PATCH", f"/universes/{self.id}/user-restrictions/{user_id}",
             authorization=self.__api_key, expected_status=[200], json={
                 "gameJoinRestriction": {
                     "active": False

@@ -138,7 +138,7 @@ class SortedMap():
             filter.append(f"sortKey < {upper_bound_sort_key}")
         
         for entry in await iterate_request(
-            "GET", f"cloud/v2/universes/{self.experience.id}/memory-store/\
+            "GET", f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
             authorization=self.__api_key, expected_status=[200], params={
                 "orderBy": "desc" if descending else None,
@@ -160,7 +160,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
         """
         
         _, data, _ = await send_request(
-            "GET", f"cloud/v2/universes/{self.experience.id}/memory-store/\
+            "GET", f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
 {urllib.parse.quote_plus(key)}", 
             authorization=self.__api_key, expected_status=[200]
@@ -195,9 +195,9 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
 
         if not exclusive_create:
             status, data, _ = await send_request(
-                "PATCH", f"cloud/v2/universes/\
-{self.experience.id}/memory-store/sorted-maps/\
-{urllib.parse.quote_plus(self.name)}/items/{urllib.parse.quote_plus(key)}",
+                "PATCH", f"/universes/{self.experience.id}/memory-store/\
+sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
+{urllib.parse.quote_plus(key)}",
                 authorization=self.__api_key, expected_status=[200, 404, 409],
                 params={"allowMissing": str(not exclusive_update).lower()},
                 json={
@@ -211,7 +211,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
             )
         else:
             status, data, _ = await send_request(
-                "POST", f"cloud/v2/universes/{self.experience.id}/memory-store\
+                "POST", f"/universes/{self.experience.id}/memory-store\
 /sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
                 authorization=self.__api_key, expected_status=[200, 409],
                 json={
@@ -254,7 +254,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
         """
         
         await send_request(
-            "DELETE", f"cloud/v2/universes/{self.experience.id}/memory-store/\
+            "DELETE", f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
 {urllib.parse.quote_plus(key)}", authorization=self.__api_key, params={
                 "etag": etag
@@ -295,7 +295,7 @@ class MemoryStoreQueue():
         """
         
         await send_request(
-            "POST", f"cloud/v2/universes/{self.experience.id}/memory-store/\
+            "POST", f"/universes/{self.experience.id}/memory-store/\
 queues/{urllib.parse.quote_plus(self.name)}/items:add",
             authorization=self.__api_key, expected_status=[200], json={
                 "Data": value,
@@ -326,7 +326,7 @@ queues/{urllib.parse.quote_plus(self.name)}/items:add",
         """
         
         status, data, _ = await send_request(
-            "GET", f"cloud/v2/universes/{self.experience.id}/memory-store/\
+            "GET", f"/universes/{self.experience.id}/memory-store/\
 queues/{urllib.parse.quote_plus(self.name)}/items:read",
             authorization=self.__api_key, expected_status=[200, 204], params={
                 "count": count,
@@ -350,7 +350,7 @@ queues/{urllib.parse.quote_plus(self.name)}/items:read",
         """
 
         await send_request(
-            "POST", f"cloud/v2/universes/{self.experience.id}/memory-store/\
+            "POST", f"/universes/{self.experience.id}/memory-store/\
 queues/{urllib.parse.quote_plus(self.name)}/items:discard",
             authorization=self.__api_key, expected_status=[200], params={
                 "readId": read_id
