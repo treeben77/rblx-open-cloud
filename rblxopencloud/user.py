@@ -328,14 +328,46 @@ class UserExperienceFollowing():
     Data class storing information about an experience followed by a user.
 
     Attributes:
+        is_following (bool): Whether the experience is followed.
         experience (Experience): The experience that has been followed.
-        followed_at (datetime): The time that the user followed the experience.
+        followed_at (Optional[datetime]): The time that the user followed the \
+        experience. Only present for when returned by \
+        [`fetch_experience_followings()`\
+        ][rblxopencloud.User.fetch_experience_followings]
+        can_follow (Optional[bool]): Whether the user can follow this \
+        experience. Only present for when returned by \
+        [`fetch_experience_following_status()`\
+        ][rblxopencloud.User.fetch_experience_following_status]
+        following_count (Optional[int]): The number of experiences the user \
+        is following [`fetch_experience_following_status()`\
+        ][rblxopencloud.User.fetch_experience_following_status]
+        following_limit (Optional[int]): The maximum number of experiences \
+        the user can follow. Only present for when returned by \
+        [`fetch_experience_following_status()`\
+        ][rblxopencloud.User.fetch_experience_following_status]
+
     """    
-    def __init__(self, api_key, universe_id, timestamp):
+    def __init__(self, api_key, universe_id, timestamp, status_payload):
         from .experience import Experience
 
         self.experience: Experience = Experience(int(universe_id), api_key)
-        self.followed_at: datetime = parser.parse(timestamp)
+        self.followed_at: Optional[datetime.datetime] = (
+            parser.parse(timestamp) if timestamp else None
+        )
+        self.is_following: bool = (
+            True if not status_payload else status_payload["IsFollowing"]
+        )
+        self.can_follow: Optional[bool] = (
+            True if not status_payload else status_payload["CanFollow"]
+        )
+        self.following_count: Optional[int] = (
+            None if not status_payload else
+            status_payload["FollowingCountByType"]
+        ) 
+        self.following_limit: Optional[int] = (
+            None if not status_payload else
+            status_payload["FollowingLimitByType"]
+        )     
     
     def __repr__(self) -> str:
         return f"<rblxopencloud.UserExperienceFollowing \
@@ -556,7 +588,8 @@ class User(Creator):
         
         Returns:
             A list of experiences the user is following, and the time they \
-            followed at.
+            followed at. `can_follow`, `following_count`, and \
+            `following_limit` will all be `None`.
 
         !!! warning
             This endpoint uses the legacy followings API. Roblox has noted on \
@@ -576,5 +609,77 @@ be used with caution.
             followings.append(UserExperienceFollowing(self.__api_key, k, v))
 
         return followings
+    
+    def fetch_experience_following_status(
+            self, experience_id: int
+        ) -> UserExperienceFollowing:
+        """
+        Fetches the following status of the requested experience for the user.
 
+        Args:
+            experience_id: The ID of the experience to fetch status for; not \
+            to be confused with a place ID.
+        
+        Returns:
+           The following status object with `followed_at` being `None`.
 
+        !!! warning
+            This endpoint uses the legacy followings API. Roblox has noted on \
+the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
+may change without notice and break your application, therefore they should \
+be used with caution.  
+        """
+         
+        _, data, _ = send_request(
+            "GET", f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}/status",
+            authorization=self.__api_key, expected_status=[200]
+        )
+
+        return UserExperienceFollowing(
+            self.__api_key, experience_id, None, data
+        )
+        
+    def follow_experience(self, experience_id: int):
+        """
+        Follows the requested experience for the user. This means the user \
+        will recieve updates and notifications for the experience.
+
+        Args:
+            experience_id: The ID of the experience to follow; not to be \
+            confused with a place ID.
+
+        !!! warning
+            This endpoint uses the legacy followings API. Roblox has noted on \
+the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
+may change without notice and break your application, therefore they should \
+be used with caution.  
+        """
+
+        send_request(
+            "POST", f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
+        
+    def unfollow_experience(self, experience_id: int):
+        """
+        Unfollows the requested experience for the user. This means the user \
+        will no longer recieve updates and notifications for the experience.
+
+        Args:
+            experience_id: The ID of the experience to unfollow; not to be \
+            confused with a place ID.
+
+        !!! warning
+            This endpoint uses the legacy followings API. Roblox has noted on \
+the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
+may change without notice and break your application, therefore they should \
+be used with caution.  
+        """
+
+        send_request(
+            "DELETE", f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}",
+            authorization=self.__api_key, expected_status=[200]
+        )
