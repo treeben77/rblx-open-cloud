@@ -126,7 +126,7 @@ You can also access Ordered Data Stores with Open Cloud. There are a few differe
 To create an Ordered Data Store, you can use the [`Experience.get_ordered_Datastore`][rblxopencloud.Experience.get_ordered_Datastore] method, which also supports `scope` being `None`:
 
 ```py
-Datastore = experience.get_ordered_data_store("ExampleStore", scope="global")
+Datastore = experience.get_ordered_datastore("ExampleStore", scope="global")
 ```
 
 ## Other Experience APIs
