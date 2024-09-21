@@ -24,11 +24,10 @@ from .experience import Experience
 from .group import Group
 from .user import User
 
-__all__ = (
-    "ApiKey",
-)
+__all__ = ("ApiKey",)
 
-class ApiKey():
+
+class ApiKey:
     """
     Represents an API key and allows creation of API classes (such as
     [`User`][rblxopencloud.User]) without needing to use the API key string \
@@ -47,21 +46,21 @@ class ApiKey():
 
         if fetch_info:
             obj.fetch_info()
-        
+
         return obj
-    
+
     def get_group(self, id: int, fetch_info: bool = False) -> Group:
         obj = Group(id, self.__api_key)
 
         if fetch_info:
             obj.fetch_info()
-        
+
         return obj
-    
+
     def get_user(self, id: int, fetch_info: bool = False) -> User:
         obj = User(id, self.__api_key)
 
         if fetch_info:
             obj.fetch_info()
-        
+
         return obj

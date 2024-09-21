@@ -20,17 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import io
+import urllib.parse
 from datetime import datetime
 from enum import Enum
-import io
 from typing import Iterable, Optional, Union
-import urllib.parse
 
 from dateutil import parser
 
 from .datastore import DataStore, OrderedDataStore
-from .http import iterate_request, Operation, send_request
 from .group import Group
+from .http import Operation, iterate_request, send_request
 from .memorystore import MemoryStoreQueue, SortedMap
 from .user import User
 
@@ -47,6 +47,7 @@ __all__ = (
     "UserRestriction",
 )
 
+
 class Platform(Enum):
     """
     Enum representing a platform, currently used for \
@@ -62,10 +63,9 @@ class Platform(Enum):
     Desktop = 1
     Mobile = 2
 
-PLATFORM_STRINGS = {
-    "DESKTOP": Platform.Desktop,
-    "MOBILE": Platform.Mobile
-}
+
+PLATFORM_STRINGS = {"DESKTOP": Platform.Desktop, "MOBILE": Platform.Mobile}
+
 
 class PaymentProvider(Enum):
     """
@@ -86,12 +86,14 @@ class PaymentProvider(Enum):
     Google = 3
     Apple = 4
 
+
 PAYMENT_PROVIDER_STRINGS = {
     "ROBLOX_CREDIT": PaymentProvider.RobloxCredit,
     "STRIPE": PaymentProvider.Stripe,
     "GOOGLE": PaymentProvider.Google,
     "APPLE": PaymentProvider.Apple,
 }
+
 
 class SubscriptionState(Enum):
     """
@@ -106,19 +108,21 @@ class SubscriptionState(Enum):
         and pending payment confirmation.
         Expired (4): The subscription has expired.
     """
-    
+
     Unknown = 0
     Active = 1
     PendingCancelation = 2
     PendingRenewal = 3
     Expired = 4
 
+
 SUBSCRIPTION_STATE_STRINGS = {
     "SUBSCRIBED_WILL_RENEW": SubscriptionState.Active,
     "SUBSCRIBED_WILL_NOT_RENEW": SubscriptionState.PendingCancelation,
     "SUBSCRIBED_RENEWAL_PAYMENT_PENDING": SubscriptionState.PendingRenewal,
-    "EXPIRED": SubscriptionState.Expired
+    "EXPIRED": SubscriptionState.Expired,
 }
+
 
 class SubscriptionExpirationReason(Enum):
     """
@@ -142,15 +146,17 @@ class SubscriptionExpirationReason(Enum):
     ProductInactive = 4
     ProductDeleted = 5
 
+
 SUBSCRIPTION_EXPIRATION_REASON_STRINGS = {
     "PRODUCT_INACTIVE": SubscriptionExpirationReason.ProductInactive,
     "PRODUCT_DELETED": SubscriptionExpirationReason.ProductDeleted,
     "SUBSCRIBER_CANCELLED": SubscriptionExpirationReason.Cancelled,
     "SUBSCRIBER_REFUNDED": SubscriptionExpirationReason.Refunded,
-    "LAPSED": SubscriptionExpirationReason.Lapsed
+    "LAPSED": SubscriptionExpirationReason.Lapsed,
 }
 
-class Subscription():
+
+class Subscription:
     """
     Represents a subscription to a subscription product.
 
@@ -170,7 +176,7 @@ class Subscription():
         purchase_platform: The platform the subscription was started on.
         expiration_reason: The reason the subscription expired.
     """
-    
+
     def __init__(self, data) -> None:
         self.user_id: int = int(data["path"].split("/")[5])
         self.product_id: str = data["path"].split("/")[3]
@@ -185,8 +191,9 @@ class Subscription():
         self.updated_at: datetime = parser.parse(data["updateTime"])
         self.last_billed_at: datetime = parser.parse(data["lastBillingTime"])
         self.period_end_at: datetime = (
-            parser.parse(data["expireTime"]) if data.get("expireTime") else
-            parser.parse(data["nextRenewTime"])
+            parser.parse(data["expireTime"])
+            if data.get("expireTime")
+            else parser.parse(data["nextRenewTime"])
         )
 
         self.payment_provider: PaymentProvider = PAYMENT_PROVIDER_STRINGS.get(
@@ -200,25 +207,31 @@ class Subscription():
         # Only provide an expiration reason if expired or a reason is specified
         self.expiration_reason: Optional[SubscriptionExpirationReason] = (
             SUBSCRIPTION_EXPIRATION_REASON_STRINGS.get(
-                    data["expirationDetails"]["reason"],
-                    SubscriptionExpirationReason.Unknown
-                ) if (data.get("expirationDetails", {}).get("reason") and (
-                    self.state == SubscriptionState.Expired or (
-                        data["expirationDetails"]["reason"] !=
-                        "EXPIRATION_REASON_UNSPECIFIED"
+                data["expirationDetails"]["reason"],
+                SubscriptionExpirationReason.Unknown,
+            )
+            if (
+                data.get("expirationDetails", {}).get("reason")
+                and (
+                    self.state == SubscriptionState.Expired
+                    or (
+                        data["expirationDetails"]["reason"]
+                        != "EXPIRATION_REASON_UNSPECIFIED"
                     )
                 )
-            ) else None
+            )
+            else None
         )
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.Subscription user_id={self.user_id} \
-product_id=\"{self.product_id}\" state={self.state}>"
+        return f'<rblxopencloud.Subscription user_id={self.user_id} \
+product_id="{self.product_id}" state={self.state}>'
+
 
 class ExperienceAgeRating(Enum):
     """
     Enum representing the an experience's age rating.
-    
+
     Attributes:
         Unknown (0): The experience age rating is unknown or not implemented.
         Unspecified (1): The experience has not provided an age rating.
@@ -235,10 +248,11 @@ class ExperienceAgeRating(Enum):
     ThirteenPlus = 4
     SeventeenPlus = 5
 
-class ExperienceSocialLink():
+
+class ExperienceSocialLink:
     """
     Represents a social link in an experience.
-    
+
     Args:
         title: The text displayed for the social link.
         uri: The URI of the social link.
@@ -251,9 +265,10 @@ class ExperienceSocialLink():
     def __init__(self, title: str, uri: str) -> None:
         self.title = title
         self.uri = uri
-    
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.ExperienceSocialLink uri=\"{self.uri}\">"
+        return f'<rblxopencloud.ExperienceSocialLink uri="{self.uri}">'
+
 
 EXPERIENCE_AGE_RATING_STRINGS = {
     "AGE_RATING_UNSPECIFIED": ExperienceAgeRating.Unspecified,
@@ -263,7 +278,8 @@ EXPERIENCE_AGE_RATING_STRINGS = {
     "AGE_RATING_17_PLUS": ExperienceAgeRating.SeventeenPlus,
 }
 
-class UserRestriction():
+
+class UserRestriction:
     """
     Represents a user restriction (or ban) within an experience or place on \
     Roblox.
@@ -297,8 +313,8 @@ class UserRestriction():
                 self.place: Optional[Place] = place
             else:
                 self.place: Optional[Place] = Place(
-                int(data["path"].split("/")[3]), None, api_key, None
-            )
+                    int(data["path"].split("/")[3]), None, api_key, None
+                )
         elif data.get("place"):
             self.place: Optional[Place] = Place(
                 int(data["place"].split("/")[-1]), None, api_key, None
@@ -314,7 +330,8 @@ class UserRestriction():
 
             self.issuer_user_id: Optional[int] = (
                 int(restriction_info["moderator"]["robloxUser"].split("/")[-1])
-                if restriction_info["moderator"].get("robloxUser") else None
+                if restriction_info["moderator"].get("robloxUser")
+                else None
             )
 
         self.active: bool = restriction_info["active"]
@@ -322,28 +339,31 @@ class UserRestriction():
         self.display_reason: str = restriction_info["displayReason"]
         self.private_reason: str = restriction_info["privateReason"]
         self.inherited: Optional[bool] = restriction_info.get("inherited")
-        self.exclude_alt_accounts: bool = (
-            restriction_info["excludeAltAccounts"]
-        )
+        self.exclude_alt_accounts: bool = restriction_info[
+            "excludeAltAccounts"
+        ]
 
         duration = restriction_info.get("duration")
         self.duration_seconds: Optional[int] = (
-            duration if not (type(duration) == str and duration.endswith("s"))
+            duration
+            if not (type(duration) == str and duration.endswith("s"))
             else int(duration[0:-1])
         )
         self.start_timestamp: Optional[datetime] = (
             parser.parse(restriction_info["startTime"])
-            if restriction_info.get("startTime") else None
+            if restriction_info.get("startTime")
+            else None
         )
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.UserRestriction active={self.active} \
 user={repr(self.user)}>"
 
-class Place():
+
+class Place:
     """
     Represents a place within an experience on Roblox.
-        
+
     Attributes:
         id: The place's ID.
         experience: The experience this place is a part of.
@@ -360,21 +380,19 @@ class Place():
         self.name: Optional[str] = data["displayName"] if data else None
         self.description: Optional[str] = data["description"] if data else None
         self.created_at: Optional[datetime] = (
-            parser.parse(data["createTime"])
-            if data else None
+            parser.parse(data["createTime"]) if data else None
         )
         self.updated_at: Optional[datetime] = (
-            parser.parse(data["updateTime"])
-            if data else None
+            parser.parse(data["updateTime"]) if data else None
         )
 
         self.server_size: Optional[str] = data["serverSize"] if data else None
         self.__api_key = api_key
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.Place id={self.id} \
 experience={repr(self.experience)}>"
-    
+
     def __update_params(self, data):
         self.name = data["displayName"]
         self.description = data["description"]
@@ -383,7 +401,7 @@ experience={repr(self.experience)}>"
         self.server_size = data["serverSize"]
 
         return self
-    
+
     def fetch_info(self) -> "Place":
         """
         Fetches the places's information and fills the Place object parameters.
@@ -391,18 +409,22 @@ experience={repr(self.experience)}>"
         Returns:
             The place object with parameters filled.
         """
-        
+
         _, data, _ = send_request(
-            "GET", f"/universes/{self.experience.id}/places/{self.id}",
-            authorization=self.__api_key, expected_status=[200]
+            "GET",
+            f"/universes/{self.experience.id}/places/{self.id}",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         return self.__update_params(data)
-    
+
     def update(
-            self, name: str = None, description: str = None,
-            server_size: int = None
-        ) -> "Place":
+        self,
+        name: str = None,
+        description: str = None,
+        server_size: int = None,
+    ) -> "Place":
         """
         Updates information for the place and fills the empty parameters.
 
@@ -410,7 +432,7 @@ experience={repr(self.experience)}>"
             name: The new name for the place.
             description: The new description for the place.
             server_size: The new server size for the place.
-        
+
         Returns:
             The place object with the empty parameters filled.
         """
@@ -418,24 +440,30 @@ experience={repr(self.experience)}>"
         payload, field_mask = {
             "displayName": name,
             "description": description,
-            "serverSize": server_size
+            "serverSize": server_size,
         }, []
 
-        if name: field_mask.append("displayName")
-        if description: field_mask.append("description")
-        if server_size: field_mask.append("serverSize")
-        
-        _, data, _ = send_request("PATCH",
+        if name:
+            field_mask.append("displayName")
+        if description:
+            field_mask.append("description")
+        if server_size:
+            field_mask.append("serverSize")
+
+        _, data, _ = send_request(
+            "PATCH",
             f"/universes/{self.experience.id}/places/{self.id}",
-            authorization=self.__api_key, expected_status=[200],
-            json=payload, params={"updateMask": ",".join(field_mask)}
+            authorization=self.__api_key,
+            expected_status=[200],
+            json=payload,
+            params={"updateMask": ",".join(field_mask)},
         )
-        
+
         return self.__update_params(data)
-    
+
     def upload_place_file(
-            self, file: io.BytesIO, publish: bool = False
-        ) -> int:
+        self, file: io.BytesIO, publish: bool = False
+    ) -> int:
         """
         Uploads the place file to Roblox, optionally choosing to publish it.
 
@@ -448,15 +476,16 @@ experience={repr(self.experience)}>"
         """
 
         _, data, _ = send_request(
-            "POST", f"universes/v1/{self.experience.id}/places/{self.id}\
+            "POST",
+            f"universes/v1/{self.experience.id}/places/{self.id}\
 /versions",
-            authorization=self.__api_key, expected_status=[200],
+            authorization=self.__api_key,
+            expected_status=[200],
             headers={"content-type": "application/octet-stream"},
-            params={
-                "versionType": "Published" if publish else "Saved"
-            }, data=file.read()
+            params={"versionType": "Published" if publish else "Saved"},
+            data=file.read(),
         )
-        
+
         return data["versionNumber"]
 
     def fetch_user_restriction(self, user_id: int) -> UserRestriction:
@@ -465,24 +494,29 @@ experience={repr(self.experience)}>"
 
         Args:
             user_id: The user ID to fetch restriction information for.
-        
+
         Returns:
             The current restriction information for the requested user.
         """
 
         _, data, _ = send_request(
-            "GET", f"/universes/{self.experience.id}/places/{self.id}\
+            "GET",
+            f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
-            authorization=self.__api_key, expected_status=[200]
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         return UserRestriction(data, self.__api_key)
 
     def ban_user(
-            self, user_id: int, duration_seconds: Optional[int],
-            display_reason: str="", private_reason: str="",
-            exclude_alt_accounts: bool=False
-        ) -> UserRestriction:
+        self,
+        user_id: int,
+        duration_seconds: Optional[int],
+        display_reason: str = "",
+        private_reason: str = "",
+        exclude_alt_accounts: bool = False,
+    ) -> UserRestriction:
         """
         Updates the current user restriction for a user within the place.
 
@@ -500,9 +534,12 @@ experience={repr(self.experience)}>"
         """
 
         _, data, _ = send_request(
-            "PATCH", f"/universes/{self.experience.id}/places/{self.id}\
+            "PATCH",
+            f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
-            authorization=self.__api_key, expected_status=[200], json={
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={
                 "gameJoinRestriction": {
                     "active": True,
                     "duration": (
@@ -510,32 +547,31 @@ experience={repr(self.experience)}>"
                     ),
                     "excludeAltAccounts": exclude_alt_accounts,
                     "displayReason": display_reason,
-                    "privateReason": private_reason
+                    "privateReason": private_reason,
                 }
-            }
+            },
         )
 
         return UserRestriction(data, self.__api_key)
-    
+
     def unban_user(self, user_id: int) -> UserRestriction:
         """
         Removes the current user restriction for a user within the place.
 
         Args:
             user_id: The ID of the user to remove restrictions for.
-        
+
         Returns:
             The updated restriction information for the requested user.
         """
 
         _, data, _ = send_request(
-            "PATCH", f"/universes/{self.experience.id}/places/{self.id}\
+            "PATCH",
+            f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
-            authorization=self.__api_key, expected_status=[200], json={
-                "gameJoinRestriction": {
-                    "active": False
-                }
-            }
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={"gameJoinRestriction": {"active": False}},
         )
 
         return UserRestriction(data, self.__api_key)
@@ -545,10 +581,10 @@ experience={repr(self.experience)}>"
     #         f"{self.experience.id}/places/{self.id}/instances/"+
     #         "root:listChildren", authorization=self.__api_key,
     #         expected_status=[200])
-        
+
     #     def operation_callable(response):
     #         instance_objects = []
-            
+
     #         for instance in response["instances"]:
     #             instance_objects.append(
     #                 Instance._determine_instance_subclass(data)
@@ -566,12 +602,13 @@ experience={repr(self.experience)}>"
     #     _, data, _ = send_request("GET", "/universes/"+
     #         f"{self.experience.id}/places/{self.id}/instances/{instance_id}",
     #         authorization=self.__api_key, expected_status=[200])
-        
+
     #     return Operation(f"/{data['path']}", self.__api_key,
     #         lambda r: Instance._determine_instance_subclass(r)
     #         (r["engineInstance"]["Id"], r, place=self, api_key=self.__api_key))
 
-class Experience():
+
+class Experience:
     """
     Represents an experience/universe on Roblox.
 
@@ -645,34 +682,34 @@ class Experience():
         self.discord_social_link: Optional[ExperienceSocialLink] = None
         self.group_social_link: Optional[ExperienceSocialLink] = None
         self.guilded_social_link: Optional[ExperienceSocialLink] = None
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.Experience id={self.id}>"
-    
+
     def __update_params(self, data):
         self.name = data["displayName"]
         self.description = data["description"]
 
         self.created_at = (
             parser.parse(data["createTime"])
-            if data.get("createTime") else None
+            if data.get("createTime")
+            else None
         )
         self.updated_at = (
             parser.parse(data["updateTime"])
-            if data.get("updateTime") else None
+            if data.get("updateTime")
+            else None
         )
 
         if data.get("user"):
-            self.owner = User(
-                int(data["user"].split("/")[1]), self.__api_key
-            )
+            self.owner = User(int(data["user"].split("/")[1]), self.__api_key)
         elif data.get("group"):
             self.owner = Group(
                 int(data["group"].split("/")[1]), self.__api_key
             )
         else:
             self.owner = None
-        
+
         self.public = data["visibility"] == "PUBLIC"
         self.voice_chat_enabled = data["voiceChatEnabled"]
         self.private_server_price = data.get("privateServerPriceRobux")
@@ -680,41 +717,69 @@ class Experience():
             data["ageRating"], ExperienceAgeRating.Unknown
         )
 
-        self.facebook_social_link = ExperienceSocialLink(
-            data["facebookSocialLink"]["title"],
-            data["facebookSocialLink"]["uri"]
-        ) if data.get("facebookSocialLink") else None
+        self.facebook_social_link = (
+            ExperienceSocialLink(
+                data["facebookSocialLink"]["title"],
+                data["facebookSocialLink"]["uri"],
+            )
+            if data.get("facebookSocialLink")
+            else None
+        )
 
-        self.twitter_social_link = ExperienceSocialLink(
-            data["twitterSocialLink"]["title"],
-            data["twitterSocialLink"]["uri"]
-        ) if data.get("twitterSocialLink") else None
-                
-        self.youtube_social_link = ExperienceSocialLink(
-            data["youtubeSocialLink"]["title"],
-            data["youtubeSocialLink"]["uri"]
-        ) if data.get("youtubeSocialLink") else None
-            
-        self.twitch_social_link = ExperienceSocialLink(
-            data["twitchSocialLink"]["title"],
-            data["twitchSocialLink"]["uri"]
-        ) if data.get("twitchSocialLink") else None
-            
-        self.discord_social_link = ExperienceSocialLink(
-            data["discordSocialLink"]["title"],
-            data["discordSocialLink"]["uri"]
-        ) if data.get("discordSocialLink") else None
-            
-        self.group_social_link = ExperienceSocialLink(
-            data["robloxGroupSocialLink"]["title"],
-            data["robloxGroupSocialLink"]["uri"]
-        ) if data.get("robloxGroupSocialLink") else None
-            
-        self.guilded_social_link = ExperienceSocialLink(
-            data["guildedSocialLink"]["title"],
-            data["guildedSocialLink"]["uri"]
-        ) if data.get("guildedSocialLink") else None
-            
+        self.twitter_social_link = (
+            ExperienceSocialLink(
+                data["twitterSocialLink"]["title"],
+                data["twitterSocialLink"]["uri"],
+            )
+            if data.get("twitterSocialLink")
+            else None
+        )
+
+        self.youtube_social_link = (
+            ExperienceSocialLink(
+                data["youtubeSocialLink"]["title"],
+                data["youtubeSocialLink"]["uri"],
+            )
+            if data.get("youtubeSocialLink")
+            else None
+        )
+
+        self.twitch_social_link = (
+            ExperienceSocialLink(
+                data["twitchSocialLink"]["title"],
+                data["twitchSocialLink"]["uri"],
+            )
+            if data.get("twitchSocialLink")
+            else None
+        )
+
+        self.discord_social_link = (
+            ExperienceSocialLink(
+                data["discordSocialLink"]["title"],
+                data["discordSocialLink"]["uri"],
+            )
+            if data.get("discordSocialLink")
+            else None
+        )
+
+        self.group_social_link = (
+            ExperienceSocialLink(
+                data["robloxGroupSocialLink"]["title"],
+                data["robloxGroupSocialLink"]["uri"],
+            )
+            if data.get("robloxGroupSocialLink")
+            else None
+        )
+
+        self.guilded_social_link = (
+            ExperienceSocialLink(
+                data["guildedSocialLink"]["title"],
+                data["guildedSocialLink"]["uri"],
+            )
+            if data.get("guildedSocialLink")
+            else None
+        )
+
         self.desktop_enabled = data["desktopEnabled"]
         self.mobile_enabled = data["mobileEnabled"]
         self.tablet_enabled = data["tabletEnabled"]
@@ -722,7 +787,7 @@ class Experience():
         self.vr_enabled = data["vrEnabled"]
 
         return self
-    
+
     def fetch_info(self) -> "Experience":
         """
         Fetches the experience's information and fills the experience object \
@@ -733,26 +798,31 @@ class Experience():
         """
 
         _, data, _ = send_request(
-            "GET", f"/universes/{self.id}",
-            expected_status=[200], authorization=self.__api_key
+            "GET",
+            f"/universes/{self.id}",
+            expected_status=[200],
+            authorization=self.__api_key,
         )
 
         return self.__update_params(data)
-    
+
     def update(
-            self, voice_chat_enabled: bool = None,
-            private_server_price: Union[int, bool] = None,
-            desktop_enabled: bool = None, mobile_enabled: bool = None,
-            tablet_enabled: bool = None, console_enabled: bool = None,
-            vr_enabled: bool = None,
-            facebook_social_link: Union[ExperienceSocialLink, bool] = None,
-            twitter_social_link: Union[ExperienceSocialLink, bool] = None,
-            youtube_social_link: Union[ExperienceSocialLink, bool] = None,
-            twitch_social_link: Union[ExperienceSocialLink, bool] = None,
-            discord_social_link: Union[ExperienceSocialLink, bool] = None,
-            group_social_link: Union[ExperienceSocialLink, bool] = None,
-            guilded_social_link: Union[ExperienceSocialLink, bool] = None
-        ) -> "Experience":
+        self,
+        voice_chat_enabled: bool = None,
+        private_server_price: Union[int, bool] = None,
+        desktop_enabled: bool = None,
+        mobile_enabled: bool = None,
+        tablet_enabled: bool = None,
+        console_enabled: bool = None,
+        vr_enabled: bool = None,
+        facebook_social_link: Union[ExperienceSocialLink, bool] = None,
+        twitter_social_link: Union[ExperienceSocialLink, bool] = None,
+        youtube_social_link: Union[ExperienceSocialLink, bool] = None,
+        twitch_social_link: Union[ExperienceSocialLink, bool] = None,
+        discord_social_link: Union[ExperienceSocialLink, bool] = None,
+        group_social_link: Union[ExperienceSocialLink, bool] = None,
+        guilded_social_link: Union[ExperienceSocialLink, bool] = None,
+    ) -> "Experience":
         """
         Updates the experience information and fills the experience object \
         parameters.
@@ -788,61 +858,75 @@ class Experience():
             "mobileEnabled": mobile_enabled,
             "tabletEnabled": tablet_enabled,
             "consoleEnabled": console_enabled,
-            "vrEnabled": vr_enabled
+            "vrEnabled": vr_enabled,
         }, []
 
         # if the key values are not None then add them to the field mask
-        if voice_chat_enabled != None: field_mask.append("voiceChatEnabled")
-        if desktop_enabled != None: field_mask.append("desktopEnabled")
-        if mobile_enabled != None: field_mask.append("mobileEnabled")
-        if tablet_enabled != None: field_mask.append("tabletEnabled")
-        if console_enabled != None: field_mask.append("consoleEnabled")
-        if vr_enabled != None: field_mask.append("vrEnabled")
+        if voice_chat_enabled is not None:
+            field_mask.append("voiceChatEnabled")
+        if desktop_enabled is not None:
+            field_mask.append("desktopEnabled")
+        if mobile_enabled is not None:
+            field_mask.append("mobileEnabled")
+        if tablet_enabled is not None:
+            field_mask.append("tabletEnabled")
+        if console_enabled is not None:
+            field_mask.append("consoleEnabled")
+        if vr_enabled is not None:
+            field_mask.append("vrEnabled")
 
-        if private_server_price != None:
-            if private_server_price == True: raise ValueError(
-                "private_server_robux_price should be either int or False."
-            )
+        if private_server_price is not None:
+            if private_server_price is True:
+                raise ValueError(
+                    "private_server_robux_price should be either int or False."
+                )
 
             # omit the private server price field if False to disable them.
             if type(private_server_price) == int:
                 payload["privateServerPriceRobux"] = private_server_price
-            
+
             field_mask.append("privateServerPriceRobux")
 
         # iterate through all the social links and add them into the payload
         for platform, value in {
-            "facebook": facebook_social_link,  "twitter": twitter_social_link,
-            "youtube": youtube_social_link, "twitch": twitch_social_link,
-            "discord": discord_social_link, "robloxGroup": group_social_link,
-            "guilded": guilded_social_link
+            "facebook": facebook_social_link,
+            "twitter": twitter_social_link,
+            "youtube": youtube_social_link,
+            "twitch": twitch_social_link,
+            "discord": discord_social_link,
+            "robloxGroup": group_social_link,
+            "guilded": guilded_social_link,
         }.items():
             # ignore parameters with a value of None
-            if value != None:
-                if value == True: raise ValueError(
-                    f"{platform}_social_link should be either \
+            if value is not None:
+                if value is True:
+                    raise ValueError(
+                        f"{platform}_social_link should be either \
                     ExperienceSocialLink or False."
-                )
+                    )
 
                 if type(value) == ExperienceSocialLink:
                     payload[f"{platform}SocialLink"] = {
                         "title": value.title,
-                        "uri": value.uri
+                        "uri": value.uri,
                     }
                     field_mask.append(f"{platform}SocialLink.title")
                     field_mask.append(f"{platform}SocialLink.uri")
                 else:
                     # any social link is being removed
                     field_mask.append(f"{platform}SocialLink")
-                
+
         _, data, _ = send_request(
-            "PATCH", f"/universes/{self.id}",
-            authorization=self.__api_key, expected_status=[200],
-            params={"updateMask": ",".join(field_mask)}, json=payload
+            "PATCH",
+            f"/universes/{self.id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={"updateMask": ",".join(field_mask)},
+            json=payload,
         )
 
         return self.__update_params(data)
-    
+
     def get_place(self, place_id: int) -> Place:
         """
         Creates a [`Place`][rblxopencloud.Place] class for a place within the \
@@ -855,12 +939,12 @@ class Experience():
             The created place object with all parameters as `None` except \
             `id` and `experience`.
         """
-        
+
         return Place(place_id, None, self.__api_key, self)
-    
+
     def get_datastore(
-            self, name: str, scope: Optional[str] = "global"
-        ) -> DataStore:
+        self, name: str, scope: Optional[str] = "global"
+    ) -> DataStore:
         """
         Creates a [`DataStore`][rblxopencloud.DataStore] with the provided \
         name and scope.
@@ -872,12 +956,12 @@ class Experience():
         Returns:
             The created data store object with `DataStore.created` as `None`.
         """
-        
+
         return DataStore(name, self, self.__api_key, None, scope)
-    
+
     def get_ordered_datastore(
-            self, name: str, scope: Optional[str] = "global"
-        ) -> OrderedDataStore:
+        self, name: str, scope: Optional[str] = "global"
+    ) -> OrderedDataStore:
         """
         Creates an [`OrderedDataStore`][rblxopencloud.OrderedDataStore] with \
         the provided name and scope.
@@ -889,13 +973,15 @@ class Experience():
         Returns:
             The created data store object.
         """
-        
+
         return OrderedDataStore(name, self, self.__api_key, scope)
 
     def list_datastores(
-            self, prefix: str = "", limit: int = None,
-            scope: Optional[str] = "global"
-        ) -> Iterable[DataStore]:
+        self,
+        prefix: str = "",
+        limit: int = None,
+        scope: Optional[str] = "global",
+    ) -> Iterable[DataStore]:
         """
         Iterates all data stores in the experience.
 
@@ -909,18 +995,25 @@ class Experience():
             [`DataStore`][rblxopencloud.DataStore] for every datastore in the \
             experience.
         """
-        
+
         for entry in iterate_request(
-            "GET", f"datastores/v1/universes/{self.id}/standard-datastores",
-            authorization=self.__api_key, expected_status=[200],
-            params={
-                "prefix": prefix
-            },
-            max_yields=limit, data_key="datastores", cursor_key="cursor"
+            "GET",
+            f"datastores/v1/universes/{self.id}/standard-datastores",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={"prefix": prefix},
+            max_yields=limit,
+            data_key="datastores",
+            cursor_key="cursor",
         ):
-            yield DataStore(entry["name"], self, self.__api_key,
-                entry["createdTime"], scope)
-    
+            yield DataStore(
+                entry["name"],
+                self,
+                self.__api_key,
+                entry["createdTime"],
+                scope,
+            )
+
     def get_sorted_map(self, name: str) -> SortedMap:
         """
         Creates a [`SortedMap`][rblxopencloud.SortedMap] with \
@@ -933,9 +1026,9 @@ class Experience():
         Returns:
             The sorted map with the provided name.
         """
-        
+
         return SortedMap(name, self, self.__api_key)
-    
+
     def get_memory_store_queue(self, name: str) -> MemoryStoreQueue:
         """
         Creates a [`MemoryStoreQueue`][rblxopencloud.MemoryStoreQueue] with \
@@ -948,9 +1041,9 @@ class Experience():
         Returns:
             The memory store queue with the provided name.
         """
-        
+
         return MemoryStoreQueue(name, self, self.__api_key)
-    
+
     def publish_message(self, topic: str, data: str) -> None:
         """
         Publishes a message to live game servers that can be recieved with \
@@ -970,18 +1063,21 @@ classes/MessagingService).
         topic = urllib.parse.quote(topic)
 
         send_request(
-            "POST", f"messaging-service/v1/universes/{self.id}/topics/{topic}",
-            authorization=self.__api_key, expected_status=[200],
-            json={
-                "message": data
-            }
+            "POST",
+            f"messaging-service/v1/universes/{self.id}/topics/{topic}",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={"message": data},
         )
-        
+
     def send_notification(
-            self, user_id: int, message_id: str, 
-            launch_data: str = None, analytics_category: str = None,
-            **message_variables: dict[str, Union[str, int]]
-        ) -> None:
+        self,
+        user_id: int,
+        message_id: str,
+        launch_data: str = None,
+        analytics_category: str = None,
+        **message_variables: dict[str, Union[str, int]],
+    ) -> None:
         """
         Sends an Experience notification to the requested user.
 
@@ -1003,28 +1099,30 @@ classes/MessagingService).
             parameters_dict[key] = {
                 "int64_value" if type(value) == int else "string_value": value
             }
-        
+
         send_request(
-            "POST", f"/users/{user_id}/notifications",
-            authorization=self.__api_key, expected_status=[200],
+            "POST",
+            f"/users/{user_id}/notifications",
+            authorization=self.__api_key,
+            expected_status=[200],
             json={
-                "source": {
-                    "universe": f"universes/{self.id}"
-                },
+                "source": {"universe": f"universes/{self.id}"},
                 "payload": {
                     "type": "MOMENT",
                     "messageId": message_id,
                     "parameters": parameters_dict,
-                    "joinExperience": {
-                        "launchData": launch_data
-                    } if launch_data else None,
-                    "analyticsData": {
-                        "category": analytics_category
-                    } if analytics_category else None
-                }
-            }
+                    "joinExperience": (
+                        {"launchData": launch_data} if launch_data else None
+                    ),
+                    "analyticsData": (
+                        {"category": analytics_category}
+                        if analytics_category
+                        else None
+                    ),
+                },
+            },
         )
-    
+
     def restart_servers(self) -> None:
         """
         Shutdowns all game servers in the experience which are not on the \
@@ -1033,8 +1131,10 @@ classes/MessagingService).
         """
 
         send_request(
-            "POST", f"/universes/{self.id}:restartServers",
-            authorization=self.__api_key, expected_status=[200]
+            "POST",
+            f"/universes/{self.id}:restartServers",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
     def flush_memory_store(self) -> Operation[bool]:
@@ -1047,20 +1147,23 @@ classes/MessagingService).
         """
 
         _, data, _ = send_request(
-            "POST", f"/universes/{self.id}/memory-store:flush",
-            authorization=self.__api_key, expected_status=[200]
+            "POST",
+            f"/universes/{self.id}/memory-store:flush",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
-        op_id = data['path'].split(f"/")[-1]
-        
+        op_id = data["path"].split("/")[-1]
+
         return Operation(
             f"/universes/{self.id}/memory-store/operations/{op_id}",
-            self.__api_key, True,
+            self.__api_key,
+            True,
         )
-    
+
     def fetch_subscription(
-            self, product_id: str, user_id: int
-        ) -> Subscription:
+        self, product_id: str, user_id: int
+    ) -> Subscription:
         """
         Fetches information about a user's subscription to a product within \
         the experience.
@@ -1076,16 +1179,19 @@ classes/MessagingService).
         """
 
         _, data, _ = send_request(
-            "GET", f"/universes/{self.id}/subscription-products/\
-{product_id}/subscriptions/{user_id}", params={"view": "FULL"},
-            authorization=self.__api_key, expected_status=[200]
+            "GET",
+            f"/universes/{self.id}/subscription-products/\
+{product_id}/subscriptions/{user_id}",
+            params={"view": "FULL"},
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         return Subscription(data)
-    
+
     def list_ban_logs(
-            self, user_id: int=None, place_id: int=None, limit: int=None
-        ) -> Iterable[UserRestriction]:
+        self, user_id: int = None, place_id: int = None, limit: int = None
+    ) -> Iterable[UserRestriction]:
         """
         Lists all ban and unban logs within the universe, optionally filtered \
         to a specific user and/ or place.
@@ -1099,18 +1205,24 @@ classes/MessagingService).
         """
 
         filter = []
-        
-        if user_id: filter.append(f"user == 'users/{user_id}'")
-        if place_id: filter.append(f"place == 'places/{place_id}'")
+
+        if user_id:
+            filter.append(f"user == 'users/{user_id}'")
+        if place_id:
+            filter.append(f"place == 'places/{place_id}'")
 
         for entry in iterate_request(
-            "GET", f"/universes/{self.id}/user-restrictions:listLogs",
-            authorization=self.__api_key, expected_status=[200],
+            "GET",
+            f"/universes/{self.id}/user-restrictions:listLogs",
+            authorization=self.__api_key,
+            expected_status=[200],
             params={
                 "maxPageSize": limit if limit and limit <= 100 else 100,
-                "filter": "&&".join(filter)
+                "filter": "&&".join(filter),
             },
-            max_yields=limit, data_key="logs", cursor_key="pageToken"
+            max_yields=limit,
+            data_key="logs",
+            cursor_key="pageToken",
         ):
             yield UserRestriction(entry, self.__api_key)
 
@@ -1127,17 +1239,22 @@ classes/MessagingService).
         """
 
         _, data, _ = send_request(
-            "GET", f"/universes/{self.id}/user-restrictions/{user_id}",
-            authorization=self.__api_key, expected_status=[200]
+            "GET",
+            f"/universes/{self.id}/user-restrictions/{user_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         return UserRestriction(data, self.__api_key)
 
     def ban_user(
-            self, user_id: int, duration_seconds: Optional[int],
-            display_reason: str="", private_reason: str="",
-            exclude_alt_accounts: bool=False
-        ) -> UserRestriction:
+        self,
+        user_id: int,
+        duration_seconds: Optional[int],
+        display_reason: str = "",
+        private_reason: str = "",
+        exclude_alt_accounts: bool = False,
+    ) -> UserRestriction:
         """
         Updates the current user restriction for a user on the universe-wide \
         level.
@@ -1158,7 +1275,9 @@ classes/MessagingService).
         _, data, _ = send_request(
             "PATCH",
             f"/universes/{self.id}/user-restrictions/{user_id}",
-            authorization=self.__api_key, expected_status=[200], json={
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={
                 "gameJoinRestriction": {
                     "active": True,
                     "duration": (
@@ -1166,13 +1285,13 @@ classes/MessagingService).
                     ),
                     "excludeAltAccounts": exclude_alt_accounts,
                     "displayReason": display_reason,
-                    "privateReason": private_reason
+                    "privateReason": private_reason,
                 }
-            }
+            },
         )
 
         return UserRestriction(data, self.__api_key)
-    
+
     def unban_user(self, user_id: int) -> UserRestriction:
         """
         Removes the current user restriction for a user on the universe-wide \
@@ -1188,19 +1307,20 @@ classes/MessagingService).
         _, data, _ = send_request(
             "PATCH",
             f"/universes/{self.id}/user-restrictions/{user_id}",
-            authorization=self.__api_key, expected_status=[200], json={
-                "gameJoinRestriction": {
-                    "active": False
-                }
-            }
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={"gameJoinRestriction": {"active": False}},
         )
 
         return UserRestriction(data, self.__api_key)
-    
+
     def update_badge(
-            self, badge_id: int, enabled: bool = None,
-            name: str = None, description: str = None
-        ):
+        self,
+        badge_id: int,
+        enabled: bool = None,
+        name: str = None,
+        description: str = None,
+    ):
         """
         Updates a badge with the provided badge ID.
 
@@ -1217,7 +1337,13 @@ be used with caution.
         """
 
         send_request(
-            "PATCH", f"legacy-badges/v1/badges/{badge_id}",
-            authorization=self.__api_key, expected_status=[200],
-            json={"name": name, "description": description, "enabled": enabled}
+            "PATCH",
+            f"legacy-badges/v1/badges/{badge_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={
+                "name": name,
+                "description": description,
+                "enabled": enabled,
+            },
         )

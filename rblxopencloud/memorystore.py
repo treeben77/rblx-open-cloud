@@ -22,28 +22,21 @@
 
 import datetime
 import json
-from typing import Iterable, Optional, TYPE_CHECKING, Union
 import urllib.parse
+from typing import TYPE_CHECKING, Iterable, Optional, Union
 
 from dateutil import parser
 
-from .exceptions import (
-    HttpException,
-    NotFound,
-    PreconditionFailed
-)
+from .exceptions import HttpException, NotFound, PreconditionFailed
 from .http import iterate_request, send_request
 
 if TYPE_CHECKING:
     from .experience import Experience
 
-__all__ = (
-    "SortedMap",
-    "SortedMapEntry",
-    "MemoryStoreQueue"
-)
+__all__ = ("SortedMap", "SortedMapEntry", "MemoryStoreQueue")
 
-class SortedMapEntry():
+
+class SortedMapEntry:
     """
     Represents an entry in a sorted map.
 
@@ -55,20 +48,22 @@ class SortedMapEntry():
         etag: A server generated value for preconditional updating.
         expires_at: The timestamp the entry will expire at.
     """
+
     def __init__(self, data) -> None:
         self.key: str = data["id"]
-        self.sort_key: Optional[Union[int, float, str]] = (
-            data.get("numericSortKey") or data.get("stringSortKey")
-        )
+        self.sort_key: Optional[Union[int, float, str]] = data.get(
+            "numericSortKey"
+        ) or data.get("stringSortKey")
         self.value: int = data["value"]
         self.etag: str = data["etag"]
         self.expires_at: datetime.datetime = parser.parse(data["expireTime"])
-    
-    def __repr__(self) -> str:
-        return f"<rblxopencloud.SortedMapEntry \
-\"{self.key}\" value={json.dumps(self.value)}>"
 
-class SortedMap():
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.SortedMapEntry \
+"{self.key}" value={json.dumps(self.value)}>'
+
+
+class SortedMap:
     """
     Represents a sorted map memory store in an experience.
 
@@ -81,17 +76,19 @@ class SortedMap():
         self.name: str = name
         self.__api_key: str = api_key
         self.experience: Experience = experience
-    
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.SortedMap \
-\"{self.name}\" experience={repr(self.experience)}>"
-    
+        return f'<rblxopencloud.SortedMap \
+"{self.name}" experience={repr(self.experience)}>'
+
     def list_keys(
-        self, descending: bool = False, limit: int = None,
+        self,
+        descending: bool = False,
+        limit: int = None,
         lower_bound_key: Union[str, int] = None,
         upper_bound_key: Union[str, int] = None,
         lower_bound_sort_key: Union[str, int] = None,
-        upper_bound_sort_key: Union[str, int] = None
+        upper_bound_sort_key: Union[str, int] = None,
     ) -> Iterable[SortedMapEntry]:
         """
         Returns an Iterable of keys in the sorted map.
@@ -116,35 +113,41 @@ class SortedMap():
 
         if lower_bound_key:
             if type(lower_bound_key) == str:
-                lower_bound_key = f"\"{lower_bound_key}\""
-            
+                lower_bound_key = f'"{lower_bound_key}"'
+
             filter.append(f"id > {lower_bound_key}")
-        
+
         if upper_bound_key:
             if type(upper_bound_key) == str:
-                upper_bound_key = f"\"{upper_bound_key}\""
-            
+                upper_bound_key = f'"{upper_bound_key}"'
+
             filter.append(f"id < {upper_bound_key}")
 
         if lower_bound_sort_key:
             if type(lower_bound_sort_key) == str:
-                lower_bound_sort_key = f"\"{lower_bound_sort_key}\""
+                lower_bound_sort_key = f'"{lower_bound_sort_key}"'
 
             filter.append(f"sortKey > {lower_bound_sort_key}")
-        
+
         if upper_bound_sort_key:
             if type(upper_bound_sort_key) == str:
-                upper_bound_sort_key = f"\"{upper_bound_sort_key}\""
+                upper_bound_sort_key = f'"{upper_bound_sort_key}"'
             filter.append(f"sortKey < {upper_bound_sort_key}")
-        
+
         for entry in iterate_request(
-            "GET", f"/universes/{self.experience.id}/memory-store/\
+            "GET",
+            f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
-            authorization=self.__api_key, expected_status=[200], params={
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
                 "orderBy": "desc" if descending else None,
                 "maxPageSize": limit if limit and limit < 100 else 100,
-                "filter": " && ".join(filter)
-            }, cursor_key="pageToken", data_key="items", max_yields=limit
+                "filter": " && ".join(filter),
+            },
+            cursor_key="pageToken",
+            data_key="items",
+            max_yields=limit,
         ):
             yield SortedMapEntry(entry)
 
@@ -154,25 +157,31 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
 
         Args:
             key: The key to find.
-        
+
         Returns:
             The entry information.
         """
-        
+
         _, data, _ = send_request(
-            "GET", f"/universes/{self.experience.id}/memory-store/\
+            "GET",
+            f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
-{urllib.parse.quote_plus(key)}", 
-            authorization=self.__api_key, expected_status=[200]
+{urllib.parse.quote_plus(key)}",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         return SortedMapEntry(data)
 
     def set_key(
-        self, key: str, value: Union[str, dict, list, int, float],
-        expiration_seconds: int, sort_key: Union[int, float, str]=None,
-        exclusive_create: bool=False, exclusive_update: bool=False
-    ) -> SortedMapEntry:        
+        self,
+        key: str,
+        value: Union[str, dict, list, int, float],
+        expiration_seconds: int,
+        sort_key: Union[int, float, str] = None,
+        exclusive_create: bool = False,
+        exclusive_update: bool = False,
+    ) -> SortedMapEntry:
         """
         Creates or updates the provided key.
 
@@ -189,60 +198,67 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
             The new entry information. 
         """
 
-        if exclusive_create and exclusive_update: raise ValueError(
-            "exclusive_create and exclusive_updated can not both be True"
-        )
+        if exclusive_create and exclusive_update:
+            raise ValueError(
+                "exclusive_create and exclusive_updated can not both be True"
+            )
 
         if not exclusive_create:
             status, data, _ = send_request(
-                "PATCH", f"/universes/{self.experience.id}/memory-store/\
+                "PATCH",
+                f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
 {urllib.parse.quote_plus(key)}",
-                authorization=self.__api_key, expected_status=[200, 404, 409],
+                authorization=self.__api_key,
+                expected_status=[200, 404, 409],
                 params={"allowMissing": str(not exclusive_update).lower()},
                 json={
                     "Value": value,
                     "Ttl": f"{expiration_seconds}s",
                     (
-                        "stringSortKey" if type(sort_key) == str
+                        "stringSortKey"
+                        if type(sort_key) == str
                         else "numericSortKey"
-                    ): sort_key
-                }
+                    ): sort_key,
+                },
             )
         else:
             status, data, _ = send_request(
-                "POST", f"/universes/{self.experience.id}/memory-store\
+                "POST",
+                f"/universes/{self.experience.id}/memory-store\
 /sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
-                authorization=self.__api_key, expected_status=[200, 409],
+                authorization=self.__api_key,
+                expected_status=[200, 409],
                 json={
                     "Id": key,
                     "Value": value,
                     "Ttl": f"{expiration_seconds}s",
                     (
-                        "stringSortKey" if type(sort_key) == str
+                        "stringSortKey"
+                        if type(sort_key) == str
                         else "numericSortKey"
-                    ): sort_key
-                }
+                    ): sort_key,
+                },
             )
 
         if status == 404:
             if exclusive_update:
                 raise PreconditionFailed(None, None, status, data)
-        
+
             raise NotFound(status, data)
 
         if status == 409:
             if data["error"] == "ALREADY_EXISTS":
                 raise PreconditionFailed(None, None, status, data)
-            
+
             raise HttpException(status, data)
 
         if not data.get("id"):
             data["id"] = key
-        
+
         return SortedMapEntry(data)
-        
-    def remove_key(self, key: str, etag: str=None) -> None:
+
+    def remove_key(self, key: str, etag: str = None) -> None:
         """
         Deletes a key from the sorted map.
 
@@ -252,16 +268,18 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
             value. Etag can be retrieved from \
             [`SortedMapEntry.etag`][rblxopencloud.SortedMapEntry].
         """
-        
+
         send_request(
-            "DELETE", f"/universes/{self.experience.id}/memory-store/\
+            "DELETE",
+            f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
-{urllib.parse.quote_plus(key)}", authorization=self.__api_key, params={
-                "etag": etag
-            }
+{urllib.parse.quote_plus(key)}",
+            authorization=self.__api_key,
+            params={"etag": etag},
         )
 
-class MemoryStoreQueue():
+
+class MemoryStoreQueue:
     """
     Represents a memory store queue in an experience.
 
@@ -274,15 +292,17 @@ class MemoryStoreQueue():
         self.name: str = name
         self.__api_key: str = api_key
         self.experience: Experience = experience
-    
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.MemoryStoreQueue \
-\"{self.name}\", experience={repr(self.experience)}>"
+        return f'<rblxopencloud.MemoryStoreQueue \
+"{self.name}", experience={repr(self.experience)}>'
 
     def add_item(
-            self, value: Union[str, dict, list, int, float],
-            expiration_seconds: int=30, priority: float=0
-        ) -> None:
+        self,
+        value: Union[str, dict, list, int, float],
+        expiration_seconds: int = 30,
+        priority: float = 0,
+    ) -> None:
         """
         Adds a value to the queue.
 
@@ -293,21 +313,26 @@ class MemoryStoreQueue():
             priority: The value's priority. Keys with higher priorities leave \
             the queue first.
         """
-        
+
         send_request(
-            "POST", f"/universes/{self.experience.id}/memory-store/\
+            "POST",
+            f"/universes/{self.experience.id}/memory-store/\
 queues/{urllib.parse.quote_plus(self.name)}/items:add",
-            authorization=self.__api_key, expected_status=[200], json={
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={
                 "Data": value,
                 "Ttl": f"{expiration_seconds}s",
-                "Priority": priority
-            }
+                "Priority": priority,
+            },
         )
-    
+
     def read_items(
-            self, count: int = 1, all_or_nothing: bool = False,
-            invisibility_seconds: int = 30
-        ) -> tuple[list[Union[str, dict, list, int, float]], Optional[str]]:
+        self,
+        count: int = 1,
+        all_or_nothing: bool = False,
+        invisibility_seconds: int = 30,
+    ) -> tuple[list[Union[str, dict, list, int, float]], Optional[str]]:
         """
         Reads values from the queue.
 
@@ -324,20 +349,24 @@ queues/{urllib.parse.quote_plus(self.name)}/items:add",
             [`MemoryStoreQueue.remove_items`\
             ][rblxopencloud.MemoryStoreQueue.remove_items].
         """
-        
+
         status, data, _ = send_request(
-            "GET", f"/universes/{self.experience.id}/memory-store/\
+            "GET",
+            f"/universes/{self.experience.id}/memory-store/\
 queues/{urllib.parse.quote_plus(self.name)}/items:read",
-            authorization=self.__api_key, expected_status=[200, 204], params={
+            authorization=self.__api_key,
+            expected_status=[200, 204],
+            params={
                 "count": count,
                 "allOrNothing": all_or_nothing,
-                "invisibilityTimeoutSeconds": invisibility_seconds
-            }, json={}
+                "invisibilityTimeoutSeconds": invisibility_seconds,
+            },
+            json={},
         )
-        
+
         if status == 204:
             return [], None
-        
+
         return data["data"], data["id"]
 
     def remove_items(self, read_id: str) -> None:
@@ -350,9 +379,11 @@ queues/{urllib.parse.quote_plus(self.name)}/items:read",
         """
 
         send_request(
-            "POST", f"/universes/{self.experience.id}/memory-store/\
+            "POST",
+            f"/universes/{self.experience.id}/memory-store/\
 queues/{urllib.parse.quote_plus(self.name)}/items:discard",
-            authorization=self.__api_key, expected_status=[200], params={
-                "readId": read_id
-            }, json={}
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={"readId": read_id},
+            json={},
         )

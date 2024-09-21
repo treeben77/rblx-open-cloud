@@ -1,23 +1,22 @@
-from typing import TYPE_CHECKING, Optional, Iterable, Union
-import io
-from .http import send_request, Operation
-from dateutil import parser
-from datetime import datetime
+from typing import TYPE_CHECKING, Optional, Union
+
+from .http import Operation, send_request
 
 if TYPE_CHECKING:
     from .experience import Place
 
-class Instance():
-    def __init__(self, id, data = None, place = None,
-        parent = None, api_key = None) -> None:
+
+class Instance:
+    def __init__(
+        self, id, data=None, place=None, parent=None, api_key=None
+    ) -> None:
         self.id: str = id
         self.place: Place = place
         self.name: Optional[str] = (
             data["engineInstance"]["Name"] if data else None
         )
-        self.parent: Optional[Instance] = (
-            parent or (Instance(data["engineInstance"]["Parent"])
-            if data else None)
+        self.parent: Optional[Instance] = parent or (
+            Instance(data["engineInstance"]["Parent"]) if data else None
         )
         self.has_children: Optional[bool] = (
             data["hasChildren"] if data else None
@@ -37,48 +36,58 @@ class Instance():
             return Instance
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.{type(self).__name__} id=\"{self.id}\" \
-name=\"{self.name}\">"
-    
+        return f'<rblxopencloud.{type(self).__name__} id="{self.id}" \
+name="{self.name}">'
+
     def list_children(self) -> Operation[list["Instance"]]:
-        _, data, _ = send_request("GET", "/universes/"+
-            f"{self.place.experience.id}/places/{self.place.id}/instances/"+
-            f"{self.id}:listChildren", authorization=self.__api_key,
-            expected_status=[200])
-        
+        _, data, _ = send_request(
+            "GET",
+            "/universes/"
+            + f"{self.place.experience.id}/places/{self.place.id}/instances/"
+            + f"{self.id}:listChildren",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
         def operation_callable(response: dict):
             instance_objects = []
-            
+
             for instance in response["instances"]:
                 instance_objects.append(
-                    Instance(instance["engineInstance"]["Id"], instance,
-                        place=self.place, parent=self, api_key=self.__api_key)
+                    Instance(
+                        instance["engineInstance"]["Id"],
+                        instance,
+                        place=self.place,
+                        parent=self,
+                        api_key=self.__api_key,
+                    )
                 )
 
             return instance_objects
 
-        return Operation(f"/{data['path']}", self.__api_key,
-                         operation_callable)
-    
-    def _update_raw(self, instance_type: str, details: dict
-        ) -> Operation[True]:
+        return Operation(
+            f"/{data['path']}", self.__api_key, operation_callable
+        )
+
+    def _update_raw(
+        self, instance_type: str, details: dict
+    ) -> Operation[True]:
         _, data, _ = send_request(
-            "PATCH", f"/universes/{self.place.experience.id}/places/"+
-            f"{self.place.id}/instances/{self.id}",
-            authorization=self.__api_key, expected_status=[200],
-            json={
-                "engineInstance": {
-                    "Details": {
-                        instance_type: details
-                    }
-                }
-            })
-        
+            "PATCH",
+            f"/universes/{self.place.experience.id}/places/"
+            + f"{self.place.id}/instances/{self.id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={"engineInstance": {"Details": {instance_type: details}}},
+        )
+
         return Operation(f"/{data['path']}", self.__api_key, True)
 
+
 class Script(Instance):
-    def __init__(self, id, data=None, place=None,
-        parent=None, api_key=None) -> None:
+    def __init__(
+        self, id, data=None, place=None, parent=None, api_key=None
+    ) -> None:
 
         details = list(data["engineInstance"]["Details"].values())[0]
 
@@ -88,8 +97,7 @@ class Script(Instance):
         super().__init__(id, data, place, parent, api_key)
 
     def update_source(self, new_source: str) -> Operation[True]:
-        return self._update_raw("Script", {
-            "Source": new_source
-        })
+        return self._update_raw("Script", {"Source": new_source})
+
 
 InstanceType = Union[Instance, Script]

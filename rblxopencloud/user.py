@@ -22,12 +22,12 @@
 
 import datetime
 from enum import Enum
-from typing import Iterable, Literal, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Iterable, Literal, Optional, Union
 
 from dateutil import parser
 
 from .creator import Creator
-from .http import iterate_request, send_request, Operation
+from .http import Operation, iterate_request, send_request
 
 if TYPE_CHECKING:
     from .group import GroupMember
@@ -43,8 +43,9 @@ __all__ = (
     "InventoryPrivateServer",
     "UserSocialLinks",
     "UserVisibility",
-    "UserExperienceFollowing"
+    "UserExperienceFollowing",
 )
+
 
 class InventoryAssetType(Enum):
     Unknown = 0
@@ -101,6 +102,7 @@ class InventoryAssetType(Enum):
     CreatedPlace = 51
     PurchasedPlace = 52
 
+
 ASSET_TYPE_STRINGS = {
     "INVENTORY_ITEM_ASSET_TYPE_UNSPECIFIED": InventoryAssetType.Unknown,
     "CLASSIC_TSHIRT": InventoryAssetType.ClassicTShirt,
@@ -154,26 +156,30 @@ ASSET_TYPE_STRINGS = {
     "MOOD_ANIMATION": InventoryAssetType.MoodAnimation,
     "DYNAMIC_HEAD": InventoryAssetType.DynamicHead,
     "CREATED_PLACE": InventoryAssetType.CreatedPlace,
-    "PURCHASED_PLACE": InventoryAssetType.PurchasedPlace
+    "PURCHASED_PLACE": InventoryAssetType.PurchasedPlace,
 }
+
 
 class InventoryItemState(Enum):
     Unknown = 0
     Available = 1
     Hold = 2
 
+
 STATE_TYPE_STRINGS = {
     "COLLECTIBLE_ITEM_INSTANCE_STATE_UNSPECIFIED": InventoryItemState.Unknown,
     "AVAILABLE": InventoryItemState.Available,
-    "HOLD": InventoryItemState.Hold
+    "HOLD": InventoryItemState.Hold,
 }
 
-class InventoryItem():
+
+class InventoryItem:
     def __init__(self, id) -> None:
         self.id: int = id
 
     def __repr__(self) -> str:
         return f"rblxopencloud.InventoryItem(id={self.id}"
+
 
 class InventoryAsset(InventoryItem):
     """
@@ -192,30 +198,41 @@ class InventoryAsset(InventoryItem):
         collectable_state (Optional[InventoryItemState]): Wether the item is \
         ready for sale or in hold.
     """
-     
+
     def __init__(self, data: dict) -> None:
         super().__init__(data["assetId"])
         self.type: InventoryAssetType = InventoryAssetType(
-            ASSET_TYPE_STRINGS.get(data["inventoryItemAssetType"],
-                                   InventoryAssetType.Unknown)
+            ASSET_TYPE_STRINGS.get(
+                data["inventoryItemAssetType"], InventoryAssetType.Unknown
+            )
         )
         self.instance_id: int = data["instanceId"]
         self.collectable_item_id: Optional[str] = data.get(
-            "collectibleDetails", {}).get("itemId", None)
+            "collectibleDetails", {}
+        ).get("itemId", None)
         self.collectable_instance_id: Optional[str] = data.get(
-            "collectibleDetails", {}).get("instanceId", None)
-        self.serial_number: Optional[int] = data.get("collectibleDetails", {}
-            ).get("serialNumber", None)
+            "collectibleDetails", {}
+        ).get("instanceId", None)
+        self.serial_number: Optional[int] = data.get(
+            "collectibleDetails", {}
+        ).get("serialNumber", None)
 
-        collectable_state = data.get("collectibleDetails", {}
-            ).get("instanceState", None)
+        collectable_state = data.get("collectibleDetails", {}).get(
+            "instanceState", None
+        )
         self.collectable_state: Optional[InventoryItemState] = (
-            InventoryItemState(STATE_TYPE_STRINGS.get(collectable_state,
-            InventoryItemState.Unknown)) if collectable_state else None
+            InventoryItemState(
+                STATE_TYPE_STRINGS.get(
+                    collectable_state, InventoryItemState.Unknown
+                )
+            )
+            if collectable_state
+            else None
         )
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryAsset id={self.id} type={self.type}>"
+
 
 class InventoryBadge(InventoryItem):
     """
@@ -227,9 +244,10 @@ class InventoryBadge(InventoryItem):
 
     def __init__(self, data) -> None:
         super().__init__(data["badgeId"])
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryBadge id={self.id}>"
+
 
 class InventoryGamePass(InventoryItem):
     """
@@ -241,9 +259,10 @@ class InventoryGamePass(InventoryItem):
 
     def __init__(self, data) -> None:
         super().__init__(data["gamePassId"])
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryGamePass id={self.id}>"
+
 
 class InventoryPrivateServer(InventoryItem):
     """
@@ -252,11 +271,13 @@ class InventoryPrivateServer(InventoryItem):
     Attributes:
         id (int): The ID of the game pass.
     """
+
     def __init__(self, data) -> None:
         super().__init__(data["privateServerId"])
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryPrivateServer id={self.id}>"
+
 
 class UserVisibility(Enum):
     """
@@ -273,6 +294,7 @@ class UserVisibility(Enum):
         follow, and users that follow them.
         Everyone (5): It is visible to everyone.
     """
+
     Unknown = 0
     Noone = 1
     Friends = 2
@@ -280,15 +302,17 @@ class UserVisibility(Enum):
     Followers = 4
     Everyone = 5
 
+
 user_visiblity_strings = {
     "NO_ONE": UserVisibility.Noone,
     "FRIENDS": UserVisibility.Friends,
     "FRIENDS_AND_FOLLOWING": UserVisibility.Following,
     "FRIENDS_FOLLOWING_AND_FOLLOWERS": UserVisibility.Followers,
-    "EVERYONE": UserVisibility.Everyone
+    "EVERYONE": UserVisibility.Everyone,
 }
 
-class UserSocialLinks():
+
+class UserSocialLinks:
     """
     Data class storing information about a user's social links.
 
@@ -303,13 +327,20 @@ class UserSocialLinks():
     """
 
     def __repr__(self) -> str:
-        social_links_params = ["facebook_uri", "guilded_uri", "twitch_uri",
-            "twitter_uri", "youtube_uri"]
+        social_links_params = [
+            "facebook_uri",
+            "guilded_uri",
+            "twitch_uri",
+            "twitter_uri",
+            "youtube_uri",
+        ]
         social_links = []
 
         for param in social_links_params:
-            if self.__getattribute__(param): social_links.append(
-                f"{param}=\"{self.__getattribute__(param)}\"")
+            if self.__getattribute__(param):
+                social_links.append(
+                    f'{param}="{self.__getattribute__(param)}"'
+                )
 
         return f"<rblxopencloud.UserSocialLinks {' '.join(social_links)}\
 {' ' if social_links else ''}visibility={self.visibility}>"
@@ -321,9 +352,11 @@ class UserSocialLinks():
         self.twitter_uri: str = data.get("twitter", "")
         self.youtube_uri: str = data.get("youtube", "")
         self.visibility: UserVisibility = user_visiblity_strings.get(
-            data.get("visibility", ""), UserVisibility.Unknown)
+            data.get("visibility", ""), UserVisibility.Unknown
+        )
 
-class UserExperienceFollowing():
+
+class UserExperienceFollowing:
     """
     Data class storing information about an experience followed by a user.
 
@@ -346,7 +379,8 @@ class UserExperienceFollowing():
         [`fetch_experience_following_status()`\
         ][rblxopencloud.User.fetch_experience_following_status]
 
-    """    
+    """
+
     def __init__(self, api_key, universe_id, timestamp, status_payload):
         from .experience import Experience
 
@@ -361,18 +395,21 @@ class UserExperienceFollowing():
             True if not status_payload else status_payload["CanFollow"]
         )
         self.following_count: Optional[int] = (
-            None if not status_payload else
-            status_payload["FollowingCountByType"]
-        ) 
+            None
+            if not status_payload
+            else status_payload["FollowingCountByType"]
+        )
         self.following_limit: Optional[int] = (
-            None if not status_payload else
-            status_payload["FollowingLimitByType"]
-        )     
-    
+            None
+            if not status_payload
+            else status_payload["FollowingLimitByType"]
+        )
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.UserExperienceFollowing \
 experience={self.experience}>"
-    
+
+
 class User(Creator):
     """
     Represents a user on Roblox. It is used to provide information about a \
@@ -384,6 +421,7 @@ class User(Creator):
         [Creator Dashboard](https://create.roblox.com/credentials) with \
         access to this user.
     """
+
     def __init__(self, id: int, api_key: str) -> None:
         self.username: Optional[str] = None
         self.id: int = id
@@ -400,10 +438,10 @@ class User(Creator):
         self.__api_key = api_key
 
         super().__init__(id, api_key, "User")
-        
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.User id={self.id}>"
-    
+
     def fetch_info(self) -> "User":
         """
         Updates the empty attributes in the class with the user info.
@@ -413,8 +451,10 @@ class User(Creator):
         """
 
         _, data, _ = send_request(
-            "GET", f"/users/{self.id}",
-            authorization=self.__api_key, expected_status=[200]
+            "GET",
+            f"/users/{self.id}",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         self.username = data["name"]
@@ -426,15 +466,18 @@ class User(Creator):
         self.id_verified = data.get("idVerified")
         self.social_links = (
             UserSocialLinks(data["socialNetworkProfiles"])
-            if data.get("socialNetworkProfiles") else None
+            if data.get("socialNetworkProfiles")
+            else None
         )
 
         return self
-    
-    def generate_headshot(self, size: Literal[48, 50, 60, 75, 100, 110, 150,
-            180, 352, 420, 720] = 420, format: Literal["png", "jpeg"] = "png",
-            is_circular: bool = False
-        ) -> Operation[str]:
+
+    def generate_headshot(
+        self,
+        size: Literal[48, 50, 60, 75, 100, 110, 150, 180, 352, 420, 720] = 420,
+        format: Literal["png", "jpeg"] = "png",
+        is_circular: bool = False,
+    ) -> Operation[str]:
         """
         Fetches the user's thumbnail from Roblox and returns an \
         [`Operation`][rblxopencloud.Operation].
@@ -457,17 +500,25 @@ class User(Creator):
         """
 
         _, data, _ = send_request(
-            "GET", f"/users/{self.id}:generateThumbnail", params={
+            "GET",
+            f"/users/{self.id}:generateThumbnail",
+            params={
                 "shape": "SQUARE" if not is_circular else None,
-                "size": size, "format": format.upper()
-            }, authorization=self.__api_key, expected_status=[200])
+                "size": size,
+                "format": format.upper(),
+            },
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
 
-        return Operation(f"/{data['path']}", self.__api_key,
-            lambda response: response['imageUri'],
-            cached_response=data.get("response"))
+        return Operation(
+            f"/{data['path']}",
+            self.__api_key,
+            lambda response: response["imageUri"],
+            cached_response=data.get("response"),
+        )
 
-
-    def list_groups(self, limit: int=None) -> Iterable["GroupMember"]:
+    def list_groups(self, limit: int = None) -> Iterable["GroupMember"]:
         """
         Iterates a [`GroupMember`][rblxopencloud.GroupMember] for every group \
         the user is in. Use [`GroupMember.group`][rblxopencloud.GroupMember] \
@@ -484,22 +535,35 @@ class User(Creator):
         from .group import GroupMember
 
         for entry in iterate_request(
-            "GET", "/groups/-/memberships",
-            authorization=self.__api_key, params={
+            "GET",
+            "/groups/-/memberships",
+            authorization=self.__api_key,
+            params={
                 "maxPageSize": limit if limit and limit <= 99 else 99,
                 "filter": f"user == 'users/{self.id}'",
-            }, data_key="groupMemberships", cursor_key="nextPageToken",
-            expected_status=[200]
+            },
+            data_key="groupMemberships",
+            cursor_key="nextPageToken",
+            expected_status=[200],
         ):
             yield GroupMember(entry, self.__api_key)
-    
-    def list_inventory(self, limit: int=None, only_collectibles: bool=False,
-        assets: Union[list[InventoryAssetType], list[int], bool]=None,
-        badges: Union[list[int], bool]=False,
-        game_passes: Union[list[int], bool]=False,
-        private_servers: Union[list[int], bool]=False
-    ) -> Iterable[Union[InventoryAsset, InventoryBadge,
-        InventoryGamePass, InventoryPrivateServer]]:
+
+    def list_inventory(
+        self,
+        limit: int = None,
+        only_collectibles: bool = False,
+        assets: Union[list[InventoryAssetType], list[int], bool] = None,
+        badges: Union[list[int], bool] = False,
+        game_passes: Union[list[int], bool] = False,
+        private_servers: Union[list[int], bool] = False,
+    ) -> Iterable[
+        Union[
+            InventoryAsset,
+            InventoryBadge,
+            InventoryGamePass,
+            InventoryPrivateServer,
+        ]
+    ]:
         """
         Interates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \
         the user's inventory. If `only_collectibles`, `assets`, `badges`, \
@@ -531,56 +595,64 @@ class User(Creator):
 
         if only_collectibles:
             filter["onlyCollectibles"] = only_collectibles
-            if assets == None: assets = True
+            if assets is None:
+                assets = True
 
-        if assets == True:
+        if assets is True:
             filter["inventoryItemAssetTypes"] = "*"
-        elif (type(assets) == list and
-            isinstance(assets[0], InventoryAssetType)):
+        elif type(assets) == list and isinstance(
+            assets[0], InventoryAssetType
+        ):
 
             asset_types = []
             for asset_type in assets:
                 asset_types.append(
-                    list(ASSET_TYPE_STRINGS.keys())
-                    [list(ASSET_TYPE_STRINGS.values()).index(asset_type)]
+                    list(ASSET_TYPE_STRINGS.keys())[
+                        list(ASSET_TYPE_STRINGS.values()).index(asset_type)
+                    ]
                 )
-                
+
             filter["inventoryItemAssetTypes"] = ",".join(asset_types)
         elif type(assets) == list:
             filter["assetIds"] = ",".join([str(id) for id in assets])
 
-        if badges == True:
+        if badges is True:
             filter["badges"] = "true"
         elif type(badges) == list:
             filter["badgeIds"] = ",".join([str(id) for id in badges])
-            
-        if game_passes == True:
+
+        if game_passes is True:
             filter["gamePasses"] = "true"
         elif type(game_passes) == list:
-            filter["gamePassIds"] = (
-                ",".join([str(id) for id in game_passes])
-            )
-            
-        if private_servers == True:
+            filter["gamePassIds"] = ",".join([str(id) for id in game_passes])
+
+        if private_servers is True:
             filter["privateServers"] = "true"
         elif type(badges) == list:
-            filter["privateServerIds"] = ",".join([
-                str(private_server) for private_server in private_servers])
+            filter["privateServerIds"] = ",".join(
+                [str(private_server) for private_server in private_servers]
+            )
 
         for entry in iterate_request(
-            "GET", f"/users/{self.id}/inventory-items", params={
+            "GET",
+            f"/users/{self.id}/inventory-items",
+            params={
                 "maxPageSize": limit if limit and limit <= 100 else 100,
-                "filter": ";".join([f"{k}={v}" for k, v in filter.items()])
-            }, authorization=self.__api_key, data_key="inventoryItems",
-            cursor_key="pageToken", expected_status=[200]):
-                if "assetDetails" in entry.keys():
-                    yield InventoryAsset(entry["assetDetails"])
-                elif "badgeDetails" in entry.keys():
-                    yield InventoryBadge(entry["badgeDetails"])
-                elif "gamePassDetails" in entry.keys():
-                    yield InventoryGamePass(entry["gamePassDetails"])
-                elif "privateServerDetails" in entry.keys():
-                    yield InventoryPrivateServer(entry["privateServerDetails"])
+                "filter": ";".join([f"{k}={v}" for k, v in filter.items()]),
+            },
+            authorization=self.__api_key,
+            data_key="inventoryItems",
+            cursor_key="pageToken",
+            expected_status=[200],
+        ):
+            if "assetDetails" in entry.keys():
+                yield InventoryAsset(entry["assetDetails"])
+            elif "badgeDetails" in entry.keys():
+                yield InventoryBadge(entry["badgeDetails"])
+            elif "gamePassDetails" in entry.keys():
+                yield InventoryGamePass(entry["gamePassDetails"])
+            elif "privateServerDetails" in entry.keys():
+                yield InventoryPrivateServer(entry["privateServerDetails"])
 
     def fetch_experience_followings(self) -> list["UserExperienceFollowing"]:
         """
@@ -599,8 +671,10 @@ be used with caution.
         """
 
         _, data, _ = send_request(
-            "GET", f"legacy-followings/v2/users/{self.id}/universes",
-            authorization=self.__api_key, expected_status=[200]
+            "GET",
+            f"legacy-followings/v2/users/{self.id}/universes",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         followings = []
@@ -609,10 +683,10 @@ be used with caution.
             followings.append(UserExperienceFollowing(self.__api_key, k, v))
 
         return followings
-    
+
     def fetch_experience_following_status(
-            self, experience_id: int
-        ) -> UserExperienceFollowing:
+        self, experience_id: int
+    ) -> UserExperienceFollowing:
         """
         Fetches the following status of the requested experience for the user.
 
@@ -629,17 +703,19 @@ the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
 may change without notice and break your application, therefore they should \
 be used with caution.  
         """
-         
+
         _, data, _ = send_request(
-            "GET", f"legacy-followings/v1/users/{self.id}/universes/\
+            "GET",
+            f"legacy-followings/v1/users/{self.id}/universes/\
 {experience_id}/status",
-            authorization=self.__api_key, expected_status=[200]
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         return UserExperienceFollowing(
             self.__api_key, experience_id, None, data
         )
-        
+
     def follow_experience(self, experience_id: int):
         """
         Follows the requested experience for the user. This means the user \
@@ -657,11 +733,13 @@ be used with caution.
         """
 
         send_request(
-            "POST", f"legacy-followings/v1/users/{self.id}/universes/\
+            "POST",
+            f"legacy-followings/v1/users/{self.id}/universes/\
 {experience_id}",
-            authorization=self.__api_key, expected_status=[200]
+            authorization=self.__api_key,
+            expected_status=[200],
         )
-        
+
     def unfollow_experience(self, experience_id: int):
         """
         Unfollows the requested experience for the user. This means the user \
@@ -679,7 +757,9 @@ be used with caution.
         """
 
         send_request(
-            "DELETE", f"legacy-followings/v1/users/{self.id}/universes/\
+            "DELETE",
+            f"legacy-followings/v1/users/{self.id}/universes/\
 {experience_id}",
-            authorization=self.__api_key, expected_status=[200]
+            authorization=self.__api_key,
+            expected_status=[200],
         )
