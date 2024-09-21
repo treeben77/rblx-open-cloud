@@ -12,9 +12,13 @@ rblx-open-cloud is a Python API wrapper for [Roblox Open Cloud](https://create.r
 ### Getting Started
 
 1. Install the library with pip in your terminal.
-    ```console
-    pip install rblx-open-cloud
-    ```
+```sh
+# Stable (PyPi, recommended)
+pip install rblx-open-cloud
+
+# Development (GitHub)
+pip install "rblx-open-cloud @ git+https://github.com/treeben77/rblx-open-cloud@v2"
+```
 
 2. Create an API key from the [Creator Dashboard](https://create.roblox.com/credentials). You can read [Managing API Keys](https://create.roblox.com/docs/open-cloud/managing-api-keys) for help.
 
@@ -77,20 +81,11 @@ group = rblxopencloud.Group(13058, api_key="api-key-from-step-2")
 
 # this example is for uploading a decal:
 with open("path-to/file-object.png", "rb") as file:
-    user.upload_asset(file, rblxopencloud.AssetType.Decal, "name", "description")
+    asset = user.upload_asset(file, rblxopencloud.AssetType.Decal, "name", "description")
 
-# this will wait until Roblox has processed the upload
-if isinstance(asset, rblxopencloud.Asset):
-    # if it's already been processed, then print the asset.
-    print(asset)
-else:
-    # otherwise, we'll go into a loop that continuosly checks if it's done.
-    while True:
-        # this will try to check if the asset has been processed yet
-        operation = asset.fetch_operation()
-        if operation:
-            # if it has been print it then stop the loop.
-            print(operation)
-            break
+while not isinstance(asset, rblxopencloud.Asset):
+    asset = asset.fetch_operation()
+
+print(asset)
 ```
 Examples for more APIs are avalible in the [examples](https://github.com/TreeBen77/rblx-open-cloud/tree/main/examples) directory.
