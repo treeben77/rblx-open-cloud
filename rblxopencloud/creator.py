@@ -20,29 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from datetime import datetime
-from enum import Enum
 import io
 import json
-from typing import Iterable, Optional, TYPE_CHECKING, Union
-import urllib3
+from datetime import datetime
+from enum import Enum
+from typing import TYPE_CHECKING, Iterable, Optional, Union
 
+import urllib3
 from dateutil import parser
 
 from .exceptions import HttpException, InvalidFile, ModeratedText
-from .http import iterate_request, Operation, send_request
+from .http import Operation, iterate_request, send_request
 
 if TYPE_CHECKING:
     from .group import Group
     from .user import User
 
-__all__ = (
-    "AssetType",
-    "ModerationStatus",
-    "Asset",
-    "AssetVersion",
-    "Creator"
-)
+__all__ = ("AssetType", "ModerationStatus", "Asset", "AssetVersion", "Creator")
+
 
 class AssetType(Enum):
     """
@@ -54,11 +49,12 @@ class AssetType(Enum):
         Audio (2):
         Model (3):
     """
-    
+
     Unknown = 0
     Decal = 1
     Audio = 2
     Model = 3
+
 
 ASSET_TYPE_ENUMS = {
     "Decal": AssetType.Decal,
@@ -66,8 +62,9 @@ ASSET_TYPE_ENUMS = {
     "Model": AssetType.Model,
     "ASSET_TYPE_DECAL": AssetType.Decal,
     "ASSET_TYPE_AUDIO": AssetType.Audio,
-    "ASSET_TYPE_MODEL": AssetType.Model
+    "ASSET_TYPE_MODEL": AssetType.Model,
 }
+
 
 class ModerationStatus(Enum):
     """
@@ -79,11 +76,12 @@ class ModerationStatus(Enum):
         Rejected (2): The asset failed moderation.
         Approved (3): The asset passed moderation.
     """
-    
+
     Unknown = 0
     Reviewing = 1
     Rejected = 2
     Approved = 3
+
 
 MODERATION_STATUS_ENUMS = {
     "Reviewing": ModerationStatus.Reviewing,
@@ -91,10 +89,11 @@ MODERATION_STATUS_ENUMS = {
     "Approved": ModerationStatus.Approved,
     "MODERATION_STATE_REVIEWING": ModerationStatus.Reviewing,
     "MODERATION_STATE_REJECTED": ModerationStatus.Rejected,
-    "MODERATION_STATE_APPROVED": ModerationStatus.Approved
+    "MODERATION_STATE_APPROVED": ModerationStatus.Approved,
 }
 
-class Asset():
+
+class Asset:
     """
     Represents an asset uploaded by a [`Creator`][rblxopencloud.Creator].
 
@@ -110,32 +109,34 @@ class Asset():
         revision_time: The time the current revision of the asset was \
         created. *Will be `None` if the asset type does not support updating.*
     """
-    
-    def __init__(self,  data: dict, creator) -> None:
+
+    def __init__(self, data: dict, creator) -> None:
         self.id: int = data.get("assetId")
         self.name: str = data.get("displayName")
         self.description: str = data.get("description")
         self.creator: Union[Creator, User, Group] = creator
-        
+
         self.type: AssetType = ASSET_TYPE_ENUMS.get(
             data.get("assetType"), AssetType.Unknown
         )
-        
+
         self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
             data.get("moderationResult", {}).get("moderationState"),
-            ModerationStatus.Unknown
+            ModerationStatus.Unknown,
         )
-        
+
         self.revision_id: Optional[int] = data.get("revisionId")
         self.revision_time: Optional[datetime] = (
             parser.parse(data["revisionCreateTime"])
-            if data.get("revisionCreateTime") else None
+            if data.get("revisionCreateTime")
+            else None
         )
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.Asset id={self.id} type={self.type}>"
 
-class AssetVersion():
+
+class AssetVersion:
     """
     Represents a version of an asset uploaded on to Roblox.
 
@@ -154,12 +155,13 @@ class AssetVersion():
 
         self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
             data.get("moderationResult", {}).get("moderationState"),
-            ModerationStatus.Unknown
+            ModerationStatus.Unknown,
         )
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.AssetVersion \
 asset_id={self.asset_id} version_number={self.version_number}>"
+
 
 ASSET_MIME_TYPES = {
     "mp3": "audio/mpeg",
@@ -168,10 +170,11 @@ ASSET_MIME_TYPES = {
     "jpeg": "image/jpeg",
     "bmp": "image/bmp",
     "tga": "image/tga",
-    "fbx": "model/fbx"
+    "fbx": "model/fbx",
 }
 
-class Creator():
+
+class Creator:
     """
     Represents an object that can upload assets, such as a user or a group.
 
@@ -183,10 +186,10 @@ class Creator():
         self.id: int = id
         self.__api_key = api_key
         self.__creator_type = type
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.Creator id={self.id}>"
-    
+
     def fetch_asset(self, asset_id: int) -> Asset:
         """
         Fetches an asset uploaded to Roblox.
@@ -205,16 +208,23 @@ class Creator():
             rblx_opencloudException: The server returned an unexpected error.
         """
 
-        _, data, _ = send_request("GET", f"assets/v1/assets/{asset_id}",
-            authorization=self.__api_key, expected_status=[200]
+        _, data, _ = send_request(
+            "GET",
+            f"assets/v1/assets/{asset_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
-        
+
         return Asset(data, self)
-    
+
     def upload_asset(
-            self, file: io.BytesIO, asset_type: Union[AssetType, str],
-            name: str, description: str, expected_robux_price: int = 0
-        ) -> Operation[Asset]:
+        self,
+        file: io.BytesIO,
+        asset_type: Union[AssetType, str],
+        name: str,
+        description: str,
+        expected_robux_price: int = 0,
+    ) -> Operation[Asset]:
         """
         Uploads the file to Roblox as an asset and returns an \
         [`Operation`][rblxopencloud.Operation]. The following asset types are \
@@ -254,55 +264,66 @@ class Creator():
 
         payload = {
             "assetType": (
-                asset_type.name if type(asset_type) == AssetType
-                else asset_type
+                asset_type.name if type(asset_type) == AssetType else asset_type
             ),
             "creationContext": {
-                "creator": {
-                    "userId": str(self.id),
-                } if self.__creator_type == "User" else {
-                    "groupId": str(self.id)
-                },
-                "expectedPrice": expected_robux_price
+                "creator": (
+                    {
+                        "userId": str(self.id),
+                    }
+                    if self.__creator_type == "User"
+                    else {"groupId": str(self.id)}
+                ),
+                "expectedPrice": expected_robux_price,
             },
             "displayName": name,
-            "description": description
+            "description": description,
         }
 
-        body, contentType = urllib3.encode_multipart_formdata({
-            "request": json.dumps(payload),
-            "fileContent": (
-                file.name, file.read(),
-                ASSET_MIME_TYPES.get(file.name.split(".")[-1])
-            )
-        })
-        
-        status, data, _ = send_request(
-            "POST", f"assets/v1/assets",
-            authorization=self.__api_key, expected_status=[200, 400],
-            headers={"content-type": contentType}, data=body
+        body, contentType = urllib3.encode_multipart_formdata(
+            {
+                "request": json.dumps(payload),
+                "fileContent": (
+                    file.name,
+                    file.read(),
+                    ASSET_MIME_TYPES.get(file.name.split(".")[-1]),
+                ),
+            }
         )
-        
+
+        status, data, _ = send_request(
+            "POST",
+            "assets/v1/assets",
+            authorization=self.__api_key,
+            expected_status=[200, 400],
+            headers={"content-type": contentType},
+            data=body,
+        )
+
         if status == 400:
-            if data["message"] == "\"InvalidImage\"":
+            if data["message"] == '"InvalidImage"':
                 raise InvalidFile(status, body)
-            
+
             if data["message"] == "AssetName is moderated.":
                 raise ModeratedText(status, body)
-            
+
             if data["message"] == "AssetDescription is moderated.":
                 raise ModeratedText(status, body)
-            
+
             raise HttpException(status, data)
 
         return Operation(
             f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
         )
-            
+
     def update_asset(
-            self, asset_id: int, file: io.BytesIO = None, name: str = None,
-            description: str = None, expected_robux_price: int = 0
-        ) -> Operation[Asset]:
+        self,
+        asset_id: int,
+        file: io.BytesIO = None,
+        name: str = None,
+        description: str = None,
+        expected_robux_price: int = 0,
+    ) -> Operation[Asset]:
         """
         Updates an asset on Roblox with the provided file. The following \
         asset types are currently supported for file uploading:
@@ -327,53 +348,59 @@ class Creator():
 
         payload, field_mask = {
             "assetId": asset_id,
-            "creationContext": {
-                "expectedPrice": expected_robux_price
-            },
+            "creationContext": {"expectedPrice": expected_robux_price},
             "displayName": name,
-            "description": description
+            "description": description,
         }, []
 
-        if name: field_mask.append("displayName")
-        if description: field_mask.append("description")
+        if name:
+            field_mask.append("displayName")
+        if description:
+            field_mask.append("description")
 
         if file:
-            body, contentType = urllib3.encode_multipart_formdata({
-                "request": json.dumps(payload),
-                "fileContent": (
-                    file.name, file.read(),
-                    ASSET_MIME_TYPES.get(file.name.split(".")[-1])
-                )
-            })
+            body, contentType = urllib3.encode_multipart_formdata(
+                {
+                    "request": json.dumps(payload),
+                    "fileContent": (
+                        file.name,
+                        file.read(),
+                        ASSET_MIME_TYPES.get(file.name.split(".")[-1]),
+                    ),
+                }
+            )
         else:
-            body, contentType = urllib3.encode_multipart_formdata({
-                "request": json.dumps(payload)
-            })
+            body, contentType = urllib3.encode_multipart_formdata(
+                {"request": json.dumps(payload)}
+            )
 
         status, data, _ = send_request(
-            "PATCH", f"assets/v1/assets/{asset_id}",
-            authorization=self.__api_key, expected_status=[200, 400],
-            headers={"content-type": contentType}, data=body,
-            params={"updateMask": ",".join(field_mask)}
+            "PATCH",
+            f"assets/v1/assets/{asset_id}",
+            authorization=self.__api_key,
+            expected_status=[200, 400],
+            headers={"content-type": contentType},
+            data=body,
+            params={"updateMask": ",".join(field_mask)},
         )
-        
+
         if status == 400:
-            if data["message"] == "\"InvalidImage\"":
+            if data["message"] == '"InvalidImage"':
                 raise InvalidFile(status, body)
-            
+
             if data["message"] == "AssetName is moderated.":
                 raise ModeratedText(status, body)
-            
+
             if data["message"] == "AssetDescription is moderated.":
                 raise ModeratedText(status, body)
-        
+
         return Operation(
             f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
         )
-    
+
     def list_asset_versions(
-            self, asset_id: int, limit: int = None
-        ) -> Iterable[AssetVersion]:
+        self, asset_id: int, limit: int = None
+    ) -> Iterable[AssetVersion]:
         """
         Iterates all avaliable versions of the asset, providing the latest \
         version first.
@@ -385,56 +412,59 @@ class Creator():
         Yields:
             An asset version for each version of the asset.
         """
-        
+
         for entry in iterate_request(
-            "GET", f"assets/v1/assets/{asset_id}/versions", params={
+            "GET",
+            f"assets/v1/assets/{asset_id}/versions",
+            params={
                 "maxPageSize": limit if limit and limit <= 50 else 50,
-            }, authorization=self.__api_key, expected_status=[200],
-            data_key="assetVersions", cursor_key="pageToken"
+            },
+            authorization=self.__api_key,
+            expected_status=[200],
+            data_key="assetVersions",
+            cursor_key="pageToken",
         ):
             yield AssetVersion(entry, self)
-    
-    def fetch_asset_version(
-            self, asset_id: int, version_number: int
-        ) -> AssetVersion:
+
+    def fetch_asset_version(self, asset_id: int, version_number: int) -> AssetVersion:
         """
         Fetches the version for a specific version number of the asset.
 
         Args:
             asset_id: The ID of the asset to find the version for.
             version_number: The version number to find.
-        
+
         Returns:
             The found asset version.
         """
-        
+
         _, data, _ = send_request(
-            "GET", f"assets/v1/assets/{asset_id}/versions/{version_number}",
-            authorization=self.__api_key, expected_status=[200]
+            "GET",
+            f"assets/v1/assets/{asset_id}/versions/{version_number}",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         return AssetVersion(data)
 
-    def rollback_asset(
-        self, asset_id: int, version_number: int
-    ) -> AssetVersion:
+    def rollback_asset(self, asset_id: int, version_number: int) -> AssetVersion:
         """
         Reverts the asset to a previous version specified.
 
         Args:
             asset_id: The ID of the asset to rollback.
             version_number: The version number to rollback to.
-        
+
         Returns:
             The new asset version.
         """
 
         _, data, _ = send_request(
-            "POST", f"assets/v1/assets/{asset_id}/versions:rollback",
-            authorization=self.__api_key, expected_status=[200],
-            json={
-                "assetVersion": f"assets/{asset_id}/versions/{version_number}"
-            }
+            "POST",
+            f"assets/v1/assets/{asset_id}/versions:rollback",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={"assetVersion": f"assets/{asset_id}/versions/{version_number}"},
         )
 
         return AssetVersion(data)

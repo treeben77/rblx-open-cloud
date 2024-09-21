@@ -26,7 +26,7 @@ from typing import Iterable, Optional
 from dateutil import parser
 
 from .creator import Creator
-from .http import send_request, iterate_request
+from .http import iterate_request, send_request
 from .user import User
 
 __all__ = (
@@ -35,10 +35,11 @@ __all__ = (
     "GroupRole",
     "GroupRolePermissions",
     "GroupShout",
-    "GroupJoinRequest"
+    "GroupJoinRequest",
 )
 
-class GroupShout():
+
+class GroupShout:
     """
     Represents a group shout.
 
@@ -55,18 +56,17 @@ class GroupShout():
         self.content: str = shout["content"]
         self.user: User = User(int(shout["poster"].split("/")[1]), api_key)
         self.created_at: datetime.datetime = (
-            parser.parse(shout["updateTime"])
-            if shout.get("updateTime") else None
+            parser.parse(shout["updateTime"]) if shout.get("updateTime") else None
         )
         self.first_created_at: datetime.datetime = (
-            parser.parse(shout["createTime"])
-            if shout.get("createTime") else None
+            parser.parse(shout["createTime"]) if shout.get("createTime") else None
         )
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.GroupShout content=\"{self.content}\">"
+        return f'<rblxopencloud.GroupShout content="{self.content}">'
 
-class GroupRolePermissions():
+
+class GroupRolePermissions:
     """
     Represents a role's permissions inside of a group.
 
@@ -107,16 +107,15 @@ class GroupRolePermissions():
         self.create_avatar_items: bool = permissions["createAvatarItems"]
         self.manage_avatar_items: bool = permissions["manageAvatarItems"]
         self.manage_experiences: bool = permissions["manageGroupUniverses"]
-        self.view_experience_analytics: bool = (
-            permissions["viewUniverseAnalytics"]
-        )
+        self.view_experience_analytics: bool = permissions["viewUniverseAnalytics"]
         self.create_api_keys: bool = permissions["createApiKeys"]
         self.manage_api_keys: bool = permissions["manageApiKeys"]
 
     def __repr__(self) -> str:
         return "<rblxopencloud.GroupRolePermissions>"
 
-class GroupRole():
+
+class GroupRole:
     """
     Represents a role inside of a group.
 
@@ -142,12 +141,14 @@ class GroupRole():
         self.member_count: Optional[int] = role.get("memberCount", None)
         self.permissions: Optional[GroupRolePermissions] = (
             GroupRolePermissions(role["permissions"])
-            if role.get("permissions") else None
+            if role.get("permissions")
+            else None
         )
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.GroupRole id={self.id} name=\"{self.name}\" \
-rank={self.rank})>"
+        return f'<rblxopencloud.GroupRole id={self.id} name="{self.name}" \
+rank={self.rank})>'
+
 
 class GroupMember(User):
     """
@@ -166,8 +167,7 @@ class GroupMember(User):
         self.id: int = int(member["user"].split("/")[1])
         self.role_id: int = int(member["role"].split("/")[-1])
         self.group: Group = (
-            group if group else
-            Group(int(member["role"].split("/")[1]), api_key)
+            group if group else Group(int(member["role"].split("/")[1]), api_key)
         )
         self.joined_at: datetime.datetime = parser.parse(member["createTime"])
         self.updated_at: datetime.datetime = parser.parse(member["updateTime"])
@@ -175,8 +175,8 @@ class GroupMember(User):
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.GroupMember id={self.id} group={self.group}>"
-    
-    def fetch_role(self, skip_cache: bool=False) -> GroupRole:
+
+    def fetch_role(self, skip_cache: bool = False) -> GroupRole:
         """
         Fetches and returns the user's role info (rank, role name, etc). The \
         roles are cached therefore it runs faster. Shortcut for \
@@ -191,6 +191,7 @@ class GroupMember(User):
         """
 
         return self.group.fetch_role(self.role_id, skip_cache=skip_cache)
+
 
 class GroupJoinRequest(User):
     """
@@ -211,8 +212,7 @@ class GroupJoinRequest(User):
     def __init__(self, member, api_key, group=None) -> None:
         self.id: int = int(member["user"].split("/")[1])
         self.group: Group = group
-        self.requested_at: datetime.datetime = parser.parse(
-            member["createTime"])
+        self.requested_at: datetime.datetime = parser.parse(member["createTime"])
 
         super().__init__(self.id, api_key)
 
@@ -234,6 +234,7 @@ group={self.group}>"
         ][rblxopencloud.Group.decline_join_request].
         """
         return self.group.decline_join_request(self.id)
+
 
 class Group(Creator):
     """
@@ -275,14 +276,14 @@ class Group(Creator):
         self.public_entry: Optional[bool] = None
         self.locked: Optional[bool] = None
         self.verified: Optional[bool] = None
-        
+
         self.__role_cache = {}
 
         super().__init__(id, api_key, "Group")
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.Group id={self.id}>"
-    
+
     def fetch_info(self) -> "Group":
         """
         Updates the empty parameters in this Group object and returns it self \
@@ -290,30 +291,31 @@ class Group(Creator):
         """
 
         _, data, _ = send_request(
-            "GET", f"/groups/{self.id}",
-            authorization=self.__api_key, expected_status=[200]
+            "GET",
+            f"/groups/{self.id}",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
 
         self.name = data["displayName"]
         self.description = data["description"]
         self.created_at = (
-            parser.parse(data["createTime"])
-            if data.get("createTime") else None
+            parser.parse(data["createTime"]) if data.get("createTime") else None
         )
         self.updated_at = (
-            parser.parse(data["updateTime"])
-            if data.get("updateTime") else None
+            parser.parse(data["updateTime"]) if data.get("updateTime") else None
         )
         self.owner = (
             User(int(data["owner"].split("/")[1]), self.__api_key)
-            if data.get("owner") else None
+            if data.get("owner")
+            else None
         )
 
         self.member_count = data["memberCount"]
         self.public_entry = data["publicEntryAllowed"]
         self.locked = data["locked"]
         self.verified = data["verified"]
-        
+
         return self
 
     def fetch_member(self, user_id: int) -> Optional[GroupMember]:
@@ -330,16 +332,18 @@ class Group(Creator):
         """
 
         _, data, _ = send_request(
-            "GET", f"/groups/{self.id}/memberships", params={
-                "limit": 1, "filter": f"user == 'users/{user_id}'"
-            }, expected_status=[200], authorization=self.__api_key)
-        
-        if not data["groupMemberships"]: return None
+            "GET",
+            f"/groups/{self.id}/memberships",
+            params={"limit": 1, "filter": f"user == 'users/{user_id}'"},
+            expected_status=[200],
+            authorization=self.__api_key,
+        )
+
+        if not data["groupMemberships"]:
+            return None
         return GroupMember(data["groupMemberships"][0], self.__api_key, self)
-    
-    def fetch_role(
-            self, role_id: int, skip_cache: bool = False
-        ) -> Optional[GroupRole]:
+
+    def fetch_role(self, role_id: int, skip_cache: bool = False) -> Optional[GroupRole]:
         """
         Returns the role info for the provided role ID or `None` if the role \
         ID isn't found.
@@ -360,8 +364,8 @@ class Group(Creator):
         return GroupRole(role_entry) if role_entry else None
 
     def list_members(
-            self, limit: int = None, role_id: int = None
-        ) -> Iterable[GroupMember]:
+        self, limit: int = None, role_id: int = None
+    ) -> Iterable[GroupMember]:
         """
         Iterates each member in the group, optionally limited to a specific \
         role.
@@ -377,17 +381,22 @@ class Group(Creator):
             the group.
         """
         filter = None
-        
+
         if role_id:
             filter = f"role == 'groups/{self.id}/roles/{role_id}'"
 
         for entry in iterate_request(
-            "GET", f"/groups/{self.id}/memberships",
-            authorization=self.__api_key, params={
+            "GET",
+            f"/groups/{self.id}/memberships",
+            authorization=self.__api_key,
+            params={
                 "maxPageSize": limit if limit and limit <= 99 else 99,
-                "filter": filter
-            }, data_key="groupMemberships", cursor_key="pageToken",
-            max_yields=limit, expected_status=[200]
+                "filter": filter,
+            },
+            data_key="groupMemberships",
+            cursor_key="pageToken",
+            max_yields=limit,
+            expected_status=[200],
         ):
             yield GroupMember(entry, self.__api_key, self)
 
@@ -404,19 +413,22 @@ class Group(Creator):
         """
 
         for entry in iterate_request(
-            "GET", f"/groups/{self.id}/roles",
-            authorization=self.__api_key, params={
-                "maxPageSize": limit if limit and limit <= 20 else 20
-            }, data_key="groupRoles", cursor_key="pageToken",
-            max_yields=limit, expected_status=[200]
+            "GET",
+            f"/groups/{self.id}/roles",
+            authorization=self.__api_key,
+            params={"maxPageSize": limit if limit and limit <= 20 else 20},
+            data_key="groupRoles",
+            cursor_key="pageToken",
+            max_yields=limit,
+            expected_status=[200],
         ):
             self.__role_cache[int(entry["id"])] = entry
 
             yield GroupRole(entry)
-    
+
     def list_join_requests(
-            self, limit: int = None, user_id: int = None
-        ) -> Iterable["GroupJoinRequest"]:
+        self, limit: int = None, user_id: int = None
+    ) -> Iterable["GroupJoinRequest"]:
         """
         Iterates every group join request for private groups.
         
@@ -432,12 +444,17 @@ class Group(Creator):
         """
 
         for entry in iterate_request(
-            "GET", f"/groups/{self.id}/join-requests",
-            authorization=self.__api_key, expected_status=[200], params={
+            "GET",
+            f"/groups/{self.id}/join-requests",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
                 "maxPageSize": limit if limit and limit <= 100 else 100,
-                "filter": f"user == 'users/{user_id}'" if user_id else None
-            }, data_key="groupJoinRequests", cursor_key="nextPageToken",
-            max_yields=limit
+                "filter": f"user == 'users/{user_id}'" if user_id else None,
+            },
+            data_key="groupJoinRequests",
+            cursor_key="nextPageToken",
+            max_yields=limit,
         ):
             yield GroupJoinRequest(entry, self.__api_key)
 
@@ -453,10 +470,12 @@ class Group(Creator):
         """
 
         _, data, _ = send_request(
-            "GET", f"/groups/{self.id}/shout",
-            authorization=self.__api_key, expected_status=[200]
+            "GET",
+            f"/groups/{self.id}/shout",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
-        
+
         return GroupShout(data, self.__api_key)
 
     def accept_join_request(self, user_id: int):
@@ -469,10 +488,12 @@ class Group(Creator):
         """
 
         send_request(
-            "DELETE", f"/groups/{self.id}/join-requests/{user_id}:accept",
-            authorization=self.__api_key, expected_status=[200]
+            "DELETE",
+            f"/groups/{self.id}/join-requests/{user_id}:accept",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
-    
+
     def decline_join_request(self, user_id: int):
         """
         Declines the join request for the provided user.
@@ -483,7 +504,8 @@ class Group(Creator):
         """
 
         send_request(
-            "DELETE", f"/groups/{self.id}/join-requests/{user_id}:decline",
-            authorization=self.__api_key, expected_status=[200]
+            "DELETE",
+            f"/groups/{self.id}/join-requests/{user_id}:decline",
+            authorization=self.__api_key,
+            expected_status=[200],
         )
-        

@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 import base64
-from datetime import datetime
 import hashlib
 import hmac
 import json
 import time
+from datetime import datetime
 from typing import Callable, Optional, Union
 
 from dateutil import parser
@@ -38,15 +38,16 @@ __all__ = (
     "Webhook",
     "Notification",
     "TestNotification",
-    "RightToErasureRequestNotification"
+    "RightToErasureRequestNotification",
 )
 
 EVENT_TYPES = {
     "SampleNotification": "on_test",
-    "RightToErasureRequest": "on_right_to_erasure_request"
+    "RightToErasureRequest": "on_right_to_erasure_request",
 }
 
-class Webhook():
+
+class Webhook:
     """
     Represents a Roblox outgoing webhook. It is used to validate and process \
     webhook events.
@@ -60,9 +61,8 @@ class Webhook():
     """
 
     def __init__(
-            self, secret: Optional[Union[str, bytes]] = None,
-            api_key: Optional[str]=None
-        ) -> None:
+        self, secret: Optional[Union[str, bytes]] = None, api_key: Optional[str] = None
+    ) -> None:
         self.secret: Optional[bytes] = (
             secret.encode() if type(secret) == str else secret
         )
@@ -71,11 +71,11 @@ class Webhook():
         self.__on_error: Optional[Callable] = None
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.Webhook>"
+        return "<rblxopencloud.Webhook>"
 
     def process_notification(
-            self, body: bytes, secret_header: bytes = None,
-            validate_signature=True) -> tuple[str, int]:
+        self, body: bytes, secret_header: bytes = None, validate_signature=True
+    ) -> tuple[str, int]:
         """
         Processes a HTTP webhook event and returns a response text and status \
         code tuple. Example for Flask:
@@ -98,26 +98,29 @@ class Webhook():
 
         if validate_signature:
             if self.secret:
-                if not secret_header: return "Invalid signature", 401
+                if not secret_header:
+                    return "Invalid signature", 401
 
                 split_header = secret_header.split(",")
-                if not len(split_header) >= 2: return "Invalid signature", 401
-                
+                if not len(split_header) >= 2:
+                    return "Invalid signature", 401
+
                 hash_object = hmac.new(
                     self.secret,
-                    msg=split_header[0].split('=')[1].encode()+b'.'+body,
-                    digestmod=hashlib.sha256
+                    msg=split_header[0].split("=")[1].encode() + b"." + body,
+                    digestmod=hashlib.sha256,
                 )
 
-                if not (
-                    base64.b64encode(hash_object.digest())
-                    ).decode() == split_header[1].split('=', maxsplit=1)[1]:
+                if (
+                    not (base64.b64encode(hash_object.digest())).decode()
+                    == split_header[1].split("=", maxsplit=1)[1]
+                ):
                     return "Invalid signature", 401
 
             if secret_header:
                 split_header = secret_header.split(",")
 
-                if 0 < time.time() - int(split_header[0].split('=')[1]) > 600:
+                if 0 < time.time() - int(split_header[0].split("=")[1]) > 600:
                     return "Invalid signature", 401
 
         body = json.loads(body)
@@ -126,29 +129,31 @@ class Webhook():
 
         try:
             event_type = EVENT_TYPES.get(body["EventType"])
-            if not event_type: raise UnknownEventType(
-                f"Unkown webhook event type '{event_type}'")
+            if not event_type:
+                raise UnknownEventType(f"Unkown webhook event type '{event_type}'")
 
             if event_type == "on_test":
                 notification = TestNotification(body, self, self.__api_key)
             elif event_type == "on_right_to_erasure_request":
                 notification = RightToErasureRequestNotification(
-                    body, self, self.__api_key)
+                    body, self, self.__api_key
+                )
 
             function = self.__events.get(event_type)
-            if not function: raise UnhandledEventType(
-                f"'{event_type}' doesn't have am event callback."
-            )
+            if not function:
+                raise UnhandledEventType(
+                    f"'{event_type}' doesn't have am event callback."
+                )
 
             function(notification=notification)
-        except(Exception) as error:
+        except Exception as error:
             if self.__on_error:
                 self.__on_error(notification, error)
             else:
                 raise error
-            
+
         return "", 204
-    
+
     def event(self, func: Callable):
         """
         Register event callbacks with this decorator. The allowed function \
@@ -163,16 +168,15 @@ class Webhook():
         if func.__name__ == "on_error":
             self.__on_error = func
         else:
-            if not func.__name__ in EVENT_TYPES.values():
-                raise ValueError(
-                    f"'{func.__name__}' is not a valid event name."
-                )
+            if func.__name__ not in EVENT_TYPES.values():
+                raise ValueError(f"'{func.__name__}' is not a valid event name.")
 
             self.__events[func.__name__] = func
 
         return func
 
-class Notification():
+
+class Notification:
     """
     Represents a recieved webhook event.
     """
@@ -181,10 +185,11 @@ class Notification():
         self.notification_id: str = body["NotificationId"]
         self.timestamp: datetime = parser.parse(body["EventTime"])
         self.webhook: Webhook = webhook
-    
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.Notification \
-notification_id=\"{self.notification_id}\">"
+        return f'<rblxopencloud.Notification \
+notification_id="{self.notification_id}">'
+
 
 class TestNotification(Notification):
     """
@@ -200,26 +205,27 @@ class TestNotification(Notification):
         event = body["EventPayload"]
 
         self.user: User = User(event["UserId"], api_key)
-    
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.TestNotification \
-notification_id=\"{self.notification_id}\", user={self.user}>"
+        return f'<rblxopencloud.TestNotification \
+notification_id="{self.notification_id}", user={self.user}>'
+
 
 class RightToErasureRequestNotification(Notification):
     """
     Represents a recieved webhook event triggered by a user requesting Roblox \
     to erase all their user data.
     """
-    
+
     def __init__(self, body, webhook, api_key):
         super().__init__(body, webhook, api_key)
         event = body["EventPayload"]
 
         self.user_id: int = event["UserId"]
-        self.experiences: list[Experience] = (
-            [Experience(id, api_key) for id in event["GameIds"]]
-        )
-    
+        self.experiences: list[Experience] = [
+            Experience(id, api_key) for id in event["GameIds"]
+        ]
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.RightToErasureRequestNotification \
-notification_id=\"{self.notification_id}\", user={self.user}>"
+        return f'<rblxopencloud.RightToErasureRequestNotification \
+notification_id="{self.notification_id}", user={self.user}>'

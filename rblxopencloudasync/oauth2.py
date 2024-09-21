@@ -23,38 +23,35 @@
 import base64
 import datetime
 import hashlib
-import jwt
 import secrets
 import string
 import time
 from typing import Optional, Union
 from urllib import parse
 
+import jwt
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.serialization import (
-    Encoding, load_der_public_key, PublicFormat
-)
+from cryptography.hazmat.primitives.serialization import (Encoding,
+                                                          PublicFormat,
+                                                          load_der_public_key)
 
-from .exceptions import (
-    BaseException,
-    HttpException,
-    InvalidCode
-)
+from .exceptions import BaseException, HttpException, InvalidCode
 from .experience import Experience
+from .group import Group
 from .http import send_request
 from .user import User
-from .group import Group
 
 __all__ = (
     "Resources",
     "AccessTokenInfo",
     "PartialAccessToken",
     "AccessToken",
-    "OAuth2App"
+    "OAuth2App",
 )
 
-class AccessTokenInfo():
+
+class AccessTokenInfo:
     """
     Contains information about a access token.
 
@@ -78,18 +75,17 @@ class AccessTokenInfo():
         self.client_id: int = int(data["client_id"])
         self.user_id: int = data["sub"]
         self.scope: list[str] = data["scope"].split(" ")
-        self.expires_at: datetime.datetime = (
-            datetime.datetime.fromtimestamp(data["exp"])
+        self.expires_at: datetime.datetime = datetime.datetime.fromtimestamp(
+            data["exp"]
         )
-        self.issued_at: datetime.datetime = (
-            datetime.datetime.fromtimestamp(data["iat"])
-        )
-    
-    def __repr__(self) -> str:
-        return f"<rblxopencloud.AccessTokenInfo \
-id=\"{self.id}\" user_id={self.user_id}>"
+        self.issued_at: datetime.datetime = datetime.datetime.fromtimestamp(data["iat"])
 
-class Resources():
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.AccessTokenInfo \
+id="{self.id}" user_id={self.user_id}>'
+
+
+class Resources:
     """
     Contains the authorized users, groups, and experiences for the \
     authorization.
@@ -104,12 +100,13 @@ class Resources():
     def __init__(self, experiences, accounts):
         self.experiences: list[Experience] = experiences
         self.accounts: list[Union[User, Group]] = accounts
-    
+
     def __repr__(self) -> str:
         return f"<rblxopencloud.Resources \
 experiences={self.experiences} accounts={self.accounts}>"
 
-class PartialAccessToken():
+
+class PartialAccessToken:
     """
     Represents an access token via OAuth2 consent without all information. It \
     allows access to all resources authorized by the user, but not other \
@@ -126,10 +123,10 @@ class PartialAccessToken():
     def __init__(self, app, access_token) -> None:
         self.app: OAuth2App = app
         self.token: str = access_token
-    
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.PartialAccessToken \
-    token=\"{self.token[:15]}...\">"
+        return f'<rblxopencloud.PartialAccessToken \
+    token="{self.token[:15]}...">'
 
     async def fetch_userinfo(self) -> User:
         """
@@ -140,8 +137,12 @@ class PartialAccessToken():
             apis (such as uploading files).
         """
 
-        _, data, _ = await send_request("GET", "oauth/v1/userinfo",
-            authorization=f"Bearer {self.token}", expected_status=[200])
+        _, data, _ = await send_request(
+            "GET",
+            "oauth/v1/userinfo",
+            authorization=f"Bearer {self.token}",
+            expected_status=[200],
+        )
 
         user = User(data.get("id") or data.get("sub"), f"Bearer {self.token}")
         user.username = data.get("preferred_username")
@@ -149,11 +150,12 @@ class PartialAccessToken():
         user.headshot_uri = data.get("picture")
         user.created_at = (
             datetime.datetime.fromtimestamp(data["created_at"])
-            if data.get("created_at") else None
+            if data.get("created_at")
+            else None
         )
 
         return user
-            
+
     async def fetch_resources(self) -> Resources:
         """
         Fetches the authorized accounts (users and groups) and experiences.
@@ -162,17 +164,20 @@ class PartialAccessToken():
             The objects for authorized accounts and experiences.
         """
 
-        status, data, _ = await send_request("GET", "oauth/v1/token/resources",
-            expected_status=[200], data={
+        status, data, _ = await send_request(
+            "GET",
+            "oauth/v1/token/resources",
+            expected_status=[200],
+            data={
                 "token": self.token,
                 "client_id": self.app.id,
-                "client_secret": self.app._OAuth2App__secret
-            }
+                "client_secret": self.app._OAuth2App__secret,
+            },
         )
 
         experiences = []
         accounts = []
-        
+
         api_key = f"Bearer {self.token}"
 
         for resource in data["resource_infos"]:
@@ -206,21 +211,25 @@ class PartialAccessToken():
             The information about the access token.
         """
 
-        _, data, _ = await send_request("GET", "oauth/v1/token/introspect",
-            expected_status=[200], data={
+        _, data, _ = await send_request(
+            "GET",
+            "oauth/v1/token/introspect",
+            expected_status=[200],
+            data={
                 "token": self.token,
                 "client_id": self.app.id,
-                "client_secret": self.app._OAuth2App__secret
-            }
+                "client_secret": self.app._OAuth2App__secret,
+            },
         )
-                
+
         return AccessTokenInfo(data)
-    
+
     def revoke(self):
         """
         Shortcut to revoke the access token.
         """
         self.app.revoke_token(self.token)
+
 
 class AccessToken(PartialAccessToken):
     """
@@ -245,35 +254,37 @@ class AccessToken(PartialAccessToken):
         super().__init__(app, payload["access_token"])
         self.refresh_token: str = payload["refresh_token"]
         self.scope: list[str] = payload["scope"].split(" ")
-        self.expires_at: datetime = (
-            datetime.datetime.now() + datetime.timedelta(payload["expires_in"])
+        self.expires_at: datetime = datetime.datetime.now() + datetime.timedelta(
+            payload["expires_in"]
         )
 
         if id_token:
             self.user: Optional[User] = User(
-                id_token.get("id") or id_token.get("sub"),
-                f"Bearer {self.token}"
+                id_token.get("id") or id_token.get("sub"), f"Bearer {self.token}"
             )
             self.user.username = id_token.get("preferred_username")
             self.user.display_name = id_token.get("nickname")
             self.user.headshot_uri = id_token.get("picture")
             self.user.created_at = (
                 datetime.datetime.fromtimestamp(id_token["created_at"])
-                if id_token.get("created_at") else None
+                if id_token.get("created_at")
+                else None
             )
-        else: self.user: Optional[User] = None
+        else:
+            self.user: Optional[User] = None
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.AccessToken token=\"{self.token[:15]}...\" \
-user={self.user})"
-    
+        return f'<rblxopencloud.AccessToken token="{self.token[:15]}..." \
+user={self.user})'
+
     def revoke_refresh_token(self):
         """
         Shortcut to revoke the refresh token.
         """
         self.app.revoke_token(self.refresh_token)
 
-class OAuth2App():
+
+class OAuth2App:
     """
     Represents an OAuth2 app. It is used to exchange codes, refresh tokens, \
     and access the API for authenticated users.
@@ -296,9 +307,12 @@ class OAuth2App():
     """
 
     def __init__(
-            self, id: int, secret: str, redirect_uri: str,
-            openid_certs_cache_seconds: int = 3600
-        ):
+        self,
+        id: int,
+        secret: str,
+        redirect_uri: str,
+        openid_certs_cache_seconds: int = 3600,
+    ):
         self.id: int = id
         self.redirect_uri: str = redirect_uri
         self.__secret: str = secret
@@ -306,38 +320,33 @@ class OAuth2App():
         self.openid_certs_cache_seconds: int = openid_certs_cache_seconds
         self.__openid_certs_cache = None
         self.__openid_certs_cache_updated = None
-    
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.OAuth2App(id={self.id} \
-redirect_uri=\"{self.redirect_uri}\")"
+        return f'<rblxopencloud.OAuth2App(id={self.id} \
+redirect_uri="{self.redirect_uri}")'
 
     async def __refresh_openid_certs_cache(self):
         certs_status, certs, _ = await send_request("GET", "oauth/v1/certs")
         self.__openid_certs_cache = []
         self.__openid_certs_cache_updated = time.time()
-        
+
         if certs_status != 200:
             raise HttpException(certs_status, "Failed to fetch OpenID certs")
 
         for cert in certs["keys"]:
-            public_key = ec.EllipticCurvePublicNumbers(
-                int.from_bytes(
-                    base64.urlsafe_b64decode(cert['x'] + '=='), 'big'
-                ),
-                int.from_bytes(
-                    base64.urlsafe_b64decode(cert['y'] + '=='), 'big'
-                ),
-                ec.SECP256R1()
-            ).public_key(default_backend()).public_bytes(
-                Encoding.DER,
-                PublicFormat.SubjectPublicKeyInfo
+            public_key = (
+                ec.EllipticCurvePublicNumbers(
+                    int.from_bytes(base64.urlsafe_b64decode(cert["x"] + "=="), "big"),
+                    int.from_bytes(base64.urlsafe_b64decode(cert["y"] + "=="), "big"),
+                    ec.SECP256R1(),
+                )
+                .public_key(default_backend())
+                .public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)
             )
 
-            self.__openid_certs_cache.append(
-                load_der_public_key(public_key)
-            )
+            self.__openid_certs_cache.append(load_der_public_key(public_key))
 
-    def generate_code_verifier(self, length: Optional[int]=128) -> str:
+    def generate_code_verifier(self, length: Optional[int] = 128) -> str:
         """
         Generates a code verifier which can be provided to \
         [`OAuth2App.generate_uri`][rblxopencloud.OAuth2App.generate_uri] and \
@@ -356,15 +365,18 @@ redirect_uri=\"{self.redirect_uri}\")"
             `-`, `.`, `_`, and `~`.
         """
 
-        return ''.join(
+        return "".join(
             secrets.choice(f"{string.ascii_letters}{string.digits}-._~")
             for _ in range(length)
         )
 
     def generate_uri(
-            self, scope: Union[str, list[str]], state: str=None,
-            generate_code: bool=True, code_verifier: str=None
-        ) -> str:
+        self,
+        scope: Union[str, list[str]],
+        state: str = None,
+        generate_code: bool = True,
+        code_verifier: str = None,
+    ) -> str:
         """
         Creates an authorization uri with the client information prefilled.
         
@@ -384,9 +396,13 @@ redirect_uri=\"{self.redirect_uri}\")"
         """
 
         if code_verifier:
-            code_challenge = base64.urlsafe_b64encode(
-                hashlib.sha256(code_verifier.encode()).digest()
-            ).replace(b"=", b"").decode()
+            code_challenge = (
+                base64.urlsafe_b64encode(
+                    hashlib.sha256(code_verifier.encode()).digest()
+                )
+                .replace(b"=", b"")
+                .decode()
+            )
         else:
             code_challenge = None
 
@@ -397,18 +413,16 @@ redirect_uri=\"{self.redirect_uri}\")"
             "redirect_uri": self.redirect_uri,
             "response_type": "code" if generate_code else "none",
             "code_challenge": code_challenge,
-            "code_challenge_method": "S256" if code_verifier else None
+            "code_challenge_method": "S256" if code_verifier else None,
         }
 
-        params = parse.urlencode({
-            key: value for key, value in params.items() if value is not None
-        })
+        params = parse.urlencode(
+            {key: value for key, value in params.items() if value is not None}
+        )
 
         return f"https://apis.roblox.com/oauth/v1/authorize?{params}"
 
-    def from_access_token_string(
-            self, access_token: str
-        ) -> PartialAccessToken:
+    def from_access_token_string(self, access_token: str) -> PartialAccessToken:
         """
         Creates a [`PartialAccessToken`][rblxopencloud.PartialAccessToken] \
         from an access token string, fairly useless due to these tokens \
@@ -428,8 +442,8 @@ redirect_uri=\"{self.redirect_uri}\")"
         return PartialAccessToken(self, access_token)
 
     async def exchange_code(
-            self, code: str, code_verifier: Optional[str] = None
-        ) -> AccessToken:
+        self, code: str, code_verifier: Optional[str] = None
+    ) -> AccessToken:
         """
         Exchanges an authorization code for an access token which can utilize \
         granted scopes.
@@ -444,15 +458,18 @@ redirect_uri=\"{self.redirect_uri}\")"
             The access token created from the provided code.
         """
 
-        status, data, _ = await send_request("POST", "oauth/v1/token",
-            expected_status=[200, 401], data={
+        status, data, _ = await send_request(
+            "POST",
+            "oauth/v1/token",
+            expected_status=[200, 401],
+            data={
                 "client_id": self.id,
                 "client_secret": self.__secret,
                 "redirect_uri": self.redirect_uri,
                 "grant_type": "authorization_code",
                 "code_verifier": code_verifier,
-                "code": code
-            }
+                "code": code,
+            },
         )
 
         if status == 401:
@@ -463,22 +480,27 @@ redirect_uri=\"{self.redirect_uri}\")"
         id_token = None
         if data.get("id_token"):
             if (
-                not self.__openid_certs_cache or
-                time.time() - self.__openid_certs_cache_updated >
-                self.openid_certs_cache_seconds
-            ): await self.__refresh_openid_certs_cache()
-            
+                not self.__openid_certs_cache
+                or time.time() - self.__openid_certs_cache_updated
+                > self.openid_certs_cache_seconds
+            ):
+                await self.__refresh_openid_certs_cache()
+
             for cert in self.__openid_certs_cache:
                 try:
                     id_token = jwt.decode(
-                        data["id_token"], cert, algorithms=['ES256'],
-                        audience=str(self.id)
+                        data["id_token"],
+                        cert,
+                        algorithms=["ES256"],
+                        audience=str(self.id),
                     )
                     break
-                except(AttributeError): raise BaseException(
-                    "jwt and PyJWT installed. Please uninstall jwt."
-                )
-                except(jwt.exceptions.PyJWTError): pass
+                except AttributeError:
+                    raise BaseException(
+                        "jwt and PyJWT installed. Please uninstall jwt."
+                    )
+                except jwt.exceptions.PyJWTError:
+                    pass
 
         return AccessToken(self, data, id_token)
 
@@ -494,18 +516,21 @@ redirect_uri=\"{self.redirect_uri}\")"
             The new access token from the refresh token.
         """
 
-        _, data, _ = await send_request("POST", "oauth/v1/token",
-            expected_status=[200], data={
+        _, data, _ = await send_request(
+            "POST",
+            "oauth/v1/token",
+            expected_status=[200],
+            data={
                 "client_id": self.id,
                 "client_secret": self.__secret,
                 "redirect_uri": self.redirect_uri,
                 "grant_type": "refresh_token",
-                "refresh_token": refresh_token
-            }
+                "refresh_token": refresh_token,
+            },
         )
 
         return AccessToken(self, data, None)
-    
+
     async def revoke_token(self, token: str):
         """
         Revokes the authorization for a given access or refresh token.
@@ -513,11 +538,10 @@ redirect_uri=\"{self.redirect_uri}\")"
         Args:
             token: The access or refresh token to revoke.
         """
-        
-        await send_request("POST", "oauth/v1/token/revoke",
-            expected_status=[200], data={
-                "client_id": self.id,
-                "client_secret": self.__secret,
-                "token": token
-            }
+
+        await send_request(
+            "POST",
+            "oauth/v1/token/revoke",
+            expected_status=[200],
+            data={"client_id": self.id, "client_secret": self.__secret, "token": token},
         )

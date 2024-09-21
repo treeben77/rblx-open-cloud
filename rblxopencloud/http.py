@@ -20,31 +20,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
 import time
-from typing import Optional, Union, TypeVar, Generic, Callable
+from typing import Callable, Generic, Optional, TypeVar, Union
 
-from . import http_session, user_agent, VERSION_INFO
-from .exceptions import (
-    Forbidden,
-    HttpException,
-    RateLimited,
-    NotFound
-)
+from . import VERSION_INFO, http_session, user_agent
+from .exceptions import Forbidden, HttpException, NotFound, RateLimited
 
-__all__ = (
-    "send_request",
-    "iterate_request",
-    "Operation"
-)
+__all__ = ("send_request", "iterate_request", "Operation")
 
 T = TypeVar("T")
 
-def send_request(method: str, path: str, authorization: Optional[str]=None,
-        expected_status: Optional[list[int]]=None, retry_max_attempts: int=2,
-        retry_interval_seconds: float=1, retry_interval_exponent: float=2,
-        **kwargs
-    ) -> tuple[int, Union[str, int, float, dict, list, None], dict]:
+
+def send_request(
+    method: str,
+    path: str,
+    authorization: Optional[str] = None,
+    expected_status: Optional[list[int]] = None,
+    retry_max_attempts: int = 2,
+    retry_interval_seconds: float = 1,
+    retry_interval_exponent: float = 2,
+    **kwargs,
+) -> tuple[int, Union[str, int, float, dict, list, None], dict]:
     """
     Sends a HTTP request to `https://apis.roblox.com` and returns the result. \
     It is used internally by the library but can also be used by users for \
@@ -108,24 +104,24 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
         The `send_request` function may function slightly differently between \
         the `rblxopencloud` and `rblxopencloudasync` modules.
     """
-    headers = {
-        "user-agent": user_agent,
-        **kwargs.get('headers', {})
-    }
+    headers = {"user-agent": user_agent, **kwargs.get("headers", {})}
 
-    if kwargs.get('headers'): del kwargs['headers']
-    
+    if kwargs.get("headers"):
+        del kwargs["headers"]
+
     if authorization:
-        headers["authorization" if authorization.startswith("Bearer ")
-                else "x-api-key"] = authorization
-        
+        headers[
+            "authorization" if authorization.startswith("Bearer ") else "x-api-key"
+        ] = authorization
+
     if path.startswith("/"):
         path = f"cloud/v2{path}"
 
-    response = http_session.request(method, f"https://apis.roblox.com/{path}",
-                                    headers=headers, **kwargs, timeout=10)
+    response = http_session.request(
+        method, f"https://apis.roblox.com/{path}", headers=headers, **kwargs, timeout=10
+    )
 
-    if 'application/json' in response.headers.get('Content-Type', ''):
+    if "application/json" in response.headers.get("Content-Type", ""):
         body = response.json()
     else:
         body = response.text
@@ -133,7 +129,7 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
     if VERSION_INFO == "alpha":
         print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
 
-    if expected_status and not response.status_code in expected_status:
+    if expected_status and response.status_code not in expected_status:
         if response.status_code in [400, 401]:
             raise HttpException(response.status_code, body)
         elif response.status_code == 403:
@@ -147,41 +143,55 @@ def send_request(method: str, path: str, authorization: Optional[str]=None,
                 time.sleep(retry_interval_seconds)
 
                 return send_request(
-                    method, path, authorization,
-                    expected_status, retry_max_attempts-1,
-                    retry_interval_seconds*retry_interval_exponent,
-                    retry_interval_exponent, **kwargs
+                    method,
+                    path,
+                    authorization,
+                    expected_status,
+                    retry_max_attempts - 1,
+                    retry_interval_seconds * retry_interval_exponent,
+                    retry_interval_exponent,
+                    **kwargs,
                 )
-            
+
             raise HttpException(response.status_code, body)
         elif response.status_code not in expected_status:
             raise HttpException(response.status_code, body)
-    
+
     return response.status_code, body, response.headers
 
-def iterate_request(*args, data_key: str, cursor_key: str,
-                    
-        max_yields: int = None, post_request_hook: Callable = None, **kwargs
-    ):
+
+def iterate_request(
+    *args,
+    data_key: str,
+    cursor_key: str,
+    max_yields: int = None,
+    post_request_hook: Callable = None,
+    **kwargs,
+):
 
     next_cursor, yields = "", 0
 
     while max_yields == None or yields < max_yields:
 
-        if not kwargs.get("params"): kwargs["params"] = {}
+        if not kwargs.get("params"):
+            kwargs["params"] = {}
         kwargs["params"][cursor_key] = next_cursor if next_cursor else None
 
         status, data, headers = send_request(*args, **kwargs)
-        if post_request_hook: post_request_hook(status, data, headers)
+        if post_request_hook:
+            post_request_hook(status, data, headers)
 
         for entry in data[data_key]:
             yield entry
 
             yields += 1
-            if max_yields != None and yields >= max_yields: break
-        
+            if max_yields != None and yields >= max_yields:
+                break
+
         next_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
-        if not next_cursor: break
+        if not next_cursor:
+            break
+
 
 class Operation(Generic[T]):
     """
@@ -195,19 +205,23 @@ class Operation(Generic[T]):
     """
 
     def __init__(
-            self, path: str, api_key: str, return_type: T,
-            cached_response: dict = None, **return_meta
-        ) -> None:
+        self,
+        path: str,
+        api_key: str,
+        return_type: T,
+        cached_response: dict = None,
+        **return_meta,
+    ) -> None:
         self.__path: str = path
         self.__api_key: str = api_key
         self.__return_type: T = return_type
         self.__return_meta: dict = return_meta
         self.__cached_response: dict = cached_response
         self.is_done: bool = cached_response != None
-    
+
     def __repr__(self) -> str:
         return "<rblxopencloud.Operation>"
-    
+
     def fetch_status(self) -> Optional[T]:
         """
         Fetches the current status of the operation. If it is complete, it \
@@ -219,24 +233,27 @@ class Operation(Generic[T]):
         Raises:
             HttpException: The request was not successful.
         """
-        
-        _, body, _ = send_request("GET", self.__path, self.__api_key,
-            expected_status=[200])
-        if not body.get("done"): return None
+
+        _, body, _ = send_request(
+            "GET", self.__path, self.__api_key, expected_status=[200]
+        )
+        if not body.get("done"):
+            return None
 
         self.is_done = True
-        
+
         if callable(self.__return_type):
             self.__cached_response = body["response"]
             return self.__return_type(body["response"], **self.__return_meta)
         else:
             return self.__return_type
-        
+
     def wait(
-            self, timeout_seconds: Optional[float]=60,
-            interval_seconds: float=0,
-            interval_exponent: float=1.3
-        ) -> T:
+        self,
+        timeout_seconds: Optional[float] = 60,
+        interval_seconds: float = 0,
+        interval_exponent: float = 1.3,
+    ) -> T:
         """
         Continuously checks the status of the operation every \
         `interval_seconds` until complete or after `timeout_seconds` has \
@@ -261,8 +278,7 @@ class Operation(Generic[T]):
 
         if self.__cached_response:
             if callable(self.__return_type):
-                return self.__return_type(
-                    self.__cached_response, **self.__return_meta)
+                return self.__return_type(self.__cached_response, **self.__return_meta)
             else:
                 return self.__return_type
 
@@ -271,10 +287,12 @@ class Operation(Generic[T]):
         start_time = time.time()
         while True:
             result = self.fetch_status()
-            if result: return result
+            if result:
+                return result
 
             if timeout_seconds and time.time() - start_time > timeout_seconds:
                 raise TimeoutError("Timeout exceeded")
 
-            if interval_seconds > 0: time.sleep(interval_seconds)
+            if interval_seconds > 0:
+                time.sleep(interval_seconds)
             interval_seconds *= interval_exponent

@@ -1,10 +1,11 @@
-from datetime import datetime
 import os
 import secrets
 import unittest
+from datetime import datetime
 
 if not os.environ.get("OPEN_CLOUD_USER"):
     from dotenv import load_dotenv
+
     load_dotenv()
 
 import rblxopencloud
@@ -12,6 +13,7 @@ import rblxopencloud
 experience = rblxopencloud.Experience(
     os.environ["EXPERIENCE_ID"], os.environ["OPEN_CLOUD_USER"]
 )
+
 
 class experience_data_stores(unittest.TestCase):
 
@@ -30,9 +32,9 @@ class experience_data_stores(unittest.TestCase):
         self.assertEqual(datastore.experience, experience)
         self.assertEqual(datastore.name, "rblxopencloud_unittest")
         self.assertEqual(datastore.scope, "global")
-        
+
     def test_list_datastores(self):
-        
+
         datastore_names = []
 
         for datastore in experience.list_datastores():
@@ -44,7 +46,9 @@ class experience_data_stores(unittest.TestCase):
 
         self.assertIn("rblxopencloud_unittest", datastore_names)
 
+
 datastore = experience.get_datastore("rblxopencloud_unittest")
+
 
 class standard_data_stores(unittest.TestCase):
 
@@ -54,7 +58,7 @@ class standard_data_stores(unittest.TestCase):
         self.assertIsInstance(info, rblxopencloud.EntryInfo)
         self.assertEqual(entry, {"key1": "value", "key2": 3.14})
         self.assertEqual(info.users, [287113233])
-    
+
         with self.assertRaises(rblxopencloud.NotFound):
             datastore.get_entry("test_entry_not_exists")
 
@@ -70,7 +74,7 @@ class standard_data_stores(unittest.TestCase):
 
         self.assertEqual(entry, value)
         self.assertEqual(info.version, version.version)
-        
+
     def test_remove_entry(self):
         datastore.set_entry("test_entry_remove", 1)
 
@@ -78,7 +82,7 @@ class standard_data_stores(unittest.TestCase):
 
         with self.assertRaises(rblxopencloud.NotFound):
             datastore.get_entry("test_entry_remove")
-    
+
     def test_list_keys(self):
         entry_keys = []
 
@@ -88,10 +92,12 @@ class standard_data_stores(unittest.TestCase):
             self.assertIsInstance(entry, rblxopencloud.ListedEntry)
             self.assertTrue(entry.key.startswith("test_entry"))
             self.assertEqual(entry.scope, "global")
-        
+
         self.assertIn("test_entry", entry_keys)
 
+
 ordered_datastore = experience.get_ordered_datastore("rblxopencloud_unittest")
+
 
 class ordered_data_stores(unittest.TestCase):
 
@@ -99,10 +105,10 @@ class ordered_data_stores(unittest.TestCase):
         entry = ordered_datastore.get_entry("test_entry")
 
         self.assertEqual(entry, 133)
-    
+
         with self.assertRaises(rblxopencloud.NotFound):
             ordered_datastore.get_entry("test_entry_not_exists")
-    
+
     def test_set_entry(self):
         value = secrets.randbelow(1000)
 
@@ -113,7 +119,7 @@ class ordered_data_stores(unittest.TestCase):
         entry = ordered_datastore.get_entry("test_entry_set")
 
         self.assertEqual(entry, value)
-    
+
     def test_remove_entry(self):
         ordered_datastore.set_entry("test_entry_remove", 1)
 
@@ -121,7 +127,7 @@ class ordered_data_stores(unittest.TestCase):
 
         with self.assertRaises(rblxopencloud.NotFound):
             ordered_datastore.get_entry("test_entry_remove")
-    
+
     def test_sort_keys(self):
         prev_value = None
         entry_keys = []
@@ -134,9 +140,10 @@ class ordered_data_stores(unittest.TestCase):
             self.assertTrue(not prev_value or entry.value <= prev_value)
 
             prev_value = entry.value
-        
+
         self.assertIn("test_entry", entry_keys)
         self.assertIn("test_entry_1", entry_keys)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

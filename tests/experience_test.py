@@ -1,10 +1,9 @@
-from datetime import datetime
 import os
-import secrets
 import unittest
 
 if not os.environ.get("OPEN_CLOUD_USER"):
     from dotenv import load_dotenv
+
     load_dotenv()
 
 import rblxopencloud
@@ -13,6 +12,7 @@ experience = rblxopencloud.Experience(
     os.environ["EXPERIENCE_ID"], os.environ["OPEN_CLOUD_USER"]
 )
 
+
 class user_restrictions(unittest.TestCase):
 
     def test_fetch_user_restriction(self):
@@ -20,7 +20,7 @@ class user_restrictions(unittest.TestCase):
 
         self.assertIsInstance(restriction, rblxopencloud.UserRestriction)
         self.assertEqual(restriction.active, False)
-    
+
         restriction = experience.fetch_user_restriction(287113234)
 
         self.assertIsInstance(restriction, rblxopencloud.UserRestriction)
@@ -31,9 +31,10 @@ class user_restrictions(unittest.TestCase):
 
     def test_ban_unban_user(self):
         restriction = experience.ban_user(
-            287113235, duration_seconds=86400,
+            287113235,
+            duration_seconds=86400,
             display_reason="some display reason",
-            private_reason="some private reason"
+            private_reason="some private reason",
         )
 
         self.assertIsInstance(restriction, rblxopencloud.UserRestriction)
@@ -62,13 +63,12 @@ class experience_subscriptions(unittest.TestCase):
         self.assertEqual(subscription.active, False)
         self.assertEqual(subscription.product_id, "EXP-2491104735766773879")
         self.assertEqual(subscription.user_id, 287113233)
-        self.assertEqual(
-            subscription.state, rblxopencloud.SubscriptionState.Expired
-        )
+        self.assertEqual(subscription.state, rblxopencloud.SubscriptionState.Expired)
         self.assertEqual(
             subscription.expiration_reason,
-            rblxopencloud.SubscriptionExpirationReason.Cancelled
+            rblxopencloud.SubscriptionExpirationReason.Cancelled,
         )
+
 
 class experience_info(unittest.TestCase):
 
@@ -76,9 +76,7 @@ class experience_info(unittest.TestCase):
         result = experience.fetch_info()
 
         self.assertEqual(experience, result)
-        self.assertEqual(
-            experience.name, "treeben77's very awesome test experience!"
-        )
+        self.assertEqual(experience.name, "treeben77's very awesome test experience!")
         self.assertEqual(
             experience.discord_social_link.uri, "https://discord.gg/6Y3bzJ59KU"
         )
@@ -86,6 +84,3 @@ class experience_info(unittest.TestCase):
             experience.age_rating, rblxopencloud.ExperienceAgeRating.AllAges
         )
         self.assertTrue(experience.desktop_enabled)
-        
-
-

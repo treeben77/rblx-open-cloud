@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from .datastore import EntryInfo
@@ -36,13 +36,15 @@ __all__ = (
     "InvalidCode",
     "ModeratedText",
     "UnknownEventType",
-    "UnhandledEventType"
+    "UnhandledEventType",
 )
+
 
 class BaseException(Exception):
     """
     The base exception for all exception raised by the library.
     """
+
 
 class HttpException(BaseException):
     """
@@ -83,32 +85,28 @@ class HttpException(BaseException):
         details: A list of dict returned by Roblox if available which \
         provides more details about an error.
     """
-    
-    def __init__(
-            self, status: int = None, body: Union[dict, str] = None
-        ) -> None:
+
+    def __init__(self, status: int = None, body: Union[dict, str] = None) -> None:
 
         self.status_code: Optional[int] = status
 
         if type(body) == dict and body.get("errors"):
-            self.error_code: Optional[Union[str, int]] = (
-                body["errors"][0].get("code")
-            )
+            self.error_code: Optional[Union[str, int]] = body["errors"][0].get("code")
             self.message: Optional[str] = body["errors"][0].get("message")
             self.details: Optional[list[dict]] = body["errors"]
         elif type(body) == dict:
-            self.error_code: Optional[Union[str, int]] = (
-                body.get("code") or body.get("error")
+            self.error_code: Optional[Union[str, int]] = body.get("code") or body.get(
+                "error"
             )
             self.message: Optional[str] = body.get("message")
-            self.details: Optional[list[dict]] = (
-                body.get("details") or body.get("errorDetails")
+            self.details: Optional[list[dict]] = body.get("details") or body.get(
+                "errorDetails"
             )
         elif type(body) == str:
             self.error_code: Optional[Union[str, int]] = None
             self.message = body
             self.details: Optional[list[dict]] = None
-        
+
         message = self.message
 
         if not message:
@@ -125,11 +123,13 @@ class HttpException(BaseException):
 
         super().__init__(message)
 
+
 class NotFound(HttpException):
     """
     The exception raised when a requested resource or endpoint couldn't \
     be found.
     """
+
 
 class RateLimited(HttpException):
     """
@@ -137,6 +137,7 @@ class RateLimited(HttpException):
     library does not currently support any rate limiting handling but this \
     exception can be used to implement automatic retrying. 
     """
+
 
 class Forbidden(HttpException):
     """
@@ -149,6 +150,7 @@ class Forbidden(HttpException):
     resource without the necessary OAuth2 scope or the API key permission and \
     API enabled. 
     """
+
 
 class PreconditionFailed(HttpException):
     """
@@ -168,9 +170,22 @@ class PreconditionFailed(HttpException):
         self.info: Optional[EntryInfo] = info
         super().__init__(*args)
 
-class InvalidCode(HttpException): pass
-class InvalidFile(HttpException): pass
-class ModeratedText(HttpException): pass
 
-class UnknownEventType(BaseException): pass
-class UnhandledEventType(BaseException): pass
+class InvalidCode(HttpException):
+    pass
+
+
+class InvalidFile(HttpException):
+    pass
+
+
+class ModeratedText(HttpException):
+    pass
+
+
+class UnknownEventType(BaseException):
+    pass
+
+
+class UnhandledEventType(BaseException):
+    pass

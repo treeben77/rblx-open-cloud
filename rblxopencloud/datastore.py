@@ -22,13 +22,13 @@
 
 import datetime
 import json
-from typing import Iterable, Optional, TYPE_CHECKING, Union
 import urllib.parse
+from typing import TYPE_CHECKING, Iterable, Optional, Union
 
 from dateutil import parser
 
 from .exceptions import HttpException, NotFound, PreconditionFailed
-from .http import send_request, iterate_request
+from .http import iterate_request, send_request
 
 if TYPE_CHECKING:
     from .experience import Experience
@@ -39,10 +39,11 @@ __all__ = (
     "ListedEntry",
     "DataStore",
     "SortedEntry",
-    "OrderedDataStore"
+    "OrderedDataStore",
 )
 
-class EntryInfo():
+
+class EntryInfo:
     """
     Contains data about an entry such as version ID, timestamps, users and \
     metadata.
@@ -62,12 +63,13 @@ class EntryInfo():
         self.updated: datetime.datetime = parser.parse(updated)
         self.users: list[int] = users
         self.metadata: dict = metadata
-    
-    def __repr__(self) -> str:
-        return f"<rblxopencloud.EntryInfo version=\"{self.version}\" \
-users={self.users} metadata={self.metadata}>"
 
-class EntryVersion():
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.EntryInfo version="{self.version}" \
+users={self.users} metadata={self.metadata}>'
+
+
+class EntryVersion:
     """
     Contains data about a version such as it's ID, timestamps, content length \
     and wether this version is deleted.
@@ -80,8 +82,17 @@ class EntryVersion():
         key_created: When the key was first created.
     """
 
-    def __init__(self, version, deleted, content_length, created, key_created,
-        datastore, key, scope) -> None:
+    def __init__(
+        self,
+        version,
+        deleted,
+        content_length,
+        created,
+        key_created,
+        datastore,
+        key,
+        scope,
+    ) -> None:
         self.version: str = version
         self.deleted: bool = deleted
         self.content_length: int = content_length
@@ -90,18 +101,17 @@ class EntryVersion():
         self.__datastore: DataStore = datastore
         self.__key = key
         self.__scope = scope
-    
+
     def __eq__(self, object) -> bool:
         if not isinstance(object, EntryVersion):
             return NotImplemented
         return (
-            self.__key == object.__key and self.__scope == object.__scope and
-            self.version == object.version
+            self.__key == object.__key
+            and self.__scope == object.__scope
+            and self.version == object.version
         )
-    
-    def get_value(
-            self
-        ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+
+    def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of this version. Shortcut for `DataStore.get_version`
         """
@@ -110,13 +120,15 @@ class EntryVersion():
             return self.__datastore.get_version(self.__key, self.version)
         else:
             return self.__datastore.get_version(
-                f"{self.__scope}/{self.__key}", self.version)
+                f"{self.__scope}/{self.__key}", self.version
+            )
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.EntryVersion version\"{self.version}\" \
-content_length={self.content_length}>"
+        return f'<rblxopencloud.EntryVersion version"{self.version}" \
+content_length={self.content_length}>'
 
-class ListedEntry():
+
+class ListedEntry:
     """
     Object which contains an entry's key and scope.
 
@@ -124,20 +136,22 @@ class ListedEntry():
         key: The entry's key.
         scope: The entry's scope, usually is `global`.
     """
+
     def __init__(self, key, scope) -> None:
         self.key: str = key
         self.scope: str = scope
-    
+
     def __eq__(self, object) -> bool:
         if not isinstance(object, ListedEntry):
             return NotImplemented
         return self.key == object.key and self.scope == object.scope
-    
-    def __repr__(self) -> str:
-        return f"<rblxopencloud.ListedEntry key=\"{self.key}\" \
-scope=\"{self.scope}\">"
 
-class DataStore():
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.ListedEntry key="{self.key}" \
+scope="{self.scope}">'
+
+
+class DataStore:
     """
     Represents a regular data store in an experience.
 
@@ -153,15 +167,16 @@ class DataStore():
         self.__api_key: str = api_key
         self.scope: Optional[str] = scope
         self.experience: Experience = experience
-        if created: self.created = parser.parse(created)
-        else: self.created = None
-    
+        if created:
+            self.created = parser.parse(created)
+        else:
+            self.created = None
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.DataStore name=\"{self.name}\" \
-scope=\"{self.scope}\" experience={repr(self.experience)}>"
-    
-    def list_keys(self, prefix: str="", limit: int=None
-        ) -> Iterable[ListedEntry]:
+        return f'<rblxopencloud.DataStore name="{self.name}" \
+scope="{self.scope}" experience={repr(self.experience)}>'
+
+    def list_keys(self, prefix: str = "", limit: int = None) -> Iterable[ListedEntry]:
         """
         Iterates all keys in the database and scope, optionally matching a \
         prefix.
@@ -171,19 +186,27 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             limit: Will not return more keys than this number. Set to `None` \
             for no limit.
         """
-        
-        for entry in iterate_request("GET", f"datastores/v1/universes/\
-{self.experience.id}/standard-datastores/datastore/entries", params={
-            "datastoreName": self.name,
-            "scope": self.scope,
-            "AllScopes": not self.scope,
-            "prefix": prefix
-        }, expected_status=[200], authorization=self.__api_key,
-        cursor_key="cursor", data_key="keys"):
+
+        for entry in iterate_request(
+            "GET",
+            f"datastores/v1/universes/\
+{self.experience.id}/standard-datastores/datastore/entries",
+            params={
+                "datastoreName": self.name,
+                "scope": self.scope,
+                "AllScopes": not self.scope,
+                "prefix": prefix,
+            },
+            expected_status=[200],
+            authorization=self.__api_key,
+            cursor_key="cursor",
+            data_key="keys",
+        ):
             yield ListedEntry(entry["key"], entry["scope"])
-    
-    def get_entry(self, key: str
-        ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+
+    def get_entry(
+        self, key: str
+    ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key in the scope and datastore.
         
@@ -193,36 +216,47 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
         """
         try:
             scope = self.scope
-            if not scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
+            if not scope:
+                scope, key = key.split("/", maxsplit=1)
+        except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
-        
-        _, data, headers = send_request("GET", 
+
+        _, data, headers = send_request(
+            "GET",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry",
-            authorization=self.__api_key, expected_status=[200], params={
-                "datastoreName": self.name,
-                "scope": scope,
-                "entryKey": key
-            })
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={"datastoreName": self.name, "scope": scope, "entryKey": key},
+        )
 
         if headers.get("roblox-entry-attributes"):
             metadata = json.loads(headers["roblox-entry-attributes"])
-        else: metadata = {}
+        else:
+            metadata = {}
 
         if headers.get("roblox-entry-userids"):
             userids = json.loads(headers["roblox-entry-userids"])
-        else: userids = []
-        
+        else:
+            userids = []
+
         return data, EntryInfo(
             headers["roblox-entry-version"],
             headers["roblox-entry-created-time"],
-            headers["roblox-entry-version-created-time"], userids, metadata)
+            headers["roblox-entry-version-created-time"],
+            userids,
+            metadata,
+        )
 
-    def set_entry(self, key: str, value: Union[str, dict, list, int, float],
-            users: Optional[list[int]]=None, metadata: dict={},
-            exclusive_create: bool=False, previous_version: Optional[str]=None
-        ) -> EntryVersion:
+    def set_entry(
+        self,
+        key: str,
+        value: Union[str, dict, list, int, float],
+        users: Optional[list[int]] = None,
+        metadata: dict = {},
+        exclusive_create: bool = False,
+        previous_version: Optional[str] = None,
+    ) -> EntryVersion:
         """
         Sets the value of a key in the datastore and scope.
         
@@ -244,36 +278,47 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
                 "previous_version and exclusive_create are mutally exclusive."
             )
 
-        if users == None: users = []
-        
+        if users == None:
+            users = []
+
         try:
             scope = self.scope
-            if not scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
+            if not scope:
+                scope, key = key.split("/", maxsplit=1)
+        except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        status_code, data, headers = send_request("POST",
+        status_code, data, headers = send_request(
+            "POST",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
-/datastore/entries/entry", authorization=self.__api_key, headers={
+/datastore/entries/entry",
+            authorization=self.__api_key,
+            headers={
                 "roblox-entry-userids": json.dumps(users),
-                "roblox-entry-attributes": json.dumps(metadata)
-            }, json=value, params={
+                "roblox-entry-attributes": json.dumps(metadata),
+            },
+            json=value,
+            params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key,
                 "exclusiveCreate": exclusive_create,
-                "matchVersion": previous_version
-            }, expected_status=[200, 412])
-        
+                "matchVersion": previous_version,
+            },
+            expected_status=[200, 412],
+        )
+
         if status_code == 412:
             if headers.get("roblox-entry-attributes"):
                 metadata = json.loads(headers["roblox-entry-attributes"])
-            else: metadata = {}
+            else:
+                metadata = {}
 
             if headers.get("roblox-entry-userids"):
                 userids = json.loads(headers["roblox-entry-userids"])
-            else: userids = []
-        
+            else:
+                userids = []
+
             if exclusive_create:
                 error = "A value already exists for this key."
             elif previous_version:
@@ -281,21 +326,37 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             else:
                 error = "Precondition failed."
 
-            raise PreconditionFailed(data, EntryInfo(
-                headers["roblox-entry-version"],
-                headers["roblox-entry-created-time"],
-                headers["roblox-entry-version-created-time"], userids, metadata
-            ), status_code, error)
-        
+            raise PreconditionFailed(
+                data,
+                EntryInfo(
+                    headers["roblox-entry-version"],
+                    headers["roblox-entry-created-time"],
+                    headers["roblox-entry-version-created-time"],
+                    userids,
+                    metadata,
+                ),
+                status_code,
+                error,
+            )
+
         return EntryVersion(
-            data["version"], data["deleted"], data["contentLength"],
-            data["createdTime"], data["objectCreatedTime"], self, key,
-            self.scope if self.scope else scope
+            data["version"],
+            data["deleted"],
+            data["contentLength"],
+            data["createdTime"],
+            data["objectCreatedTime"],
+            self,
+            key,
+            self.scope if self.scope else scope,
         )
 
-    def increment_entry(self, key: str, delta: Union[int, float],
-            users: Optional[list[int]]=None, metadata:dict={}
-        ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+    def increment_entry(
+        self,
+        key: str,
+        delta: Union[int, float],
+        users: Optional[list[int]] = None,
+        metadata: dict = {},
+    ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Increments the value of a key in the datastore and scope.
         
@@ -307,40 +368,53 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             users: a list of Roblox user IDs to attach to the entry.
             metadata: a dict of metadata to attach to the entry.
         """
-        
-        if users == None: users = []
-        
+
+        if users == None:
+            users = []
+
         try:
             scope = self.scope
-            if not scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
+            if not scope:
+                scope, key = key.split("/", maxsplit=1)
+        except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, headers = send_request("POST",
+        _, data, headers = send_request(
+            "POST",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
-/datastore/entries/entry/increment", authorization=self.__api_key, headers={
+/datastore/entries/entry/increment",
+            authorization=self.__api_key,
+            headers={
                 "roblox-entry-userids": json.dumps(users),
-                "roblox-entry-attributes": json.dumps(metadata)
-            }, params={
+                "roblox-entry-attributes": json.dumps(metadata),
+            },
+            params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key,
-                "incrementBy": delta
-            }, expected_status=[200])
+                "incrementBy": delta,
+            },
+            expected_status=[200],
+        )
 
         if headers.get("roblox-entry-attributes"):
             metadata = json.loads(headers["roblox-entry-attributes"])
-        else: metadata = {}
+        else:
+            metadata = {}
 
         if headers.get("roblox-entry-userids"):
             userids = json.loads(headers["roblox-entry-userids"])
-        else: userids = []
-        
+        else:
+            userids = []
+
         return data, EntryInfo(
             headers["roblox-entry-version"],
             headers["roblox-entry-created-time"],
-            headers["roblox-entry-version-created-time"], userids, metadata)
-    
+            headers["roblox-entry-version-created-time"],
+            userids,
+            metadata,
+        )
+
     def remove_entry(self, key: str) -> None:
         """
         Removes the value of a key from the datastore and scope.
@@ -352,24 +426,30 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
 
         try:
             scope = self.scope
-            if not scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
+            if not scope:
+                scope, key = key.split("/", maxsplit=1)
+        except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
-                
-        send_request("DELETE",
+
+        send_request(
+            "DELETE",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry",
-            authorization=self.__api_key, params={
-                "datastoreName": self.name,
-                "scope": scope,
-                "entryKey": key
-            }, expected_status=[204])
+            authorization=self.__api_key,
+            params={"datastoreName": self.name, "scope": scope, "entryKey": key},
+            expected_status=[204],
+        )
 
         return None
-    
-    def list_versions(self, key: str, after: datetime.datetime = None,
-            before: datetime.datetime = None, limit: int = None,
-            descending: bool = True) -> Iterable[EntryVersion]:
+
+    def list_versions(
+        self,
+        key: str,
+        after: datetime.datetime = None,
+        before: datetime.datetime = None,
+        limit: int = None,
+        descending: bool = True,
+    ) -> Iterable[EntryVersion]:
         """
         Iterates all available versions of a key.
 
@@ -384,28 +464,42 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
 
         try:
             scope = self.scope
-            if not scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
+            if not scope:
+                scope, key = key.split("/", maxsplit=1)
+        except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
-        
-        for entry in iterate_request("GET", f"datastores/v1/universes/\
-{self.experience.id}/standard-datastores/datastore/entries/versions", params={
-            "datastoreName": self.name,
-            "scope": self.scope,
-            "entryKey": key,
-            "sortOrder": "Descending" if descending else "Ascending",
-            "startTime": after.isoformat() if after else None,
-            "endTime": before.isoformat() if before else None
-        }, expected_status=[200], authorization=self.__api_key,
-        cursor_key="cursor", data_key="keys"):
-            yield EntryVersion(entry["version"], entry["deleted"],
-                entry["contentLength"], entry["createdTime"],
-                entry["objectCreatedTime"], self, key,
-                self.scope if self.scope else scope)
+
+        for entry in iterate_request(
+            "GET",
+            f"datastores/v1/universes/\
+{self.experience.id}/standard-datastores/datastore/entries/versions",
+            params={
+                "datastoreName": self.name,
+                "scope": self.scope,
+                "entryKey": key,
+                "sortOrder": "Descending" if descending else "Ascending",
+                "startTime": after.isoformat() if after else None,
+                "endTime": before.isoformat() if before else None,
+            },
+            expected_status=[200],
+            authorization=self.__api_key,
+            cursor_key="cursor",
+            data_key="keys",
+        ):
+            yield EntryVersion(
+                entry["version"],
+                entry["deleted"],
+                entry["contentLength"],
+                entry["createdTime"],
+                entry["objectCreatedTime"],
+                self,
+                key,
+                self.scope if self.scope else scope,
+            )
 
     def get_version(
-            self, key: str, version: str
-        ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+        self, key: str, version: str
+    ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key at a specific version ID.
         
@@ -417,40 +511,51 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
 
         try:
             scope = self.scope
-            if not scope: scope, key = key.split("/", maxsplit=1)
-        except(ValueError):
+            if not scope:
+                scope, key = key.split("/", maxsplit=1)
+        except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
-        
-        status_code, data, headers = send_request("GET",
+
+        status_code, data, headers = send_request(
+            "GET",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
-/datastore/entries/entry/versions/version", authorization=self.__api_key,
+/datastore/entries/entry/versions/version",
+            authorization=self.__api_key,
             params={
                 "datastoreName": self.name,
                 "scope": scope,
                 "entryKey": key,
-                "versionId": version
-            }, expected_status=[200, 400])
+                "versionId": version,
+            },
+            expected_status=[200, 400],
+        )
 
         if status_code == 400:
             if data["message"] == "Invalid version id.":
                 raise NotFound(status_code, data)
             else:
                 raise HttpException(status_code, data)
-        
+
         if headers.get("roblox-entry-attributes"):
             metadata = json.loads(headers["roblox-entry-attributes"])
-        else: metadata = {}
+        else:
+            metadata = {}
 
         if headers.get("roblox-entry-userids"):
             userids = json.loads(headers["roblox-entry-userids"])
-        else: userids = []
-        
+        else:
+            userids = []
+
         return data, EntryInfo(
             headers["roblox-entry-version"],
             headers["roblox-entry-created-time"],
-            headers["roblox-entry-version-created-time"], userids, metadata)
+            headers["roblox-entry-version-created-time"],
+            userids,
+            metadata,
+        )
 
-class SortedEntry():
+
+class SortedEntry:
     """
     Object which contains a sorted entry's key, scope, and value.
 
@@ -459,23 +564,26 @@ class SortedEntry():
         scope: The entry's scope.
         value: The entry's value.
     """
-    def __init__(self, key: str, value: int, scope: str="global") -> None:
+
+    def __init__(self, key: str, value: int, scope: str = "global") -> None:
         self.key: str = key
         self.scope: str = scope
         self.value: int = value
-    
-    def __eq__(self, object) -> bool:
-        if not isinstance(object, SortedEntry): return NotImplemented
-        return (
-            self.key == object.key and
-            self.scope == object.scope and
-            self.value == object.value
-        )
-    
-    def __repr__(self) -> str:
-        return f"<rblxopencloud.SortedEntry \"{self.key}\" value={self.value}>"
 
-class OrderedDataStore():
+    def __eq__(self, object) -> bool:
+        if not isinstance(object, SortedEntry):
+            return NotImplemented
+        return (
+            self.key == object.key
+            and self.scope == object.scope
+            and self.value == object.value
+        )
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.SortedEntry "{self.key}" value={self.value}>'
+
+
+class OrderedDataStore:
     """
     Represents an ordered data store in an experience.
 
@@ -491,15 +599,18 @@ class OrderedDataStore():
         self.__api_key = api_key
         self.scope: str = scope
         self.experience: Experience = experience
-    
+
     def __repr__(self) -> str:
-        return f"<rblxopencloud.OrderedDataStore \"{self.name}\" \
-scope=\"{self.scope}\" experience={repr(self.experience)}>"
-        
+        return f'<rblxopencloud.OrderedDataStore "{self.name}" \
+scope="{self.scope}" experience={repr(self.experience)}>'
+
     def sort_keys(
-            self, descending: bool=True, limit: Optional[int]=None,
-            min: int=None, max: int=None
-        ) -> Iterable[SortedEntry]:
+        self,
+        descending: bool = True,
+        limit: Optional[int] = None,
+        min: int = None,
+        max: int = None,
+    ) -> Iterable[SortedEntry]:
         """
         Returns a list of keys and their values.
 
@@ -515,27 +626,37 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             not possible to sort keys from all scopes.
         """
 
-        if not self.scope: raise ValueError(
-            "scope is required to list keys with OrderedDataStore."
-        )
+        if not self.scope:
+            raise ValueError("scope is required to list keys with OrderedDataStore.")
 
         filter = None
         if min and max:
-            if min > max: raise ValueError("min must not be greater than max.")
+            if min > max:
+                raise ValueError("min must not be greater than max.")
             filter = f"entry >= {min} && entry <= {max}"
-        elif min: filter = f"entry >= {min}"
-        elif max: filter = f"entry <= {max}"
+        elif min:
+            filter = f"entry >= {min}"
+        elif max:
+            filter = f"entry <= {max}"
 
-        for entry in iterate_request("GET", f"ordered-data-stores/v1/universes\
+        for entry in iterate_request(
+            "GET",
+            f"ordered-data-stores/v1/universes\
 /{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes\
-/{urllib.parse.quote(self.scope)}/entries", params={
-            "max_page_size": limit if limit and limit < 100 else 100,
-            "order_by": "desc" if descending else None,
-            "filter": filter
-        }, expected_status=[200], authorization=self.__api_key,
-        cursor_key="page_token", data_key="entries", max_yields=limit):
+/{urllib.parse.quote(self.scope)}/entries",
+            params={
+                "max_page_size": limit if limit and limit < 100 else 100,
+                "order_by": "desc" if descending else None,
+                "filter": filter,
+            },
+            expected_status=[200],
+            authorization=self.__api_key,
+            cursor_key="page_token",
+            data_key="entries",
+            max_yields=limit,
+        ):
             yield SortedEntry(entry["id"], entry["value"], self.scope)
-    
+
     def get_entry(self, key: str) -> int:
         """
         Gets the value of a key.
@@ -545,20 +666,31 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             must include the scope in the `scope/key` syntax.
         """
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
-            else: scope = self.scope
-        except(ValueError):
+            if not self.scope:
+                scope, key = key.split("/", maxsplit=1)
+            else:
+                scope = self.scope
+        except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, _ = send_request("GET", f"ordered-data-stores/v1/universes/\
+        _, data, _ = send_request(
+            "GET",
+            f"ordered-data-stores/v1/universes/\
 {self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/\
 {urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
-                authorization=self.__api_key, expected_status=[200])
-        
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
         return int(data["value"])
-        
-    def set_entry(self, key: str, value: int, exclusive_create: bool=False,
-            exclusive_update: bool=False) -> int:
+
+    def set_entry(
+        self,
+        key: str,
+        value: int,
+        exclusive_create: bool = False,
+        exclusive_update: bool = False,
+    ) -> int:
         """
         Sets the value of a key.
 
@@ -570,45 +702,48 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             exclusive_update: Wether to fail if the key does not have a value.
         """
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
-            else: scope = self.scope
-        except(ValueError):
+            if not self.scope:
+                scope, key = key.split("/", maxsplit=1)
+            else:
+                scope = self.scope
+        except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
-        if exclusive_create and exclusive_update: raise ValueError(
-            "exclusive_create and exclusive_updated can not both be True"
-        )
+        if exclusive_create and exclusive_update:
+            raise ValueError(
+                "exclusive_create and exclusive_updated can not both be True"
+            )
 
         if not exclusive_create:
-            status_code, data, _ = send_request("PATCH", f"ordered-data-stores\
+            status_code, data, _ = send_request(
+                "PATCH",
+                f"ordered-data-stores\
 /v1/universes/{self.experience.id}/orderedDataStores/\
 {urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries/\
 {urllib.parse.quote(key)}",
-                authorization=self.__api_key, expected_status=[200], params={
-                    "allow_missing": not exclusive_update
-                }, json={
-                    "value": value
-                })
+                authorization=self.__api_key,
+                expected_status=[200],
+                params={"allow_missing": not exclusive_update},
+                json={"value": value},
+            )
         else:
-            status_code, data, _ = send_request("POST", f"ordered-data-stores\
+            status_code, data, _ = send_request(
+                "POST",
+                f"ordered-data-stores\
 /v1/universes/{self.experience.id}/orderedDataStores/\
 {urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
-                authorization=self.__api_key, expected_status=[200, 400, 404],
-                params={
-                    "id": key
-                }, json={
-                    "value": value
-                })
-        
+                authorization=self.__api_key,
+                expected_status=[200, 400, 404],
+                params={"id": key},
+                json={"value": value},
+            )
+
         if status_code == 400:
             if data["message"] == "Entry already exists.":
                 raise PreconditionFailed(None, None, status_code, data)
             else:
                 raise HttpException(status_code, data)
-        
-        if (
-            status_code == 404 and exclusive_update and
-            data["code"] == "NOT_FOUND"
-        ):
+
+        if status_code == 404 and exclusive_update and data["code"] == "NOT_FOUND":
             raise PreconditionFailed(status_code, data)
 
         return int(data["value"])
@@ -623,41 +758,47 @@ scope=\"{self.scope}\" experience={repr(self.experience)}>"
             decrease the value.
         """
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
-            else: scope = self.scope
-        except(ValueError): raise ValueError(
-            "'scope/key' syntax expected for key."
-        )
+            if not self.scope:
+                scope, key = key.split("/", maxsplit=1)
+            else:
+                scope = self.scope
+        except ValueError:
+            raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, _ = send_request("POST", f"ordered-data-stores/v1/\
+        _, data, _ = send_request(
+            "POST",
+            f"ordered-data-stores/v1/\
 universes/{self.experience.id}/orderedDataStores/\
 {urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}\
 /entries/{urllib.parse.quote(key)}:increment",
-            authorization=self.__api_key, expected_status=[200], json={
-                "amount": delta
-            })
-        
-        
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={"amount": delta},
+        )
+
         return int(data["value"])
 
     def remove_entry(self, key: str) -> None:
         """
         Removes a key.
-        
+
         Args:
             key: The key to remove.
         """
 
         try:
-            if not self.scope: scope, key = key.split("/", maxsplit=1)
-            else: scope = self.scope
-        except(ValueError): raise ValueError(
-            "'scope/key' syntax expected for key."
-        )
+            if not self.scope:
+                scope, key = key.split("/", maxsplit=1)
+            else:
+                scope = self.scope
+        except ValueError:
+            raise ValueError("'scope/key' syntax expected for key.")
 
         send_request(
-            "DELETE", f"ordered-data-stores/v1/universes/\
+            "DELETE",
+            f"ordered-data-stores/v1/universes/\
 {self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/\
 {urllib.parse.quote(scope)}/entries/{urllib.parse.quote(key)}",
-            authorization=self.__api_key, expected_status=[200, 204]
+            authorization=self.__api_key,
+            expected_status=[200, 204],
         )
