@@ -80,11 +80,8 @@ user = rblxopencloud.User(13058, api_key="api-key-from-step-2")
 group = rblxopencloud.Group(13058, api_key="api-key-from-step-2")
 
 # this example is for uploading a decal:
-with open("path-to/file-object.png", "rb") as file:
-    asset = user.upload_asset(file, rblxopencloud.AssetType.Decal, "name", "description")
-
-while not isinstance(asset, rblxopencloud.Asset):
-    asset = asset.fetch_operation()
+with open("path/to/file.png", "rb", encoding="utf-8") as file:
+    asset = user.upload_asset(file, rblxopencloud.AssetType.Decal, "name", "description").wait()
 
 print(asset)
 ```
