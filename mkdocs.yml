@@ -6,19 +6,19 @@ repo_url: https://github.com/treeben77/rblx-open-cloud
 edit_uri: tree/main/docs/
 theme:
   name: material
-  icon:
-    repo: fontawesome/brands/github
+  # logo: assets/logo.svg
+  # favicon: assets/logo.svg
   features:
     - content.code.copy
     - content.action.edit
     - content.tabs.link
     - navigation.sections
+    # - navigation.tabs
   palette:
     scheme: slate
 extra_css:
   - extra.css
 plugins:
-  - autorefs
   - search
   - mkdocstrings:
       handlers:
@@ -45,10 +45,9 @@ extra:
       link: https://devforum.roblox.com/t/1991959
     - icon: simple/github
       link: https://github.com/treeben77/rblx-open-cloud
+
 markdown_extensions:
   - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
@@ -56,20 +55,20 @@ markdown_extensions:
   - admonition
   - footnotes
   - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
 use_directory_urls: false
 nav:
-  - Introduction: index.md
-  - Migrating to v2: v2.md
+  - Overview: index.md
   - Asynchronous: asynchronous.md
   - Guides:
+    - Authentication: guides/authentication.md
+    - Basic: guides/basic.md
     - Experience: guides/experience.md
     - Group: guides/group.md
     - User: guides/user.md
     - OAuth2: guides/oauth2.md
+    - Migrating to v2.0: guides/v2.md
   - Reference:
     - Library: reference/library.md
     - Experience: reference/experience.md
