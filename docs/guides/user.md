@@ -1,5 +1,4 @@
-# Group
-
+# User
 The [`rblxopencloud.User`][rblxopencloud.User] object allows access to user info, and uploading assets.
 
 ## Accessing User Information
