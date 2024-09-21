@@ -63,7 +63,9 @@ class experience_subscriptions(unittest.TestCase):
         self.assertEqual(subscription.active, False)
         self.assertEqual(subscription.product_id, "EXP-2491104735766773879")
         self.assertEqual(subscription.user_id, 287113233)
-        self.assertEqual(subscription.state, rblxopencloud.SubscriptionState.Expired)
+        self.assertEqual(
+            subscription.state, rblxopencloud.SubscriptionState.Expired
+        )
         self.assertEqual(
             subscription.expiration_reason,
             rblxopencloud.SubscriptionExpirationReason.Cancelled,
@@ -76,7 +78,9 @@ class experience_info(unittest.TestCase):
         result = experience.fetch_info()
 
         self.assertEqual(experience, result)
-        self.assertEqual(experience.name, "treeben77's very awesome test experience!")
+        self.assertEqual(
+            experience.name, "treeben77's very awesome test experience!"
+        )
         self.assertEqual(
             experience.discord_social_link.uri, "https://discord.gg/6Y3bzJ59KU"
         )

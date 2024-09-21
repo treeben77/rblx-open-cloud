@@ -111,7 +111,9 @@ class EntryVersion:
             and self.version == object.version
         )
 
-    def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+    def get_value(
+        self,
+    ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of this version. Shortcut for `DataStore.get_version`
         """
@@ -229,7 +231,11 @@ scope="{self.scope}" experience={repr(self.experience)}>'
 /datastore/entries/entry",
             authorization=self.__api_key,
             expected_status=[200],
-            params={"datastoreName": self.name, "scope": scope, "entryKey": key},
+            params={
+                "datastoreName": self.name,
+                "scope": scope,
+                "entryKey": key,
+            },
         )
 
         if headers.get("roblox-entry-attributes"):
@@ -438,7 +444,11 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry",
             authorization=self.__api_key,
-            params={"datastoreName": self.name, "scope": scope, "entryKey": key},
+            params={
+                "datastoreName": self.name,
+                "scope": scope,
+                "entryKey": key,
+            },
             expected_status=[204],
         )
 
@@ -629,7 +639,9 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         """
 
         if not self.scope:
-            raise ValueError("scope is required to list keys with OrderedDataStore.")
+            raise ValueError(
+                "scope is required to list keys with OrderedDataStore."
+            )
 
         filter = None
         if min and max:

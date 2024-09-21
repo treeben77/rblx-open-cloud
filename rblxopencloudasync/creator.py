@@ -264,7 +264,9 @@ class Creator:
 
         payload = {
             "assetType": (
-                asset_type.name if type(asset_type) == AssetType else asset_type
+                asset_type.name
+                if type(asset_type) == AssetType
+                else asset_type
             ),
             "creationContext": {
                 "creator": (
@@ -449,7 +451,9 @@ class Creator:
 
         return AssetVersion(data)
 
-    async def rollback_asset(self, asset_id: int, version_number: int) -> AssetVersion:
+    async def rollback_asset(
+        self, asset_id: int, version_number: int
+    ) -> AssetVersion:
         """
         Reverts the asset to a previous version specified.
 
@@ -466,7 +470,9 @@ class Creator:
             f"assets/v1/assets/{asset_id}/versions:rollback",
             authorization=self.__api_key,
             expected_status=[200],
-            json={"assetVersion": f"assets/{asset_id}/versions/{version_number}"},
+            json={
+                "assetVersion": f"assets/{asset_id}/versions/{version_number}"
+            },
         )
 
         return AssetVersion(data)

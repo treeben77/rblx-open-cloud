@@ -61,7 +61,9 @@ class Webhook:
     """
 
     def __init__(
-        self, secret: Optional[Union[str, bytes]] = None, api_key: Optional[str] = None
+        self,
+        secret: Optional[Union[str, bytes]] = None,
+        api_key: Optional[str] = None,
     ) -> None:
         self.secret: Optional[bytes] = (
             secret.encode() if type(secret) == str else secret
@@ -130,7 +132,9 @@ class Webhook:
         try:
             event_type = EVENT_TYPES.get(body["EventType"])
             if not event_type:
-                raise UnknownEventType(f"Unkown webhook event type '{event_type}'")
+                raise UnknownEventType(
+                    f"Unkown webhook event type '{event_type}'"
+                )
 
             if event_type == "on_test":
                 notification = TestNotification(body, self, self.__api_key)
@@ -169,7 +173,9 @@ class Webhook:
             self.__on_error = func
         else:
             if func.__name__ not in EVENT_TYPES.values():
-                raise ValueError(f"'{func.__name__}' is not a valid event name.")
+                raise ValueError(
+                    f"'{func.__name__}' is not a valid event name."
+                )
 
             self.__events[func.__name__] = func
 

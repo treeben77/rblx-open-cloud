@@ -339,7 +339,9 @@ class UserRestriction:
         self.display_reason: str = restriction_info["displayReason"]
         self.private_reason: str = restriction_info["privateReason"]
         self.inherited: Optional[bool] = restriction_info.get("inherited")
-        self.exclude_alt_accounts: bool = restriction_info["excludeAltAccounts"]
+        self.exclude_alt_accounts: bool = restriction_info[
+            "excludeAltAccounts"
+        ]
 
         duration = restriction_info.get("duration")
         self.duration_seconds: Optional[int] = (
@@ -418,7 +420,10 @@ experience={repr(self.experience)}>"
         return self.__update_params(data)
 
     def update(
-        self, name: str = None, description: str = None, server_size: int = None
+        self,
+        name: str = None,
+        description: str = None,
+        server_size: int = None,
     ) -> "Place":
         """
         Updates information for the place and fills the empty parameters.
@@ -456,7 +461,9 @@ experience={repr(self.experience)}>"
 
         return self.__update_params(data)
 
-    def upload_place_file(self, file: io.BytesIO, publish: bool = False) -> int:
+    def upload_place_file(
+        self, file: io.BytesIO, publish: bool = False
+    ) -> int:
         """
         Uploads the place file to Roblox, optionally choosing to publish it.
 
@@ -535,7 +542,9 @@ experience={repr(self.experience)}>"
             json={
                 "gameJoinRestriction": {
                     "active": True,
-                    "duration": (f"{duration_seconds}s" if duration_seconds else None),
+                    "duration": (
+                        f"{duration_seconds}s" if duration_seconds else None
+                    ),
                     "excludeAltAccounts": exclude_alt_accounts,
                     "displayReason": display_reason,
                     "privateReason": private_reason,
@@ -682,16 +691,22 @@ class Experience:
         self.description = data["description"]
 
         self.created_at = (
-            parser.parse(data["createTime"]) if data.get("createTime") else None
+            parser.parse(data["createTime"])
+            if data.get("createTime")
+            else None
         )
         self.updated_at = (
-            parser.parse(data["updateTime"]) if data.get("updateTime") else None
+            parser.parse(data["updateTime"])
+            if data.get("updateTime")
+            else None
         )
 
         if data.get("user"):
             self.owner = User(int(data["user"].split("/")[1]), self.__api_key)
         elif data.get("group"):
-            self.owner = Group(int(data["group"].split("/")[1]), self.__api_key)
+            self.owner = Group(
+                int(data["group"].split("/")[1]), self.__api_key
+            )
         else:
             self.owner = None
 
@@ -704,7 +719,8 @@ class Experience:
 
         self.facebook_social_link = (
             ExperienceSocialLink(
-                data["facebookSocialLink"]["title"], data["facebookSocialLink"]["uri"]
+                data["facebookSocialLink"]["title"],
+                data["facebookSocialLink"]["uri"],
             )
             if data.get("facebookSocialLink")
             else None
@@ -712,7 +728,8 @@ class Experience:
 
         self.twitter_social_link = (
             ExperienceSocialLink(
-                data["twitterSocialLink"]["title"], data["twitterSocialLink"]["uri"]
+                data["twitterSocialLink"]["title"],
+                data["twitterSocialLink"]["uri"],
             )
             if data.get("twitterSocialLink")
             else None
@@ -720,7 +737,8 @@ class Experience:
 
         self.youtube_social_link = (
             ExperienceSocialLink(
-                data["youtubeSocialLink"]["title"], data["youtubeSocialLink"]["uri"]
+                data["youtubeSocialLink"]["title"],
+                data["youtubeSocialLink"]["uri"],
             )
             if data.get("youtubeSocialLink")
             else None
@@ -728,7 +746,8 @@ class Experience:
 
         self.twitch_social_link = (
             ExperienceSocialLink(
-                data["twitchSocialLink"]["title"], data["twitchSocialLink"]["uri"]
+                data["twitchSocialLink"]["title"],
+                data["twitchSocialLink"]["uri"],
             )
             if data.get("twitchSocialLink")
             else None
@@ -736,7 +755,8 @@ class Experience:
 
         self.discord_social_link = (
             ExperienceSocialLink(
-                data["discordSocialLink"]["title"], data["discordSocialLink"]["uri"]
+                data["discordSocialLink"]["title"],
+                data["discordSocialLink"]["uri"],
             )
             if data.get("discordSocialLink")
             else None
@@ -753,7 +773,8 @@ class Experience:
 
         self.guilded_social_link = (
             ExperienceSocialLink(
-                data["guildedSocialLink"]["title"], data["guildedSocialLink"]["uri"]
+                data["guildedSocialLink"]["title"],
+                data["guildedSocialLink"]["uri"],
             )
             if data.get("guildedSocialLink")
             else None
@@ -921,7 +942,9 @@ class Experience:
 
         return Place(place_id, None, self.__api_key, self)
 
-    def get_datastore(self, name: str, scope: Optional[str] = "global") -> DataStore:
+    def get_datastore(
+        self, name: str, scope: Optional[str] = "global"
+    ) -> DataStore:
         """
         Creates a [`DataStore`][rblxopencloud.DataStore] with the provided \
         name and scope.
@@ -954,7 +977,10 @@ class Experience:
         return OrderedDataStore(name, self, self.__api_key, scope)
 
     def list_datastores(
-        self, prefix: str = "", limit: int = None, scope: Optional[str] = "global"
+        self,
+        prefix: str = "",
+        limit: int = None,
+        scope: Optional[str] = "global",
     ) -> Iterable[DataStore]:
         """
         Iterates all data stores in the experience.
@@ -981,7 +1007,11 @@ class Experience:
             cursor_key="cursor",
         ):
             yield DataStore(
-                entry["name"], self, self.__api_key, entry["createdTime"], scope
+                entry["name"],
+                self,
+                self.__api_key,
+                entry["createdTime"],
+                scope,
             )
 
     def get_sorted_map(self, name: str) -> SortedMap:
@@ -1085,7 +1115,9 @@ classes/MessagingService).
                         {"launchData": launch_data} if launch_data else None
                     ),
                     "analyticsData": (
-                        {"category": analytics_category} if analytics_category else None
+                        {"category": analytics_category}
+                        if analytics_category
+                        else None
                     ),
                 },
             },
@@ -1129,7 +1161,9 @@ classes/MessagingService).
             True,
         )
 
-    def fetch_subscription(self, product_id: str, user_id: int) -> Subscription:
+    def fetch_subscription(
+        self, product_id: str, user_id: int
+    ) -> Subscription:
         """
         Fetches information about a user's subscription to a product within \
         the experience.
@@ -1246,7 +1280,9 @@ classes/MessagingService).
             json={
                 "gameJoinRestriction": {
                     "active": True,
-                    "duration": (f"{duration_seconds}s" if duration_seconds else None),
+                    "duration": (
+                        f"{duration_seconds}s" if duration_seconds else None
+                    ),
                     "excludeAltAccounts": exclude_alt_accounts,
                     "displayReason": display_reason,
                     "privateReason": private_reason,
@@ -1305,5 +1341,9 @@ be used with caution.
             f"legacy-badges/v1/badges/{badge_id}",
             authorization=self.__api_key,
             expected_status=[200],
-            json={"name": name, "description": description, "enabled": enabled},
+            json={
+                "name": name,
+                "description": description,
+                "enabled": enabled,
+            },
         )

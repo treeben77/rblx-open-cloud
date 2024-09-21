@@ -86,22 +86,26 @@ class HttpException(BaseException):
         provides more details about an error.
     """
 
-    def __init__(self, status: int = None, body: Union[dict, str] = None) -> None:
+    def __init__(
+        self, status: int = None, body: Union[dict, str] = None
+    ) -> None:
 
         self.status_code: Optional[int] = status
 
         if type(body) == dict and body.get("errors"):
-            self.error_code: Optional[Union[str, int]] = body["errors"][0].get("code")
+            self.error_code: Optional[Union[str, int]] = body["errors"][0].get(
+                "code"
+            )
             self.message: Optional[str] = body["errors"][0].get("message")
             self.details: Optional[list[dict]] = body["errors"]
         elif type(body) == dict:
-            self.error_code: Optional[Union[str, int]] = body.get("code") or body.get(
-                "error"
-            )
+            self.error_code: Optional[Union[str, int]] = body.get(
+                "code"
+            ) or body.get("error")
             self.message: Optional[str] = body.get("message")
-            self.details: Optional[list[dict]] = body.get("details") or body.get(
-                "errorDetails"
-            )
+            self.details: Optional[list[dict]] = body.get(
+                "details"
+            ) or body.get("errorDetails")
         elif type(body) == str:
             self.error_code: Optional[Union[str, int]] = None
             self.message = body

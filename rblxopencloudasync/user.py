@@ -212,16 +212,18 @@ class InventoryAsset(InventoryItem):
         self.collectable_instance_id: Optional[str] = data.get(
             "collectibleDetails", {}
         ).get("instanceId", None)
-        self.serial_number: Optional[int] = data.get("collectibleDetails", {}).get(
-            "serialNumber", None
-        )
+        self.serial_number: Optional[int] = data.get(
+            "collectibleDetails", {}
+        ).get("serialNumber", None)
 
         collectable_state = data.get("collectibleDetails", {}).get(
             "instanceState", None
         )
         self.collectable_state: Optional[InventoryItemState] = (
             InventoryItemState(
-                STATE_TYPE_STRINGS.get(collectable_state, InventoryItemState.Unknown)
+                STATE_TYPE_STRINGS.get(
+                    collectable_state, InventoryItemState.Unknown
+                )
             )
             if collectable_state
             else None
@@ -335,7 +337,9 @@ class UserSocialLinks:
 
         for param in social_links_params:
             if self.__getattribute__(param):
-                social_links.append(f'{param}="{self.__getattribute__(param)}"')
+                social_links.append(
+                    f'{param}="{self.__getattribute__(param)}"'
+                )
 
         return f"<rblxopencloud.UserSocialLinks {' '.join(social_links)}\
 {' ' if social_links else ''}visibility={self.visibility}>"
@@ -502,7 +506,10 @@ class User(Creator):
     ) -> AsyncGenerator[
         Any,
         Union[
-            InventoryAsset, InventoryBadge, InventoryGamePass, InventoryPrivateServer
+            InventoryAsset,
+            InventoryBadge,
+            InventoryGamePass,
+            InventoryPrivateServer,
         ],
     ]:
         """
@@ -541,7 +548,9 @@ class User(Creator):
 
         if assets is True:
             filter["inventoryItemAssetTypes"] = "*"
-        elif type(assets) == list and isinstance(assets[0], InventoryAssetType):
+        elif type(assets) == list and isinstance(
+            assets[0], InventoryAssetType
+        ):
 
             asset_types = []
             for asset_type in assets:

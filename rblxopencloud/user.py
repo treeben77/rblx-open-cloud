@@ -213,16 +213,18 @@ class InventoryAsset(InventoryItem):
         self.collectable_instance_id: Optional[str] = data.get(
             "collectibleDetails", {}
         ).get("instanceId", None)
-        self.serial_number: Optional[int] = data.get("collectibleDetails", {}).get(
-            "serialNumber", None
-        )
+        self.serial_number: Optional[int] = data.get(
+            "collectibleDetails", {}
+        ).get("serialNumber", None)
 
         collectable_state = data.get("collectibleDetails", {}).get(
             "instanceState", None
         )
         self.collectable_state: Optional[InventoryItemState] = (
             InventoryItemState(
-                STATE_TYPE_STRINGS.get(collectable_state, InventoryItemState.Unknown)
+                STATE_TYPE_STRINGS.get(
+                    collectable_state, InventoryItemState.Unknown
+                )
             )
             if collectable_state
             else None
@@ -336,7 +338,9 @@ class UserSocialLinks:
 
         for param in social_links_params:
             if self.__getattribute__(param):
-                social_links.append(f'{param}="{self.__getattribute__(param)}"')
+                social_links.append(
+                    f'{param}="{self.__getattribute__(param)}"'
+                )
 
         return f"<rblxopencloud.UserSocialLinks {' '.join(social_links)}\
 {' ' if social_links else ''}visibility={self.visibility}>"
@@ -391,10 +395,14 @@ class UserExperienceFollowing:
             True if not status_payload else status_payload["CanFollow"]
         )
         self.following_count: Optional[int] = (
-            None if not status_payload else status_payload["FollowingCountByType"]
+            None
+            if not status_payload
+            else status_payload["FollowingCountByType"]
         )
         self.following_limit: Optional[int] = (
-            None if not status_payload else status_payload["FollowingLimitByType"]
+            None
+            if not status_payload
+            else status_payload["FollowingLimitByType"]
         )
 
     def __repr__(self) -> str:
@@ -549,7 +557,12 @@ class User(Creator):
         game_passes: Union[list[int], bool] = False,
         private_servers: Union[list[int], bool] = False,
     ) -> Iterable[
-        Union[InventoryAsset, InventoryBadge, InventoryGamePass, InventoryPrivateServer]
+        Union[
+            InventoryAsset,
+            InventoryBadge,
+            InventoryGamePass,
+            InventoryPrivateServer,
+        ]
     ]:
         """
         Interates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \
@@ -587,7 +600,9 @@ class User(Creator):
 
         if assets is True:
             filter["inventoryItemAssetTypes"] = "*"
-        elif type(assets) == list and isinstance(assets[0], InventoryAssetType):
+        elif type(assets) == list and isinstance(
+            assets[0], InventoryAssetType
+        ):
 
             asset_types = []
             for asset_type in assets:
@@ -697,7 +712,9 @@ be used with caution.
             expected_status=[200],
         )
 
-        return UserExperienceFollowing(self.__api_key, experience_id, None, data)
+        return UserExperienceFollowing(
+            self.__api_key, experience_id, None, data
+        )
 
     def follow_experience(self, experience_id: int):
         """

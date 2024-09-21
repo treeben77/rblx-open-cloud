@@ -78,7 +78,9 @@ class AccessTokenInfo:
         self.expires_at: datetime.datetime = datetime.datetime.fromtimestamp(
             data["exp"]
         )
-        self.issued_at: datetime.datetime = datetime.datetime.fromtimestamp(data["iat"])
+        self.issued_at: datetime.datetime = datetime.datetime.fromtimestamp(
+            data["iat"]
+        )
 
     def __repr__(self) -> str:
         return f'<rblxopencloud.AccessTokenInfo \
@@ -254,13 +256,14 @@ class AccessToken(PartialAccessToken):
         super().__init__(app, payload["access_token"])
         self.refresh_token: str = payload["refresh_token"]
         self.scope: list[str] = payload["scope"].split(" ")
-        self.expires_at: datetime = datetime.datetime.now() + datetime.timedelta(
-            payload["expires_in"]
+        self.expires_at: datetime = (
+            datetime.datetime.now() + datetime.timedelta(payload["expires_in"])
         )
 
         if id_token:
             self.user: Optional[User] = User(
-                id_token.get("id") or id_token.get("sub"), f"Bearer {self.token}"
+                id_token.get("id") or id_token.get("sub"),
+                f"Bearer {self.token}",
             )
             self.user.username = id_token.get("preferred_username")
             self.user.display_name = id_token.get("nickname")
@@ -336,8 +339,12 @@ redirect_uri="{self.redirect_uri}")'
         for cert in certs["keys"]:
             public_key = (
                 ec.EllipticCurvePublicNumbers(
-                    int.from_bytes(base64.urlsafe_b64decode(cert["x"] + "=="), "big"),
-                    int.from_bytes(base64.urlsafe_b64decode(cert["y"] + "=="), "big"),
+                    int.from_bytes(
+                        base64.urlsafe_b64decode(cert["x"] + "=="), "big"
+                    ),
+                    int.from_bytes(
+                        base64.urlsafe_b64decode(cert["y"] + "=="), "big"
+                    ),
                     ec.SECP256R1(),
                 )
                 .public_key(default_backend())
@@ -422,7 +429,9 @@ redirect_uri="{self.redirect_uri}")'
 
         return f"https://apis.roblox.com/oauth/v1/authorize?{params}"
 
-    def from_access_token_string(self, access_token: str) -> PartialAccessToken:
+    def from_access_token_string(
+        self, access_token: str
+    ) -> PartialAccessToken:
         """
         Creates a [`PartialAccessToken`][rblxopencloud.PartialAccessToken] \
         from an access token string, fairly useless due to these tokens \
@@ -543,5 +552,9 @@ redirect_uri="{self.redirect_uri}")'
             "POST",
             "oauth/v1/token/revoke",
             expected_status=[200],
-            data={"client_id": self.id, "client_secret": self.__secret, "token": token},
+            data={
+                "client_id": self.id,
+                "client_secret": self.__secret,
+                "token": token,
+            },
         )

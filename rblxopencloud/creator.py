@@ -264,7 +264,9 @@ class Creator:
 
         payload = {
             "assetType": (
-                asset_type.name if type(asset_type) == AssetType else asset_type
+                asset_type.name
+                if type(asset_type) == AssetType
+                else asset_type
             ),
             "creationContext": {
                 "creator": (
@@ -426,7 +428,9 @@ class Creator:
         ):
             yield AssetVersion(entry, self)
 
-    def fetch_asset_version(self, asset_id: int, version_number: int) -> AssetVersion:
+    def fetch_asset_version(
+        self, asset_id: int, version_number: int
+    ) -> AssetVersion:
         """
         Fetches the version for a specific version number of the asset.
 
@@ -447,7 +451,9 @@ class Creator:
 
         return AssetVersion(data)
 
-    def rollback_asset(self, asset_id: int, version_number: int) -> AssetVersion:
+    def rollback_asset(
+        self, asset_id: int, version_number: int
+    ) -> AssetVersion:
         """
         Reverts the asset to a previous version specified.
 
@@ -464,7 +470,9 @@ class Creator:
             f"assets/v1/assets/{asset_id}/versions:rollback",
             authorization=self.__api_key,
             expected_status=[200],
-            json={"assetVersion": f"assets/{asset_id}/versions/{version_number}"},
+            json={
+                "assetVersion": f"assets/{asset_id}/versions/{version_number}"
+            },
         )
 
         return AssetVersion(data)

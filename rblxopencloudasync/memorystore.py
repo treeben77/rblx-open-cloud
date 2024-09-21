@@ -216,7 +216,9 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
                     "Value": value,
                     "Ttl": f"{expiration_seconds}s",
                     (
-                        "stringSortKey" if type(sort_key) == str else "numericSortKey"
+                        "stringSortKey"
+                        if type(sort_key) == str
+                        else "numericSortKey"
                     ): sort_key,
                 },
             )
@@ -232,7 +234,9 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
                     "value": value,
                     "ttl": f"{expiration_seconds}s",
                     (
-                        "stringSortKey" if type(sort_key) == str else "numericSortKey"
+                        "stringSortKey"
+                        if type(sort_key) == str
+                        else "numericSortKey"
                     ): sort_key,
                 },
             )
@@ -316,7 +320,11 @@ class MemoryStoreQueue:
 queues/{urllib.parse.quote_plus(self.name)}/items:add",
             authorization=self.__api_key,
             expected_status=[200],
-            json={"Data": value, "Ttl": f"{expiration_seconds}s", "Priority": priority},
+            json={
+                "Data": value,
+                "Ttl": f"{expiration_seconds}s",
+                "Priority": priority,
+            },
         )
 
     async def read_items(

@@ -3,7 +3,9 @@ import re
 from setuptools import setup
 
 with open("rblxopencloud/__init__.py", "r") as file:
-    version = re.search(r"VERSION: str = \"(\d+\.\d+\.\d+)\"", file.read()).group(1)
+    version = re.search(
+        r"VERSION: str = \"(\d+\.\d+\.\d+)\"", file.read()
+    ).group(1)
 
 with open("README.md", "r") as file:
     long_description = file.read()

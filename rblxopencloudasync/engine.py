@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING, Optional, Union
 
-
 from .http import Operation, send_request
 
 if TYPE_CHECKING:
@@ -8,14 +7,20 @@ if TYPE_CHECKING:
 
 
 class Instance:
-    def __init__(self, id, data=None, place=None, parent=None, api_key=None) -> None:
+    def __init__(
+        self, id, data=None, place=None, parent=None, api_key=None
+    ) -> None:
         self.id: str = id
         self.place: Place = place
-        self.name: Optional[str] = data["engineInstance"]["Name"] if data else None
+        self.name: Optional[str] = (
+            data["engineInstance"]["Name"] if data else None
+        )
         self.parent: Optional[Instance] = parent or (
             Instance(data["engineInstance"]["Parent"]) if data else None
         )
-        self.has_children: Optional[bool] = data["hasChildren"] if data else None
+        self.has_children: Optional[bool] = (
+            data["hasChildren"] if data else None
+        )
         self.__api_key = api_key
 
     @classmethod
@@ -60,9 +65,13 @@ name="{self.name}">'
 
             return instance_objects
 
-        return Operation(f"/{data['path']}", self.__api_key, operation_callable)
+        return Operation(
+            f"/{data['path']}", self.__api_key, operation_callable
+        )
 
-    def _update_raw(self, instance_type: str, details: dict) -> Operation[True]:
+    def _update_raw(
+        self, instance_type: str, details: dict
+    ) -> Operation[True]:
         _, data, _ = await send_request(
             "PATCH",
             "/universes/"
@@ -77,7 +86,9 @@ name="{self.name}">'
 
 
 class Script(Instance):
-    def __init__(self, id, data=None, place=None, parent=None, api_key=None) -> None:
+    def __init__(
+        self, id, data=None, place=None, parent=None, api_key=None
+    ) -> None:
 
         details = list(data["engineInstance"]["Details"].values())[0]
 

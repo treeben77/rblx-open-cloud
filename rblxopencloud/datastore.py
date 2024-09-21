@@ -111,7 +111,9 @@ class EntryVersion:
             and self.version == object.version
         )
 
-    def get_value(self) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
+    def get_value(
+        self,
+    ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of this version. Shortcut for `DataStore.get_version`
         """
@@ -176,7 +178,9 @@ class DataStore:
         return f'<rblxopencloud.DataStore name="{self.name}" \
 scope="{self.scope}" experience={repr(self.experience)}>'
 
-    def list_keys(self, prefix: str = "", limit: int = None) -> Iterable[ListedEntry]:
+    def list_keys(
+        self, prefix: str = "", limit: int = None
+    ) -> Iterable[ListedEntry]:
         """
         Iterates all keys in the database and scope, optionally matching a \
         prefix.
@@ -227,7 +231,11 @@ scope="{self.scope}" experience={repr(self.experience)}>'
 /datastore/entries/entry",
             authorization=self.__api_key,
             expected_status=[200],
-            params={"datastoreName": self.name, "scope": scope, "entryKey": key},
+            params={
+                "datastoreName": self.name,
+                "scope": scope,
+                "entryKey": key,
+            },
         )
 
         if headers.get("roblox-entry-attributes"):
@@ -436,7 +444,11 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry",
             authorization=self.__api_key,
-            params={"datastoreName": self.name, "scope": scope, "entryKey": key},
+            params={
+                "datastoreName": self.name,
+                "scope": scope,
+                "entryKey": key,
+            },
             expected_status=[204],
         )
 
@@ -627,7 +639,9 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         """
 
         if not self.scope:
-            raise ValueError("scope is required to list keys with OrderedDataStore.")
+            raise ValueError(
+                "scope is required to list keys with OrderedDataStore."
+            )
 
         filter = None
         if min and max:
@@ -743,7 +757,11 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             else:
                 raise HttpException(status_code, data)
 
-        if status_code == 404 and exclusive_update and data["code"] == "NOT_FOUND":
+        if (
+            status_code == 404
+            and exclusive_update
+            and data["code"] == "NOT_FOUND"
+        ):
             raise PreconditionFailed(status_code, data)
 
         return int(data["value"])

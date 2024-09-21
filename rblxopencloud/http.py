@@ -111,14 +111,22 @@ def send_request(
 
     if authorization:
         headers[
-            "authorization" if authorization.startswith("Bearer ") else "x-api-key"
+            (
+                "authorization"
+                if authorization.startswith("Bearer ")
+                else "x-api-key"
+            )
         ] = authorization
 
     if path.startswith("/"):
         path = f"cloud/v2{path}"
 
     response = http_session.request(
-        method, f"https://apis.roblox.com/{path}", headers=headers, **kwargs, timeout=10
+        method,
+        f"https://apis.roblox.com/{path}",
+        headers=headers,
+        **kwargs,
+        timeout=10,
     )
 
     if "application/json" in response.headers.get("Content-Type", ""):
@@ -278,7 +286,9 @@ class Operation(Generic[T]):
 
         if self.__cached_response:
             if callable(self.__return_type):
-                return self.__return_type(self.__cached_response, **self.__return_meta)
+                return self.__return_type(
+                    self.__cached_response, **self.__return_meta
+                )
             else:
                 return self.__return_type
 

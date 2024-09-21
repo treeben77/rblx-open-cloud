@@ -56,10 +56,14 @@ class GroupShout:
         self.content: str = shout["content"]
         self.user: User = User(int(shout["poster"].split("/")[1]), api_key)
         self.created_at: datetime.datetime = (
-            parser.parse(shout["updateTime"]) if shout.get("updateTime") else None
+            parser.parse(shout["updateTime"])
+            if shout.get("updateTime")
+            else None
         )
         self.first_created_at: datetime.datetime = (
-            parser.parse(shout["createTime"]) if shout.get("createTime") else None
+            parser.parse(shout["createTime"])
+            if shout.get("createTime")
+            else None
         )
 
     def __repr__(self) -> str:
@@ -107,7 +111,9 @@ class GroupRolePermissions:
         self.create_avatar_items: bool = permissions["createAvatarItems"]
         self.manage_avatar_items: bool = permissions["manageAvatarItems"]
         self.manage_experiences: bool = permissions["manageGroupUniverses"]
-        self.view_experience_analytics: bool = permissions["viewUniverseAnalytics"]
+        self.view_experience_analytics: bool = permissions[
+            "viewUniverseAnalytics"
+        ]
         self.create_api_keys: bool = permissions["createApiKeys"]
         self.manage_api_keys: bool = permissions["manageApiKeys"]
 
@@ -167,7 +173,9 @@ class GroupMember(User):
         self.id: int = int(member["user"].split("/")[1])
         self.role_id: int = int(member["role"].split("/")[-1])
         self.group: Group = (
-            group if group else Group(int(member["role"].split("/")[1]), api_key)
+            group
+            if group
+            else Group(int(member["role"].split("/")[1]), api_key)
         )
         self.joined_at: datetime.datetime = parser.parse(member["createTime"])
         self.updated_at: datetime.datetime = parser.parse(member["updateTime"])
@@ -212,7 +220,9 @@ class GroupJoinRequest(User):
     def __init__(self, member, api_key, group=None) -> None:
         self.id: int = int(member["user"].split("/")[1])
         self.group: Group = group
-        self.requested_at: datetime.datetime = parser.parse(member["createTime"])
+        self.requested_at: datetime.datetime = parser.parse(
+            member["createTime"]
+        )
 
         super().__init__(self.id, api_key)
 
@@ -300,10 +310,14 @@ class Group(Creator):
         self.name = data["displayName"]
         self.description = data["description"]
         self.created_at = (
-            parser.parse(data["createTime"]) if data.get("createTime") else None
+            parser.parse(data["createTime"])
+            if data.get("createTime")
+            else None
         )
         self.updated_at = (
-            parser.parse(data["updateTime"]) if data.get("updateTime") else None
+            parser.parse(data["updateTime"])
+            if data.get("updateTime")
+            else None
         )
         self.owner = (
             User(int(data["owner"].split("/")[1]), self.__api_key)
@@ -402,7 +416,9 @@ class Group(Creator):
         ):
             yield GroupMember(entry, self.__api_key, self)
 
-    async def list_roles(self, limit: int = None) -> AsyncGenerator[Any, GroupRole]:
+    async def list_roles(
+        self, limit: int = None
+    ) -> AsyncGenerator[Any, GroupRole]:
         """
         Iterates every role in the group.
         
