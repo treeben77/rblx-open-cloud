@@ -841,21 +841,21 @@ class Experience:
         }, []
 
         # if the key values are not None then add them to the field mask
-        if voice_chat_enabled != None:
+        if voice_chat_enabled is not None:
             field_mask.append("voiceChatEnabled")
-        if desktop_enabled != None:
+        if desktop_enabled is not None:
             field_mask.append("desktopEnabled")
-        if mobile_enabled != None:
+        if mobile_enabled is not None:
             field_mask.append("mobileEnabled")
-        if tablet_enabled != None:
+        if tablet_enabled is not None:
             field_mask.append("tabletEnabled")
-        if console_enabled != None:
+        if console_enabled is not None:
             field_mask.append("consoleEnabled")
-        if vr_enabled != None:
+        if vr_enabled is not None:
             field_mask.append("vrEnabled")
 
-        if private_server_price != None:
-            if private_server_price == True:
+        if private_server_price is not None:
+            if private_server_price is True:
                 raise ValueError(
                     "private_server_robux_price should be either int or False."
                 )
@@ -877,8 +877,8 @@ class Experience:
             "guilded": guilded_social_link,
         }.items():
             # ignore parameters with a value of None
-            if value != None:
-                if value == True:
+            if value is not None:
+                if value is True:
                     raise ValueError(
                         f"{platform}_social_link should be either \
                     ExperienceSocialLink or False."

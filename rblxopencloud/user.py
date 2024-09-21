@@ -582,10 +582,10 @@ class User(Creator):
 
         if only_collectibles:
             filter["onlyCollectibles"] = only_collectibles
-            if assets == None:
+            if assets is None:
                 assets = True
 
-        if assets == True:
+        if assets is True:
             filter["inventoryItemAssetTypes"] = "*"
         elif type(assets) == list and isinstance(assets[0], InventoryAssetType):
 
@@ -601,17 +601,17 @@ class User(Creator):
         elif type(assets) == list:
             filter["assetIds"] = ",".join([str(id) for id in assets])
 
-        if badges == True:
+        if badges is True:
             filter["badges"] = "true"
         elif type(badges) == list:
             filter["badgeIds"] = ",".join([str(id) for id in badges])
 
-        if game_passes == True:
+        if game_passes is True:
             filter["gamePasses"] = "true"
         elif type(game_passes) == list:
             filter["gamePassIds"] = ",".join([str(id) for id in game_passes])
 
-        if private_servers == True:
+        if private_servers is True:
             filter["privateServers"] = "true"
         elif type(badges) == list:
             filter["privateServerIds"] = ",".join(

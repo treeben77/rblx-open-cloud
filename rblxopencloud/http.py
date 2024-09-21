@@ -171,7 +171,7 @@ def iterate_request(
 
     next_cursor, yields = "", 0
 
-    while max_yields == None or yields < max_yields:
+    while max_yields is None or yields < max_yields:
 
         if not kwargs.get("params"):
             kwargs["params"] = {}
@@ -185,7 +185,7 @@ def iterate_request(
             yield entry
 
             yields += 1
-            if max_yields != None and yields >= max_yields:
+            if max_yields is not None and yields >= max_yields:
                 break
 
         next_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
@@ -217,7 +217,7 @@ class Operation(Generic[T]):
         self.__return_type: T = return_type
         self.__return_meta: dict = return_meta
         self.__cached_response: dict = cached_response
-        self.is_done: bool = cached_response != None
+        self.is_done: bool = cached_response is not None
 
     def __repr__(self) -> str:
         return "<rblxopencloud.Operation>"

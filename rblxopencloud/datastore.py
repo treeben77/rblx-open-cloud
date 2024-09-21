@@ -278,7 +278,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
                 "previous_version and exclusive_create are mutally exclusive."
             )
 
-        if users == None:
+        if users is None:
             users = []
 
         try:
@@ -369,7 +369,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             metadata: a dict of metadata to attach to the entry.
         """
 
-        if users == None:
+        if users is None:
             users = []
 
         try:
