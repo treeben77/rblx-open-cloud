@@ -32,9 +32,11 @@ from urllib import parse
 import jwt
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.serialization import (Encoding,
-                                                          PublicFormat,
-                                                          load_der_public_key)
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PublicFormat,
+    load_der_public_key,
+)
 
 from .exceptions import BaseException, HttpException, InvalidCode
 from .experience import Experience
