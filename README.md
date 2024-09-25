@@ -4,7 +4,12 @@
 [![DevForum Post](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdevforum.roproxy.com%2Ft%2F1991959.json&query=%24.like_count&suffix=%20Likes&style=for-the-badge&logo=robloxstudio&logoColor=white&label=DevForum%20Post&labelColor=%23009fff&color=%23353535)](https://devforum.roblox.com/t/1991959)
 [![Downloads](https://img.shields.io/pypi/dm/rblx-open-cloud?style=for-the-badge&logo=pypi&logoColor=white&label=PyPi%20Downloads&labelColor=%23006dad&color=%23353535)](https://pypi.org/project/rblx-open-cloud)
 
-rblx-open-cloud is a Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/open-cloud/index). It supports all experience and creator APIs, OAuth2, and incoming webhooks.
+rblx-open-cloud is a Python API wrapper for [Roblox Open Cloud](https://create.roblox.com/docs/cloud/open-cloud).
+
+### Key Features
+- Support for most endpoints, including the OAuth2 flow and authentication.
+- Allows both syncronous and asyncronous usage.
+- Logic for operation polling and internal error retrying.
 
 **Documentation: https://rblx-open-cloud.readthedocs.io**
 
@@ -16,7 +21,7 @@ rblx-open-cloud is a Python API wrapper for [Roblox Open Cloud](https://create.r
 
 ```sh
 # Stable (PyPi, recommended)
-pip install rblx-open-cloud
+pip install rblx-open-cloud~=2.0
 
 # Development (GitHub)
 pip install "rblx-open-cloud @ git+https://github.com/treeben77/rblx-open-cloud@v2"

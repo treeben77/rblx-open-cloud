@@ -6,3 +6,4 @@ mkdocs-git-committers-plugin-2==2.3
 mkdocstrings==0.23.0
 mkdocstrings-python==1.7.1
 mkdocs-git-revision-date-localized-plugin==1.2.5
+griffe==0.48.0
