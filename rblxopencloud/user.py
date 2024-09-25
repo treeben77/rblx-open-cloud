@@ -48,6 +48,66 @@ __all__ = (
 
 
 class InventoryAssetType(Enum):
+    """
+    Enum representing the type of an \
+    [InventoryAsset][rblxopencloud.InventoryAsset].
+    
+    Attributes:
+        Unknown(0): The asset type is unknown/unsupported.
+        ClassicTShirt(1): 
+        Audio(2): 
+        Hat(3): 
+        Model(4): 
+        ClassicShirt(5): 
+        ClassicPants(6): 
+        Decal(7): 
+        ClassicHead(8): 
+        Face(9): 
+        Gear(10): 
+        Animation(11): 
+        Torso(12): 
+        RightArm(13): 
+        LeftArm(14): 
+        LeftLeg(15): 
+        RightLeg(16): 
+        Package(17): 
+        Plugin(18): 
+        MeshPart(19): 
+        HairAccessory(20): 
+        FaceAccessory(21): 
+        NeckAccessory(22): 
+        ShoulderAccessory(23): 
+        FrontAccessory(24): 
+        BackAccessory(25): 
+        WaistAccessory(26): 
+        ClimbAnimation(27): 
+        DeathAnimation(28): 
+        FallAnimation(29): 
+        IdleAnimation(30): 
+        JumpAnimation(31): 
+        RunAnimation(32): 
+        SwimAnimation(33): 
+        WalkAnimation(34): 
+        PoseAnimation(35): 
+        EmoteAnimation(36): 
+        Video(37): 
+        TShirtAccessory(38): 
+        ShirtAccessory(39): 
+        PantsAccessory(40): 
+        JacketAccessory(41): 
+        SweaterAccessory(42): 
+        ShortsAccessory(43): 
+        LeftShoeAccessory(44): 
+        RightShoeAccessory(45): 
+        DressSkirtAccessory(46): 
+        EyebrowAccessory(47): 
+        EyelashAccessory(48): 
+        MoodAnimation(49): 
+        DynamicHead(50): 
+        CreatedPlace(51): 
+        PurchasedPlace(52): 
+    """
+
     Unknown = 0
     ClassicTShirt = 1
     Audio = 2
@@ -161,6 +221,17 @@ ASSET_TYPE_STRINGS = {
 
 
 class InventoryItemState(Enum):
+    """
+    Enum representing whether a collectable \
+    [InventoryAsset][rblxopencloud.InventoryAsset] can be traded/ sold or is \
+    currently on hold.
+    
+    Attributes:
+        Unknown (0): The status is unknown.
+        Available (1): The collectable can be traded and sold.
+        Hold (2): The collectable cannot be traded or sold yet.
+    """
+
     Unknown = 0
     Available = 1
     Hold = 2
@@ -174,11 +245,18 @@ STATE_TYPE_STRINGS = {
 
 
 class InventoryItem:
+    """
+    Represents an asset, badge, or gamepass in the user's inventory.
+
+    Attributes:
+        id (int): The ID of the inventory item.
+    """
+
     def __init__(self, id) -> None:
         self.id: int = id
 
     def __repr__(self) -> str:
-        return f"rblxopencloud.InventoryItem(id={self.id}"
+        return f"<rblxopencloud.InventoryItem id={self.id}>"
 
 
 class InventoryAsset(InventoryItem):
@@ -187,7 +265,7 @@ class InventoryAsset(InventoryItem):
     development items.
 
     Attributes:
-        id (int): The ID of the inventory item.
+        id (int): The ID of the asset.
         type (InventoryAssetType): The asset's type.
         instance_id (int): The unique ID of this asset's instance.
         collectable_item_id (Optional[str]): A unique item UUID for \
@@ -269,7 +347,7 @@ class InventoryPrivateServer(InventoryItem):
     Represents a game pass in a user's inventory.
 
     Attributes:
-        id (int): The ID of the game pass.
+        id (int): The ID of the private server.
     """
 
     def __init__(self, data) -> None:

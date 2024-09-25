@@ -176,7 +176,11 @@ class PreconditionFailed(HttpException):
 
 
 class InvalidCode(HttpException):
-    pass
+    """
+    The code provided to \
+    [OAuth2App.exchange_code](rblxopencloud.OAuth2App.exchange_code) was \
+    invalid.
+    """
 
 
 class InvalidFile(HttpException):
