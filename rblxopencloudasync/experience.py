@@ -576,37 +576,6 @@ experience={repr(self.experience)}>"
 
         return UserRestriction(data, self.__api_key)
 
-    # def list_root_children(self) -> Operation[list[InstanceType]]:
-    #     _, data, _ = await send_request("GET", "/universes/"+
-    #         f"{self.experience.id}/places/{self.id}/instances/"+
-    #         "root:listChildren", authorization=self.__api_key,
-    #         expected_status=[200])
-
-    #     def operation_callable(response):
-    #         instance_objects = []
-
-    #         for instance in response["instances"]:
-    #             instance_objects.append(
-    #                 Instance._determine_instance_subclass(data)
-    #                 (instance["engineInstance"]["Id"], instance,
-    #                     place=self, api_key=self.__api_key)
-    #             )
-
-    #         return instance_objects
-
-    #     return Operation(f"/{data['path']}", self.__api_key,
-    #                      operation_callable)
-
-    # def fetch_instance(self, instance_id: str) -> Operation[InstanceType]:
-
-    #     _, data, _ = await send_request("GET", "/universes/"+
-    #         f"{self.experience.id}/places/{self.id}/instances/{instance_id}",
-    #         authorization=self.__api_key, expected_status=[200])
-
-    #     return Operation(f"/{data['path']}", self.__api_key,
-    #         lambda r: Instance._determine_instance_subclass(r)
-    #         (r["engineInstance"]["Id"], r, place=self, api_key=self.__api_key))
-
 
 class Experience:
     """
