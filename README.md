@@ -11,7 +11,7 @@ rblx-open-cloud is a Python API wrapper for [Roblox Open Cloud](https://create.r
 - Allows both syncronous and asyncronous usage.
 - Logic for operation polling and internal error retrying.
 
-**Documentation: https://rblx-open-cloud.readthedocs.io**
+**Documentation: https://rblx-open-cloud.readthedocs.io/en/latest/**
 
 ## Quickstart
 

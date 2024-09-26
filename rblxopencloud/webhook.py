@@ -184,7 +184,15 @@ class Webhook:
 
 class Notification:
     """
-    Represents a recieved webhook event.
+    Represents a recieved base webhook event.
+
+    !!! warning
+        This class isn't designed to be created by users. It is returned by some decorated functions from [`Webhook.event()`][rblxopencloud.Webhook.event].
+
+    Attributes:
+        notification_id: The notifications unique ID. If an ID is repeated, assume it is a duplicate and ignore it.
+        timestamp: The time the notification was created.
+        webhook: The webhook that the notifcation came from.
     """
 
     def __init__(self, body, webhook, api_key):
