@@ -213,6 +213,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
                 expected_status=[200, 404, 409],
                 params={"allowMissing": str(not exclusive_update).lower()},
                 json={
+                    "id": key,
                     "Value": value,
                     "Ttl": f"{expiration_seconds}s",
                     (
@@ -229,6 +230,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
 /sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
                 authorization=self.__api_key,
                 expected_status=[200, 409],
+                params={"id": urllib.parse.quote_plus(key)},
                 json={
                     "id": key,
                     "value": value,
