@@ -624,7 +624,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         max: int = None,
     ) -> Iterable[SortedEntry]:
         """
-        Returns a list of keys and their values.
+        Returns an Iterable of keys in order based on their value.
 
         Args:
             descending: Wether the largest or the smallest number should be \

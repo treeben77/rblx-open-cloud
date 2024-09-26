@@ -396,6 +396,7 @@ class Group(Creator):
             [`GroupMember`][rblxopencloud.GroupMember] for every member in \
             the group.
         """
+
         filter = None
 
         if role_id:
