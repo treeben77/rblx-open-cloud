@@ -60,7 +60,7 @@ class SortedMapEntry:
 
     def __repr__(self) -> str:
         return f'<rblxopencloud.SortedMapEntry \
-"{self.key}" value={json.dumps(self.value)}>'
+key="{self.key}" value={json.dumps(self.value)}>'
 
 
 class SortedMap:
