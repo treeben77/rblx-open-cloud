@@ -42,7 +42,7 @@ class ApiKey:
         [Creator Dashboard](https://create.roblox.com/credentials).
     """
 
-    def __init__(self, api_key) -> None:
+    def __init__(self, api_key: str) -> None:
         self.__api_key = api_key
 
     def get_experience(self, id: int, fetch_info: bool = False) -> Experience:
@@ -97,7 +97,7 @@ class ApiKey:
 
         Args:
             asset_type: The type of asset the product is.
-            asset_id: The ID of the asset to fetch.
+            product_id: The ID of the asset to fetch.
 
         Returns:
             A [`CreatorStoreProduct`][rblxopencloud.CreatorStoreProduct] \

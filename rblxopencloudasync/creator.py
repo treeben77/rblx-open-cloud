@@ -265,6 +265,19 @@ class Money:
             currencies will begin with `X-`. 
         quantity: The quantity of the currency. For instance, `4.99` would be \
             four dollars and ninety-nine cents in USD.
+
+    **Supported Operations:**
+
+    | Operator | Description |
+    | -------- | ----------- |
+    | `==`     | Whether two [`Money`][rblxopencloud.Money] have the same \
+        currency and quantity or `quantity` equals the [`float`][float]. |
+    | `<`      | Whether the `quantity` is less than the `quantity` of \
+        another [`Money`][rblxopencloud.Money] with the same currency or a \
+        [`float`][float]. Also supports `<=`. |
+    | `>`      | Whether the `quantity` is greater than the `quantity` of \
+        another [`Money`][rblxopencloud.Money] with the same currency or a \
+        [`float`][float]. Also supports `>=`. |
     """
 
     def __init__(self, currency: str, quantity: float) -> None:
@@ -741,7 +754,7 @@ class Creator:
 
         Args:
             asset_type: The type of asset the product is.
-            asset_id: The ID of the asset to fetch.
+            product_id: The ID of the asset to fetch.
 
         Returns:
             A [`CreatorStoreProduct`][rblxopencloud.CreatorStoreProduct] \
