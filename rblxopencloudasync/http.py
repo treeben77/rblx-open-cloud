@@ -229,13 +229,13 @@ class Operation(Generic[T]):
     def __init__(
         self,
         path: str,
-        api_key: str,
+        self_api_key: str,
         return_type: T,
         cached_response: dict = None,
         **return_meta,
     ) -> None:
         self.__path: str = path
-        self.__api_key: str = api_key
+        self.__api_key: str = self_api_key
         self.__return_type: T = return_type
         self.__return_meta: dict = return_meta
         self.__cached_response: dict = cached_response

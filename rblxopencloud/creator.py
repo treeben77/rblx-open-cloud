@@ -36,7 +36,16 @@ if TYPE_CHECKING:
     from .group import Group
     from .user import User
 
-__all__ = ("AssetType", "ModerationStatus", "Asset", "AssetVersion", "Creator")
+__all__ = (
+    "AssetType",
+    "ModerationStatus",
+    "Asset",
+    "AssetVersion",
+    "Creator",
+    "CreatorStoreProduct",
+    "Money",
+    "ProductRestriction",
+)
 
 
 class AssetType(Enum):
@@ -48,18 +57,36 @@ class AssetType(Enum):
         Decal (1):
         Audio (2):
         Model (3):
+        Plugin (4): Only for fetching assets; does not support uploading.
+        FontFamily (5): Only for fetching assets; does not support uploading.
+        MeshPart (6): Only for fetching assets; does not support uploading.
+        Video (7): Only for fetching assets; does not support uploading.
+        Animation (8): Only for fetching assets; does not support uploading.
+        Image (9): Only for fetching assets; does not support uploading.
     """
 
     Unknown = 0
     Decal = 1
     Audio = 2
     Model = 3
+    Plugin = 4
+    FontFamily = 5
+    MeshPart = 6
+    Video = 7
+    Animation = 8
+    Image = 9
 
 
 ASSET_TYPE_ENUMS = {
     "Decal": AssetType.Decal,
     "Audio": AssetType.Audio,
     "Model": AssetType.Model,
+    "Plugin": AssetType.Plugin,
+    "FontFamily": AssetType.FontFamily,
+    "MeshPart": AssetType.MeshPart,
+    "Video": AssetType.Video,
+    "Animation": AssetType.Animation,
+    "Image": AssetType.Image,
     "ASSET_TYPE_DECAL": AssetType.Decal,
     "ASSET_TYPE_AUDIO": AssetType.Audio,
     "ASSET_TYPE_MODEL": AssetType.Model,
@@ -110,11 +137,34 @@ class Asset:
         created. *Will be `None` if the asset type does not support updating.*
     """
 
-    def __init__(self, data: dict, creator) -> None:
+    def __init__(self, data: dict, creator, api_key) -> None:
         self.id: int = data.get("assetId")
         self.name: str = data.get("displayName")
         self.description: str = data.get("description")
-        self.creator: Union[Creator, User, Group] = creator
+        self.__api_key = api_key
+
+        from .group import Group
+        from .user import User
+
+        if (
+            creatorid := data.get("creationContext", {})
+            .get("creator", {})
+            .get("userId")
+        ):
+            data_creator = User(creatorid, self.__api_key)
+        else:
+            data_creator = Group(
+                data.get("creationContext", {}).get("creator", {})["groupId"],
+                self.__api_key,
+            )
+
+        if (
+            type(creator) in (Creator, User, Group)
+            and data_creator.id == creator.id
+        ):
+            self.creator: Union[Creator, User, Group] = creator
+        else:
+            self.creator: Union[User, Group] = data_creator
 
         self.type: AssetType = ASSET_TYPE_ENUMS.get(
             data.get("assetType"), AssetType.Unknown
@@ -134,6 +184,18 @@ class Asset:
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.Asset id={self.id} type={self.type}>"
+
+    def fetch_creator_store_prodcut(self) -> "CreatorStoreProduct":
+        """
+        Fetches the creator store prodcut information for this asset, if it \
+            is on the creator store.
+
+        Returns:
+            An [`CreatorStoreProduct`][rblxopencloud.CreatorStoreProduct] \
+                representing the asset as a prodct.
+        """
+
+        return self.creator.fetch_creator_store_product(self.type, self.id)
 
 
 class AssetVersion:
@@ -161,6 +223,210 @@ class AssetVersion:
     def __repr__(self) -> str:
         return f"<rblxopencloud.AssetVersion \
 asset_id={self.asset_id} version_number={self.version_number}>"
+
+
+class ProductRestriction(Enum):
+    Unknown = 0
+    Unspecified = 1
+    ItemRestricted = 2
+    SellerTemporarilyRestricted = 3
+    SellerPermanentlyRestricted = 4
+    SellerNoLongerActive = 5
+
+
+RESTRICTION_ENUMS = {
+    "RESTRICTION_UNSPECIFIED": ProductRestriction.Unspecified,
+    "SOLD_ITEM_RESTRICTED": ProductRestriction.ItemRestricted,
+    "SELLER_TEMPORARILY_RESTRICTED": (
+        ProductRestriction.SellerTemporarilyRestricted
+    ),
+    "SELLER_PERMANENTLY_RESTRICTED": (
+        ProductRestriction.SellerPermanentlyRestricted
+    ),
+    "SELLER_NO_LONGER_ACTIVE": ProductRestriction.SellerNoLongerActive,
+}
+
+
+class Money:
+    """
+    Represents a price on the Roblox platform, such as on the creator store.
+
+    Arguments:
+        currency: The [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) \
+            currency code for this price.
+        quantity: The quantity of the currency. For instance, `4.99` would be \
+            four dollars and ninety-nine cents in USD.
+
+    Attributes:
+        currency: The [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) \
+            currency code for this price. Crypto and virtual \
+            currencies will begin with `X-`. 
+        quantity: The quantity of the currency. For instance, `4.99` would be \
+            four dollars and ninety-nine cents in USD.
+    """
+
+    def __init__(self, currency: str, quantity: float) -> None:
+        self.currency: str = currency
+        self.quantity: float = quantity
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.Money currency="{self.currency}" \
+quantity={self.quantity}>'
+
+    def __eq__(self, value: object) -> bool:
+        if type(value) not in (int, float, Money):
+            raise NotImplemented
+
+        if type(value) == Money:
+            if self.currency != value.currency:
+                raise ValueError("Cannot compare Money of different currency.")
+            return self.quantity == value.quantity
+
+        return self.quantity == value
+
+    def __lt__(self, value: object) -> bool:
+        if type(value) not in (int, float, Money):
+            raise NotImplemented
+
+        if type(value) == Money:
+            if self.currency != value.currency:
+                raise ValueError("Cannot compare Money of different currency.")
+            return self.quantity < value.quantity
+
+        return self.quantity < value
+
+    def __gt__(self, value: object) -> bool:
+        if type(value) not in (int, float, Money):
+            raise NotImplemented
+
+        if type(value) == Money:
+            if self.currency != value.currency:
+                raise ValueError("Cannot compare Money of different currency.")
+            return self.quantity > value.quantity
+
+        return self.quantity > value
+
+    def __le__(self, value: object) -> bool:
+        if type(value) not in (int, float, Money):
+            raise NotImplemented
+
+        if type(value) == Money:
+            if self.currency != value.currency:
+                raise ValueError("Cannot compare Money of different currency.")
+            return self.quantity <= value.quantity
+
+        return self.quantity <= value
+
+    def __gt__(self, value: object) -> bool:
+        if type(value) not in (int, float, Money):
+            raise NotImplemented
+
+        if type(value) == Money:
+            if self.currency != value.currency:
+                raise ValueError("Cannot compare Money of different currency.")
+            return self.quantity >= value.quantity
+
+        return self.quantity >= value
+
+    def to_scientific_notation(self) -> dict:
+        """
+        Converts the quantity to a dict containing a significand and exponent \
+        used internally for Roblox's API.
+
+        Returns:
+            A dictionary with `significand` and `exponent` values \
+                representing the quantity.
+        """
+
+        num_str = f"{self.quantity:.15g}"
+        decimal_places = len(num_str.split(".")[1]) if "." in num_str else 0
+
+        return {
+            "significand": int(self.quantity * (10**decimal_places)),
+            "exponent": -decimal_places,
+        }
+
+
+class CreatorStoreProduct:
+    """
+    Represents an asset as a product on the creator store.
+
+    Attributes:
+        asset_id (int): The ID of the product's asset.
+        asset_type (AssetType): The product's asset type.
+        creator (Union[User, Group]): The user or group who created the asset.
+        purchasable (bool): Whether the product can be purchased.
+        published (bool): Whether the product is considered published from \
+            the creator's perspective.
+        restrictions (list[ProductRestriction]): A list of restrictions \
+            applied to the product.
+        base_price (Money): The base price set by the creator.
+        purchase_price (Money): The price of the asset to the user, factoring \
+        locale-specific considerations.
+    """
+
+    def __init__(self, data: dict, api_key) -> None:
+
+        for asset_id_key, type in {
+            "modelAssetId": AssetType.Model,
+            "pluginAssetId": AssetType.Plugin,
+            "audioAssetId": AssetType.Audio,
+            "decalAssetId": AssetType.Decal,
+            "meshPartAssetId": AssetType.MeshPart,
+            "videoAssetId": AssetType.Video,
+            "fontFamilyAssetId": AssetType.FontFamily,
+        }.items():
+            if asset_id := data.get(asset_id_key):
+                self.asset_id: int = asset_id
+                self.asset_type: AssetType = type
+                break
+
+        from .group import Group
+        from .user import User
+
+        if creatorid := data.get("userSeller"):
+            self.creator: Union[User, Group] = User(creatorid, api_key)
+        else:
+            self.creator: Union[User, Group] = User(
+                data["groupSeller"], api_key
+            )
+
+        self.purchasable: bool = data.get("purchasable")
+        self.published: bool = data.get("published")
+
+        restrictions = []
+
+        for restriction in data.get("restrictions", []):
+            restrictions.append(
+                RESTRICTION_ENUMS.get(restriction, ProductRestriction.Unknown)
+            )
+
+        self.restrictions: list[ProductRestriction] = restrictions
+
+        self.base_price: Money = Money(
+            data["purchasePrice"]["currencyCode"],
+            data["basePrice"]["quantity"]["significand"]
+            * 10 ** data["basePrice"]["quantity"]["exponent"],
+        )
+        self.purchase_price: Money = Money(
+            data["purchasePrice"]["currencyCode"],
+            data["purchasePrice"]["quantity"]["significand"]
+            * 10 ** data["purchasePrice"]["quantity"]["exponent"],
+        )
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.CreatorStoreProduct \
+asset_id={self.asset_id} asset_type={self.asset_type}>"
+
+    def fetch_asset(self) -> Asset:
+        """
+        Fetches the asset information for this prodcut.
+
+        Returns:
+            An [`Asset`][rblxopencloud.Asset] representing the product's asset.
+        """
+
+        return self.creator.fetch_asset(self.asset_id)
 
 
 ASSET_MIME_TYPES = {
@@ -199,23 +465,11 @@ class Creator:
 
         Returns:
             An [`Asset`][rblxopencloud.Asset] representing the asset.
-        
-        Raises:
-            InvalidKey: The API key isn't valid or doesn't have access to \
-            the endpoint.
-            RateLimited: You've exceeded the endpoint's rate limits.
-            ServiceUnavailable: The server ran into an error.
-            rblx_opencloudException: The server returned an unexpected error.
         """
 
-        _, data, _ = send_request(
-            "GET",
-            f"assets/v1/assets/{asset_id}",
-            authorization=self.__api_key,
-            expected_status=[200],
-        )
+        from .apikey import ApiKey
 
-        return Asset(data, self)
+        return ApiKey(self.__api_key).fetch_asset(asset_id)
 
     def upload_asset(
         self,
@@ -315,7 +569,11 @@ class Creator:
             raise HttpException(status, data)
 
         return Operation(
-            f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
+            f"assets/v1/{data['path']}",
+            self.__api_key,
+            Asset,
+            creator=self,
+            api_key=self.__api_key,
         )
 
     def update_asset(
@@ -397,7 +655,11 @@ class Creator:
                 raise ModeratedText(status, body)
 
         return Operation(
-            f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
+            f"assets/v1/{data['path']}",
+            self.__api_key,
+            Asset,
+            creator=self,
+            api_key=self.__api_key,
         )
 
     def list_asset_versions(
@@ -476,3 +738,29 @@ class Creator:
         )
 
         return AssetVersion(data)
+
+    def fetch_creator_store_product(
+        self, asset_type: Union[AssetType, str], product_id: int
+    ) -> CreatorStoreProduct:
+        """
+        Fetches information about an asset on the creator store.
+
+        Args:
+            asset_type: The type of asset the product is.
+            asset_id: The ID of the asset to fetch.
+
+        Returns:
+            A [`CreatorStoreProduct`][rblxopencloud.CreatorStoreProduct] \
+            representing the asset.
+
+        Tip:
+            If the asset type is unknown or other information such as the \
+            description is required, use the \
+            [`fetch_asset`][rblxopencloud.ApiKey.fetch_asset].
+        """
+
+        from .apikey import ApiKey
+
+        return ApiKey(self.__api_key).fetch_creator_store_product(
+            asset_type, product_id
+        )

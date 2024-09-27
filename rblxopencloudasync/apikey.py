@@ -20,9 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from .creator import Asset, AssetType, CreatorStoreProduct
 from .experience import Experience
 from .group import Group
+from .http import send_request
 from .user import User
+
+from typing import Union
 
 __all__ = ("ApiKey",)
 
@@ -64,3 +68,56 @@ class ApiKey:
             obj.fetch_info()
 
         return obj
+    
+    async def fetch_asset(self, asset_id: int) -> Asset:
+        """
+        Fetches an asset uploaded to Roblox.
+
+        Args:
+            asset_id: The ID of the asset to fetch.
+
+        Returns:
+            An [`Asset`][rblxopencloud.Asset] representing the asset.
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"assets/v1/assets/{asset_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return Asset(data, self, self.__api_key)
+
+    async def fetch_creator_store_product(
+        self, asset_type: Union[AssetType, str], product_id: int
+    ) -> CreatorStoreProduct:
+        """
+        Fetches information about an asset on the creator store.
+
+        Args:
+            asset_type: The type of asset the product is.
+            asset_id: The ID of the asset to fetch.
+
+        Returns:
+            A [`CreatorStoreProduct`][rblxopencloud.CreatorStoreProduct] \
+            representing the asset.
+
+        Tip:
+            If the asset type is unknown or other information such as the \
+            description is required, use the \
+            [`fetch_asset`][rblxopencloud.ApiKey.fetch_asset].
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"/creator-store-products/CreatorMarketplaceAsset-{(
+                asset_type.name
+                if type(asset_type) == AssetType
+                else asset_type
+            )}-{product_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return CreatorStoreProduct(data, self.__api_key)
