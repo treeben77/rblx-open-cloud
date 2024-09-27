@@ -109,13 +109,14 @@ class ApiKey:
             [`fetch_asset`][rblxopencloud.ApiKey.fetch_asset].
         """
 
+        asset_type = (
+            asset_type.name if type(asset_type) == AssetType else asset_type
+        )
+
         _, data, _ = send_request(
             "GET",
-            f"/creator-store-products/CreatorMarketplaceAsset-{(
-                asset_type.name
-                if type(asset_type) == AssetType
-                else asset_type
-            )}-{product_id}",
+            "/creator-store-products/CreatorMarketplaceAsset"
+            f"-{asset_type}-{product_id}",
             authorization=self.__api_key,
             expected_status=[200],
         )
