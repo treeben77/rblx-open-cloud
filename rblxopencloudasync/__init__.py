@@ -20,19 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Literal
+from typing import Literal, Optional
 
-import requests
+import aiohttp
 
 VERSION: str = "2.0.0"
-VERSION_INFO: Literal["alpha", "beta", "final"] = "beta"
+VERSION_INFO: Literal["alpha", "beta", "final"] = "alpha"
 
 user_agent: str = (
     f"rblx-open-cloud/{VERSION} (https://github.com/treeben77/rblx-open-cloud)"
 )
-http_session: requests.Session = requests.Session()
+http_session: Optional[aiohttp.ClientSession] = None
 
-del Literal, requests
+del aiohttp, Optional, Literal
 
 from .apikey import *
 from .creator import *

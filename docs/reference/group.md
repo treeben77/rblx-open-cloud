@@ -13,3 +13,7 @@
 ::: rblxopencloud.GroupRolePermissions
 
 ::: rblxopencloud.GroupShout
+
+::: rblxopencloud.GroupJoinRequest
+    options:
+        inherited_members: false

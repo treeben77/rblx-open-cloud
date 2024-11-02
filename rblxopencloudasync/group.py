@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import datetime
-from typing import Iterable, Optional
+from typing import Any, AsyncGenerator, Optional
 
 from dateutil import parser
 
@@ -294,13 +294,13 @@ class Group(Creator):
     def __repr__(self) -> str:
         return f"<rblxopencloud.Group id={self.id}>"
 
-    def fetch_info(self) -> "Group":
+    async def fetch_info(self) -> "Group":
         """
         Updates the empty parameters in this Group object and returns it self \
         with the group info.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/groups/{self.id}",
             authorization=self.__api_key,
@@ -332,7 +332,7 @@ class Group(Creator):
 
         return self
 
-    def fetch_member(self, user_id: int) -> Optional[GroupMember]:
+    async def fetch_member(self, user_id: int) -> Optional[GroupMember]:
         """
         Returns the member info for the provided user or `None` if the user \
         is not a member of the group.
@@ -345,7 +345,7 @@ class Group(Creator):
             user or `None` if the user isn't a member of the group.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/groups/{self.id}/memberships",
             params={"limit": 1, "filter": f"user == 'users/{user_id}'"},
@@ -357,7 +357,7 @@ class Group(Creator):
             return None
         return GroupMember(data["groupMemberships"][0], self.__api_key, self)
 
-    def fetch_role(
+    async def fetch_role(
         self, role_id: int, skip_cache: bool = False
     ) -> Optional[GroupRole]:
         """
@@ -374,14 +374,14 @@ class Group(Creator):
         """
 
         if skip_cache or not list(self.__role_cache.keys()):
-            list(self.list_roles())
+            list(await self.list_roles())
 
         role_entry = self.__role_cache.get(role_id)
         return GroupRole(role_entry) if role_entry else None
 
-    def list_members(
+    async def list_members(
         self, limit: int = None, role_id: int = None
-    ) -> Iterable[GroupMember]:
+    ) -> AsyncGenerator[Any, GroupMember]:
         """
         Iterates each member in the group, optionally limited to a specific \
         role.
@@ -396,13 +396,12 @@ class Group(Creator):
             [`GroupMember`][rblxopencloud.GroupMember] for every member in \
             the group.
         """
-
         filter = None
 
         if role_id:
             filter = f"role == 'groups/{self.id}/roles/{role_id}'"
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             f"/groups/{self.id}/memberships",
             authorization=self.__api_key,
@@ -417,7 +416,9 @@ class Group(Creator):
         ):
             yield GroupMember(entry, self.__api_key, self)
 
-    def list_roles(self, limit: int = None) -> Iterable[GroupRole]:
+    async def list_roles(
+        self, limit: int = None
+    ) -> AsyncGenerator[Any, GroupRole]:
         """
         Iterates every role in the group.
         
@@ -429,7 +430,7 @@ class Group(Creator):
             [`GroupRole`][rblxopencloud.GroupRole] for every role in the group.
         """
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             f"/groups/{self.id}/roles",
             authorization=self.__api_key,
@@ -443,9 +444,9 @@ class Group(Creator):
 
             yield GroupRole(entry)
 
-    def list_join_requests(
+    async def list_join_requests(
         self, limit: int = None, user_id: int = None
-    ) -> Iterable["GroupJoinRequest"]:
+    ) -> AsyncGenerator[Any, "GroupJoinRequest"]:
         """
         Iterates every group join request for private groups.
         
@@ -460,7 +461,7 @@ class Group(Creator):
             user who has requested to join.
         """
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             f"/groups/{self.id}/join-requests",
             authorization=self.__api_key,
@@ -475,7 +476,7 @@ class Group(Creator):
         ):
             yield GroupJoinRequest(entry, self.__api_key)
 
-    def fetch_shout(self) -> GroupShout:
+    async def fetch_shout(self) -> GroupShout:
         """
         Returns [`GroupShout`][rblxopencloud.GroupShout] with information \
         about the group's current shout. It requires permission to view the \
@@ -486,7 +487,7 @@ class Group(Creator):
             the group's shout.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/groups/{self.id}/shout",
             authorization=self.__api_key,
@@ -495,7 +496,7 @@ class Group(Creator):
 
         return GroupShout(data, self.__api_key)
 
-    def accept_join_request(self, user_id: int):
+    async def accept_join_request(self, user_id: int):
         """
         Accepts the join request for the provided user.
         
@@ -504,14 +505,14 @@ class Group(Creator):
             requested to join.
         """
 
-        send_request(
+        await send_request(
             "DELETE",
             f"/groups/{self.id}/join-requests/{user_id}:accept",
             authorization=self.__api_key,
             expected_status=[200],
         )
 
-    def decline_join_request(self, user_id: int):
+    async def decline_join_request(self, user_id: int):
         """
         Declines the join request for the provided user.
 
@@ -520,7 +521,7 @@ class Group(Creator):
             requested to join.
         """
 
-        send_request(
+        await send_request(
             "DELETE",
             f"/groups/{self.id}/join-requests/{user_id}:decline",
             authorization=self.__api_key,

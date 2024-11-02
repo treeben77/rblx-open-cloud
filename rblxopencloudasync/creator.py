@@ -24,7 +24,7 @@ import io
 import json
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Optional, Union
 
 import urllib3
 from dateutil import parser
@@ -185,7 +185,7 @@ class Asset:
     def __repr__(self) -> str:
         return f"<rblxopencloud.Asset id={self.id} type={self.type}>"
 
-    def fetch_creator_store_prodcut(self) -> "CreatorStoreProduct":
+    async def fetch_creator_store_prodcut(self) -> "CreatorStoreProduct":
         """
         Fetches the creator store prodcut information for this asset, if it \
             is on the creator store.
@@ -195,7 +195,9 @@ class Asset:
                 representing the asset as a prodct.
         """
 
-        return self.creator.fetch_creator_store_product(self.type, self.id)
+        return await self.creator.fetch_creator_store_product(
+            self.type, self.id
+        )
 
 
 class AssetVersion:
@@ -291,10 +293,9 @@ quantity={self.quantity}>'
             raise NotImplemented
 
         if type(value) == Money:
-            return (
-                self.currency == value.currency
-                and self.quantity == value.quantity
-            )
+            if self.currency != value.currency:
+                raise ValueError("Cannot compare Money of different currency.")
+            return self.quantity == value.quantity
 
         return self.quantity == value
 
@@ -432,7 +433,7 @@ class CreatorStoreProduct:
         return f"<rblxopencloud.CreatorStoreProduct \
 asset_id={self.asset_id} asset_type={self.asset_type}>"
 
-    def fetch_asset(self) -> Asset:
+    async def fetch_asset(self) -> Asset:
         """
         Fetches the asset information for this prodcut.
 
@@ -440,7 +441,7 @@ asset_id={self.asset_id} asset_type={self.asset_type}>"
             An [`Asset`][rblxopencloud.Asset] representing the product's asset.
         """
 
-        return self.creator.fetch_asset(self.asset_id)
+        return await self.creator.fetch_asset(self.asset_id)
 
 
 ASSET_MIME_TYPES = {
@@ -470,7 +471,7 @@ class Creator:
     def __repr__(self) -> str:
         return f"<rblxopencloud.Creator id={self.id}>"
 
-    def fetch_asset(self, asset_id: int) -> Asset:
+    async def fetch_asset(self, asset_id: int) -> Asset:
         """
         Fetches an asset uploaded to Roblox.
 
@@ -483,9 +484,9 @@ class Creator:
 
         from .apikey import ApiKey
 
-        return ApiKey(self.__api_key).fetch_asset(asset_id)
+        return await ApiKey(self.__api_key).fetch_asset(asset_id)
 
-    def upload_asset(
+    async def upload_asset(
         self,
         file: io.BytesIO,
         asset_type: Union[AssetType, str],
@@ -561,7 +562,7 @@ class Creator:
             }
         )
 
-        status, data, _ = send_request(
+        status, data, _ = await send_request(
             "POST",
             "assets/v1/assets",
             authorization=self.__api_key,
@@ -583,14 +584,10 @@ class Creator:
             raise HttpException(status, data)
 
         return Operation(
-            f"assets/v1/{data['path']}",
-            self.__api_key,
-            Asset,
-            creator=self,
-            api_key=self.__api_key,
+            f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
         )
 
-    def update_asset(
+    async def update_asset(
         self,
         asset_id: int,
         file: io.BytesIO = None,
@@ -648,7 +645,7 @@ class Creator:
                 {"request": json.dumps(payload)}
             )
 
-        status, data, _ = send_request(
+        status, data, _ = await send_request(
             "PATCH",
             f"assets/v1/assets/{asset_id}",
             authorization=self.__api_key,
@@ -669,16 +666,12 @@ class Creator:
                 raise ModeratedText(status, body)
 
         return Operation(
-            f"assets/v1/{data['path']}",
-            self.__api_key,
-            Asset,
-            creator=self,
-            api_key=self.__api_key,
+            f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
         )
 
-    def list_asset_versions(
+    async def list_asset_versions(
         self, asset_id: int, limit: int = None
-    ) -> Iterable[AssetVersion]:
+    ) -> AsyncGenerator[Any, AssetVersion]:
         """
         Iterates all avaliable versions of the asset, providing the latest \
         version first.
@@ -691,7 +684,7 @@ class Creator:
             An asset version for each version of the asset.
         """
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             f"assets/v1/assets/{asset_id}/versions",
             params={
@@ -704,7 +697,7 @@ class Creator:
         ):
             yield AssetVersion(entry, self)
 
-    def fetch_asset_version(
+    async def fetch_asset_version(
         self, asset_id: int, version_number: int
     ) -> AssetVersion:
         """
@@ -718,7 +711,7 @@ class Creator:
             The found asset version.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"assets/v1/assets/{asset_id}/versions/{version_number}",
             authorization=self.__api_key,
@@ -727,7 +720,7 @@ class Creator:
 
         return AssetVersion(data)
 
-    def rollback_asset(
+    async def rollback_asset(
         self, asset_id: int, version_number: int
     ) -> AssetVersion:
         """
@@ -741,7 +734,7 @@ class Creator:
             The new asset version.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "POST",
             f"assets/v1/assets/{asset_id}/versions:rollback",
             authorization=self.__api_key,
@@ -753,7 +746,7 @@ class Creator:
 
         return AssetVersion(data)
 
-    def fetch_creator_store_product(
+    async def fetch_creator_store_product(
         self, asset_type: Union[AssetType, str], product_id: int
     ) -> CreatorStoreProduct:
         """
@@ -775,6 +768,6 @@ class Creator:
 
         from .apikey import ApiKey
 
-        return ApiKey(self.__api_key).fetch_creator_store_product(
+        return await ApiKey(self.__api_key).fetch_creator_store_product(
             asset_type, product_id
         )

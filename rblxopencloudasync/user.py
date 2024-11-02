@@ -22,7 +22,7 @@
 
 import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Iterable, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Literal, Optional, Union
 
 from dateutil import parser
 
@@ -43,7 +43,6 @@ __all__ = (
     "InventoryPrivateServer",
     "UserSocialLinks",
     "UserVisibility",
-    "UserExperienceFollowing",
 )
 
 
@@ -265,7 +264,7 @@ class InventoryAsset(InventoryItem):
     development items.
 
     Attributes:
-        id (int): The ID of the asset.
+        id (int): The ID of the inventory item.
         type (InventoryAssetType): The asset's type.
         instance_id (int): The unique ID of this asset's instance.
         collectable_item_id (Optional[str]): A unique item UUID for \
@@ -347,7 +346,7 @@ class InventoryPrivateServer(InventoryItem):
     Represents a game pass in a user's inventory.
 
     Attributes:
-        id (int): The ID of the private server.
+        id (int): The ID of the game pass.
     """
 
     def __init__(self, data) -> None:
@@ -434,60 +433,6 @@ class UserSocialLinks:
         )
 
 
-class UserExperienceFollowing:
-    """
-    Data class storing information about an experience followed by a user.
-
-    Attributes:
-        is_following (bool): Whether the experience is followed.
-        experience (Experience): The experience that has been followed.
-        followed_at (Optional[datetime]): The time that the user followed the \
-        experience. Only present for when returned by \
-        [`fetch_experience_followings()`\
-        ][rblxopencloud.User.fetch_experience_followings]
-        can_follow (Optional[bool]): Whether the user can follow this \
-        experience. Only present for when returned by \
-        [`fetch_experience_following_status()`\
-        ][rblxopencloud.User.fetch_experience_following_status]
-        following_count (Optional[int]): The number of experiences the user \
-        is following [`fetch_experience_following_status()`\
-        ][rblxopencloud.User.fetch_experience_following_status]
-        following_limit (Optional[int]): The maximum number of experiences \
-        the user can follow. Only present for when returned by \
-        [`fetch_experience_following_status()`\
-        ][rblxopencloud.User.fetch_experience_following_status]
-
-    """
-
-    def __init__(self, api_key, universe_id, timestamp, status_payload):
-        from .experience import Experience
-
-        self.experience: Experience = Experience(int(universe_id), api_key)
-        self.followed_at: Optional[datetime.datetime] = (
-            parser.parse(timestamp) if timestamp else None
-        )
-        self.is_following: bool = (
-            True if not status_payload else status_payload["IsFollowing"]
-        )
-        self.can_follow: Optional[bool] = (
-            True if not status_payload else status_payload["CanFollow"]
-        )
-        self.following_count: Optional[int] = (
-            None
-            if not status_payload
-            else status_payload["FollowingCountByType"]
-        )
-        self.following_limit: Optional[int] = (
-            None
-            if not status_payload
-            else status_payload["FollowingLimitByType"]
-        )
-
-    def __repr__(self) -> str:
-        return f"<rblxopencloud.UserExperienceFollowing \
-experience={self.experience}>"
-
-
 class User(Creator):
     """
     Represents a user on Roblox. It is used to provide information about a \
@@ -520,7 +465,7 @@ class User(Creator):
     def __repr__(self) -> str:
         return f"<rblxopencloud.User id={self.id}>"
 
-    def fetch_info(self) -> "User":
+    async def fetch_info(self) -> "User":
         """
         Updates the empty attributes in the class with the user info.
 
@@ -528,7 +473,7 @@ class User(Creator):
             The class itself.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/users/{self.id}",
             authorization=self.__api_key,
@@ -550,7 +495,7 @@ class User(Creator):
 
         return self
 
-    def generate_headshot(
+    async def generate_headshot(
         self,
         size: Literal[48, 50, 60, 75, 100, 110, 150, 180, 352, 420, 720] = 420,
         format: Literal["png", "jpeg"] = "png",
@@ -577,7 +522,7 @@ class User(Creator):
             [`Operation.wait`][rblxopencloud.Operation.wait].
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/users/{self.id}:generateThumbnail",
             params={
@@ -596,7 +541,9 @@ class User(Creator):
             cached_response=data.get("response"),
         )
 
-    def list_groups(self, limit: int = None) -> Iterable["GroupMember"]:
+    async def list_groups(
+        self, limit: int = None
+    ) -> AsyncGenerator[Any, "GroupMember"]:
         """
         Iterates a [`GroupMember`][rblxopencloud.GroupMember] for every group \
         the user is in. Use [`GroupMember.group`][rblxopencloud.GroupMember] \
@@ -612,7 +559,7 @@ class User(Creator):
 
         from .group import GroupMember
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             "/groups/-/memberships",
             authorization=self.__api_key,
@@ -626,7 +573,7 @@ class User(Creator):
         ):
             yield GroupMember(entry, self.__api_key)
 
-    def list_inventory(
+    async def list_inventory(
         self,
         limit: int = None,
         only_collectibles: bool = False,
@@ -634,13 +581,14 @@ class User(Creator):
         badges: Union[list[int], bool] = False,
         game_passes: Union[list[int], bool] = False,
         private_servers: Union[list[int], bool] = False,
-    ) -> Iterable[
+    ) -> AsyncGenerator[
+        Any,
         Union[
             InventoryAsset,
             InventoryBadge,
             InventoryGamePass,
             InventoryPrivateServer,
-        ]
+        ],
     ]:
         """
         Interates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \
@@ -711,7 +659,7 @@ class User(Creator):
                 [str(private_server) for private_server in private_servers]
             )
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             f"/users/{self.id}/inventory-items",
             params={
@@ -731,113 +679,3 @@ class User(Creator):
                 yield InventoryGamePass(entry["gamePassDetails"])
             elif "privateServerDetails" in entry.keys():
                 yield InventoryPrivateServer(entry["privateServerDetails"])
-
-    def fetch_experience_followings(self) -> list["UserExperienceFollowing"]:
-        """
-        Fetches the list of experiences the user is following.
-        
-        Returns:
-            A list of experiences the user is following, and the time they \
-            followed at. `can_follow`, `following_count`, and \
-            `following_limit` will all be `None`.
-
-        !!! warning
-            This endpoint uses the legacy followings API. Roblox has noted on \
-the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
-may change without notice and break your application, therefore they should \
-be used with caution.  
-        """
-
-        _, data, _ = send_request(
-            "GET",
-            f"legacy-followings/v2/users/{self.id}/universes",
-            authorization=self.__api_key,
-            expected_status=[200],
-        )
-
-        followings = []
-
-        for k, v in data["followedSources"].items():
-            followings.append(UserExperienceFollowing(self.__api_key, k, v))
-
-        return followings
-
-    def fetch_experience_following_status(
-        self, experience_id: int
-    ) -> UserExperienceFollowing:
-        """
-        Fetches the following status of the requested experience for the user.
-
-        Args:
-            experience_id: The ID of the experience to fetch status for; not \
-            to be confused with a place ID.
-        
-        Returns:
-           The following status object with `followed_at` being `None`.
-
-        !!! warning
-            This endpoint uses the legacy followings API. Roblox has noted on \
-the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
-may change without notice and break your application, therefore they should \
-be used with caution.  
-        """
-
-        _, data, _ = send_request(
-            "GET",
-            f"legacy-followings/v1/users/{self.id}/universes/\
-{experience_id}/status",
-            authorization=self.__api_key,
-            expected_status=[200],
-        )
-
-        return UserExperienceFollowing(
-            self.__api_key, experience_id, None, data
-        )
-
-    def follow_experience(self, experience_id: int):
-        """
-        Follows the requested experience for the user. This means the user \
-        will recieve updates and notifications for the experience.
-
-        Args:
-            experience_id: The ID of the experience to follow; not to be \
-            confused with a place ID.
-
-        !!! warning
-            This endpoint uses the legacy followings API. Roblox has noted on \
-the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
-may change without notice and break your application, therefore they should \
-be used with caution.  
-        """
-
-        send_request(
-            "POST",
-            f"legacy-followings/v1/users/{self.id}/universes/\
-{experience_id}",
-            authorization=self.__api_key,
-            expected_status=[200],
-        )
-
-    def unfollow_experience(self, experience_id: int):
-        """
-        Unfollows the requested experience for the user. This means the user \
-        will no longer recieve updates and notifications for the experience.
-
-        Args:
-            experience_id: The ID of the experience to unfollow; not to be \
-            confused with a place ID.
-
-        !!! warning
-            This endpoint uses the legacy followings API. Roblox has noted on \
-the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
-may change without notice and break your application, therefore they should \
-be used with caution.  
-        """
-
-        send_request(
-            "DELETE",
-            f"legacy-followings/v1/users/{self.id}/universes/\
-{experience_id}",
-            authorization=self.__api_key,
-            expected_status=[200],
-        )

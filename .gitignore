@@ -5,7 +5,6 @@ dist/
 rblxopencloud/__pycache__/
 .vscode/*
 *.env
-tests/
 docs/make.bat
 docs/Makefile
 docs/build

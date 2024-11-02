@@ -23,7 +23,7 @@
 import datetime
 import json
 import urllib.parse
-from typing import TYPE_CHECKING, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Optional, Union
 
 from dateutil import parser
 
@@ -80,7 +80,7 @@ class EntryVersion:
         content_length: The length of the value.
         created: When this version was created.
         key_created: When the key was first created.
-    
+
     **Supported Operations:**
 
     | Operator | Description |
@@ -192,9 +192,9 @@ class DataStore:
         return f'<rblxopencloud.DataStore name="{self.name}" \
 scope="{self.scope}" experience={repr(self.experience)}>'
 
-    def list_keys(
+    async def list_keys(
         self, prefix: str = "", limit: int = None
-    ) -> Iterable[ListedEntry]:
+    ) -> AsyncGenerator[Any, ListedEntry]:
         """
         Iterates all keys in the database and scope, optionally matching a \
         prefix.
@@ -205,7 +205,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             for no limit.
         """
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             f"datastores/v1/universes/\
 {self.experience.id}/standard-datastores/datastore/entries",
@@ -222,7 +222,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         ):
             yield ListedEntry(entry["key"], entry["scope"])
 
-    def get_entry(
+    async def get_entry(
         self, key: str
     ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
@@ -239,7 +239,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, headers = send_request(
+        _, data, headers = await send_request(
             "GET",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry",
@@ -270,7 +270,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             metadata,
         )
 
-    def set_entry(
+    async def set_entry(
         self,
         key: str,
         value: Union[str, dict, list, int, float],
@@ -310,7 +310,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        status_code, data, headers = send_request(
+        status_code, data, headers = await send_request(
             "POST",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry",
@@ -372,7 +372,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             self.scope if self.scope else scope,
         )
 
-    def increment_entry(
+    async def increment_entry(
         self,
         key: str,
         delta: Union[int, float],
@@ -401,7 +401,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, headers = send_request(
+        _, data, headers = await send_request(
             "POST",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry/increment",
@@ -437,7 +437,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             metadata,
         )
 
-    def remove_entry(self, key: str) -> None:
+    async def remove_entry(self, key: str) -> None:
         """
         Removes the value of a key from the datastore and scope.
         
@@ -453,7 +453,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        send_request(
+        await send_request(
             "DELETE",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry",
@@ -468,14 +468,14 @@ scope="{self.scope}" experience={repr(self.experience)}>'
 
         return None
 
-    def list_versions(
+    async def list_versions(
         self,
         key: str,
         after: datetime.datetime = None,
         before: datetime.datetime = None,
         limit: int = None,
         descending: bool = True,
-    ) -> Iterable[EntryVersion]:
+    ) -> AsyncGenerator[Any, EntryVersion]:
         """
         Iterates all available versions of a key.
 
@@ -495,7 +495,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             f"datastores/v1/universes/\
 {self.experience.id}/standard-datastores/datastore/entries/versions",
@@ -523,7 +523,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
                 self.scope if self.scope else scope,
             )
 
-    def get_version(
+    async def get_version(
         self, key: str, version: str
     ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
@@ -542,7 +542,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        status_code, data, headers = send_request(
+        status_code, data, headers = await send_request(
             "GET",
             f"datastores/v1/universes/{self.experience.id}/standard-datastores\
 /datastore/entries/entry/versions/version",
@@ -637,15 +637,15 @@ class OrderedDataStore:
         return f'<rblxopencloud.OrderedDataStore "{self.name}" \
 scope="{self.scope}" experience={repr(self.experience)}>'
 
-    def sort_keys(
+    async def sort_keys(
         self,
         descending: bool = True,
         limit: Optional[int] = None,
         min: int = None,
         max: int = None,
-    ) -> Iterable[SortedEntry]:
+    ) -> AsyncGenerator[Any, SortedEntry]:
         """
-        Returns an Iterable of keys in order based on their value.
+        Returns a list of keys and their values.
 
         Args:
             descending: Wether the largest or the smallest number should be \
@@ -674,7 +674,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         elif max:
             filter = f"entry <= {max}"
 
-        for entry in iterate_request(
+        for entry in await iterate_request(
             "GET",
             f"ordered-data-stores/v1/universes\
 /{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes\
@@ -692,7 +692,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         ):
             yield SortedEntry(entry["id"], entry["value"], self.scope)
 
-    def get_entry(self, key: str) -> int:
+    async def get_entry(self, key: str) -> int:
         """
         Gets the value of a key.
         
@@ -708,7 +708,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"ordered-data-stores/v1/universes/\
 {self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/\
@@ -719,7 +719,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
 
         return int(data["value"])
 
-    def set_entry(
+    async def set_entry(
         self,
         key: str,
         value: int,
@@ -749,7 +749,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             )
 
         if not exclusive_create:
-            status_code, data, _ = send_request(
+            status_code, data, _ = await send_request(
                 "PATCH",
                 f"ordered-data-stores\
 /v1/universes/{self.experience.id}/orderedDataStores/\
@@ -761,7 +761,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
                 json={"value": value},
             )
         else:
-            status_code, data, _ = send_request(
+            status_code, data, _ = await send_request(
                 "POST",
                 f"ordered-data-stores\
 /v1/universes/{self.experience.id}/orderedDataStores/\
@@ -778,16 +778,15 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             else:
                 raise HttpException(status_code, data)
 
-        if (
-            status_code == 404
-            and exclusive_update
-            and data["code"] == "NOT_FOUND"
-        ):
-            raise PreconditionFailed(status_code, data)
+        if status_code == 404:
+            if exclusive_update and data["code"] == "NOT_FOUND":
+                raise PreconditionFailed(None, None, status_code, data)
+            else:
+                raise NotFound(status_code, data)
 
         return int(data["value"])
 
-    def increment_entry(self, key: str, delta: int) -> None:
+    async def increment_entry(self, key: str, delta: int) -> None:
         """
         Increments the value of a key.
         
@@ -804,7 +803,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "POST",
             f"ordered-data-stores/v1/\
 universes/{self.experience.id}/orderedDataStores/\
@@ -817,7 +816,7 @@ universes/{self.experience.id}/orderedDataStores/\
 
         return int(data["value"])
 
-    def remove_entry(self, key: str) -> None:
+    async def remove_entry(self, key: str) -> None:
         """
         Removes a key.
 
@@ -833,7 +832,7 @@ universes/{self.experience.id}/orderedDataStores/\
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        send_request(
+        await send_request(
             "DELETE",
             f"ordered-data-stores/v1/universes/\
 {self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes/\

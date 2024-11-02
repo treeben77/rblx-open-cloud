@@ -1,22 +1,18 @@
 # Exceptions
 
-::: rblxopencloud.rblx_opencloudException
+::: rblxopencloud.BaseException
 
-::: rblxopencloud.NotFound
-
-::: rblxopencloud.InvalidKey
-
-::: rblxopencloud.PermissionDenied
+::: rblxopencloud.HttpException
 
 ::: rblxopencloud.RateLimited
 
-::: rblxopencloud.ServiceUnavailable
+::: rblxopencloud.NotFound
+
+::: rblxopencloud.Forbidden
 
 ::: rblxopencloud.PreconditionFailed
 
-::: rblxopencloud.InsufficientScope
-
-::: rblxopencloud.InvalidAsset
+::: rblxopencloud.InvalidFile
 
 ::: rblxopencloud.InvalidCode
 

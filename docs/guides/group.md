@@ -1,25 +1,5 @@
 # Group
-
 The [`rblxopencloud.Group`][rblxopencloud.Group] object allows access to groups. Currently there is only read only access, but write access is coming soon.
-
-## Getting Started
-
-### Creating an API Key
-
-To use any APIs, first you will need to create an API key, the key allows the library to preform requests. To create an API key, you must go to the [Creator Dashboard](https://create.roblox.com/dashboard/credentials), switch to the group if using Assets API, or switch to yourself if using the Group API, and then press 'CREATE API KEY'. This will open the new API key menu.
-
-First, you will need to give your API key a name, it should be something that will help you identify it from any other API keys you might have. Next, you will need to define what APIs and permissions you give to your API key. The only Group API right now is the Groups API, and the Assets API.
-
-Once you've finished selecting permissions, the last section is security. This allows you to define what IP addresses/CIDR notations can use your API key, and how long until it expires. If you do not know your IP address, you can add `0.0.0.0/0` to the IP address list to allow all IP addresses. The experiation allows you to configure a set time for your API key to be disabled, which is useful if you plan to not use the API key in the future.
-
-After pressing 'SAVE & GENERATE KEY', Roblox will provide you with a string of random letters, numbers and symbols. You will need this key, but do not share the key with anyone else. This key allows people to use your API key!
-
-!!! warning
-    When selecting permissions, you should provide only what APIs and scopes your API key will need to use. This helps minize the impact if the API key is comprimised. Using `0.0.0.0/0` significantly increases the risk in your API key being used by bad actors.
-
-### Group Permissions
-
-When giving an API key Group read permission, it will allow you to access all groups your user account can normally access. For example, since most group information is public, you will be able to fetch info for all groups. However, ceartin information is restricted. Group permissions for every method is explained for every method below.
 
 ## Fetching Group Information
 
@@ -35,7 +15,7 @@ group.fetch_info()
 print(f"{group.name} has {group.member_count} members!")
 ```
 
-There are no permission restrictions for basic group information, anyone can get basic information for any group.
+There are no permission restrictions for basic group information, any API key/OAuth2 bearer can get basic information for any group.
 
 ### Listing Group Members
 
@@ -80,20 +60,14 @@ Note that the authorizing user requires the 'View group shout' permission on the
 
 ## Uploading Assets
 
-You can upload images, audio, and models to a Group using the [`Group.upload_asset`][rblxopencloud.Group.upload_asset] method. It requires an API key owned by the Group with read and write Asset API permissions. The following example will upload the image at the path `path-to/image.png`:
+You can upload images, audio, and models to a Group using the [`Group.upload_asset`][rblxopencloud.Group.upload_asset] method. It requires an API key owned by the Group with read and write Asset API permissions. The following example will upload the image at the path `path-to/image.png` and wait until it is complete:
 
 ```py
 with open("path-to/image.png", "rb") as file:
-    status = group.upload_asset(file, rblxopencloud.AssetType.Decal, "asset name", "asset description")
+    operation = group.upload_asset(file, rblxopencloud.AssetType.Decal, "asset name", "asset description")
 
-if isinstance(asset, rblxopencloud.Asset):
-    print(asset)
-else:
-    while True:
-        status = asset.fetch_status()
-        if status:
-            print(status)
-            break
+asset = operation.wait()
+print(asset)
 ```
 
 !!! danger

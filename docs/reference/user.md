@@ -17,3 +17,11 @@
 ::: rblxopencloud.InventoryItemState
 
 ::: rblxopencloud.InventoryAssetType
+
+::: rblxopencloud.UserSocialLinks
+
+::: rblxopencloud.UserVisibility
+
+::: rblxopencloud.UserExperienceFollowing
+    options:
+        merge_init_into_class: true

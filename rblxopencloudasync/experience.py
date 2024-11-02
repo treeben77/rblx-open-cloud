@@ -24,7 +24,7 @@ import io
 import urllib.parse
 from datetime import datetime
 from enum import Enum
-from typing import Iterable, Optional, Union
+from typing import Any, AsyncGenerator, Optional, Union
 
 from dateutil import parser
 
@@ -402,7 +402,7 @@ experience={repr(self.experience)}>"
 
         return self
 
-    def fetch_info(self) -> "Place":
+    async def fetch_info(self) -> "Place":
         """
         Fetches the places's information and fills the Place object parameters.
 
@@ -410,7 +410,7 @@ experience={repr(self.experience)}>"
             The place object with parameters filled.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/universes/{self.experience.id}/places/{self.id}",
             authorization=self.__api_key,
@@ -419,7 +419,7 @@ experience={repr(self.experience)}>"
 
         return self.__update_params(data)
 
-    def update(
+    async def update(
         self,
         name: str = None,
         description: str = None,
@@ -450,7 +450,7 @@ experience={repr(self.experience)}>"
         if server_size:
             field_mask.append("serverSize")
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "PATCH",
             f"/universes/{self.experience.id}/places/{self.id}",
             authorization=self.__api_key,
@@ -461,7 +461,7 @@ experience={repr(self.experience)}>"
 
         return self.__update_params(data)
 
-    def upload_place_file(
+    async def upload_place_file(
         self, file: io.BytesIO, publish: bool = False
     ) -> int:
         """
@@ -475,7 +475,7 @@ experience={repr(self.experience)}>"
             The place's new version ID.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "POST",
             f"universes/v1/{self.experience.id}/places/{self.id}\
 /versions",
@@ -488,7 +488,7 @@ experience={repr(self.experience)}>"
 
         return data["versionNumber"]
 
-    def fetch_user_restriction(self, user_id: int) -> UserRestriction:
+    async def fetch_user_restriction(self, user_id: int) -> UserRestriction:
         """
         Fetches the current restriction information for the specific place.
 
@@ -499,7 +499,7 @@ experience={repr(self.experience)}>"
             The current restriction information for the requested user.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
@@ -509,7 +509,7 @@ experience={repr(self.experience)}>"
 
         return UserRestriction(data, self.__api_key)
 
-    def ban_user(
+    async def ban_user(
         self,
         user_id: int,
         duration_seconds: Optional[int],
@@ -533,7 +533,7 @@ experience={repr(self.experience)}>"
             The updated restriction information for the requested user.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "PATCH",
             f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
@@ -554,7 +554,7 @@ experience={repr(self.experience)}>"
 
         return UserRestriction(data, self.__api_key)
 
-    def unban_user(self, user_id: int) -> UserRestriction:
+    async def unban_user(self, user_id: int) -> UserRestriction:
         """
         Removes the current user restriction for a user within the place.
 
@@ -565,7 +565,7 @@ experience={repr(self.experience)}>"
             The updated restriction information for the requested user.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "PATCH",
             f"/universes/{self.experience.id}/places/{self.id}\
 /user-restrictions/{user_id}",
@@ -757,7 +757,7 @@ class Experience:
 
         return self
 
-    def fetch_info(self) -> "Experience":
+    async def fetch_info(self) -> "Experience":
         """
         Fetches the experience's information and fills the experience object \
         parameters.
@@ -766,7 +766,7 @@ class Experience:
             The experience object with parameters filled.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/universes/{self.id}",
             expected_status=[200],
@@ -775,7 +775,7 @@ class Experience:
 
         return self.__update_params(data)
 
-    def update(
+    async def update(
         self,
         voice_chat_enabled: bool = None,
         private_server_price: Union[int, bool] = None,
@@ -885,7 +885,7 @@ class Experience:
                     # any social link is being removed
                     field_mask.append(f"{platform}SocialLink")
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "PATCH",
             f"/universes/{self.id}",
             authorization=self.__api_key,
@@ -945,12 +945,12 @@ class Experience:
 
         return OrderedDataStore(name, self, self.__api_key, scope)
 
-    def list_datastores(
+    async def list_datastores(
         self,
         prefix: str = "",
         limit: int = None,
         scope: Optional[str] = "global",
-    ) -> Iterable[DataStore]:
+    ) -> AsyncGenerator[Any, DataStore]:
         """
         Iterates all data stores in the experience.
 
@@ -965,7 +965,7 @@ class Experience:
             experience.
         """
 
-        for entry in iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"datastores/v1/universes/{self.id}/standard-datastores",
             authorization=self.__api_key,
@@ -1013,7 +1013,7 @@ class Experience:
 
         return MemoryStoreQueue(name, self, self.__api_key)
 
-    def publish_message(self, topic: str, data: str) -> None:
+    async def publish_message(self, topic: str, data: str) -> None:
         """
         Publishes a message to live game servers that can be recieved with \
         [MessagingService](https://create.roblox.com/docs/reference/engine/\
@@ -1031,7 +1031,7 @@ classes/MessagingService).
 
         topic = urllib.parse.quote(topic)
 
-        send_request(
+        await send_request(
             "POST",
             f"messaging-service/v1/universes/{self.id}/topics/{topic}",
             authorization=self.__api_key,
@@ -1039,7 +1039,7 @@ classes/MessagingService).
             json={"message": data},
         )
 
-    def send_notification(
+    async def send_notification(
         self,
         user_id: int,
         message_id: str,
@@ -1069,7 +1069,7 @@ classes/MessagingService).
                 "int64_value" if type(value) == int else "string_value": value
             }
 
-        send_request(
+        await send_request(
             "POST",
             f"/users/{user_id}/notifications",
             authorization=self.__api_key,
@@ -1092,21 +1092,21 @@ classes/MessagingService).
             },
         )
 
-    def restart_servers(self) -> None:
+    async def restart_servers(self) -> None:
         """
         Shutdowns all game servers in the experience which are not on the \
         latest published version. Similar to the 'Migrate To Latest Update' \
         button on the game page.
         """
 
-        send_request(
+        await send_request(
             "POST",
             f"/universes/{self.id}:restartServers",
             authorization=self.__api_key,
             expected_status=[200],
         )
 
-    def flush_memory_store(self) -> Operation[bool]:
+    async def flush_memory_store(self) -> Operation[bool]:
         """
         Flushes all memory store sorted map and queue data.
 
@@ -1115,7 +1115,7 @@ classes/MessagingService).
             operation is complete.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "POST",
             f"/universes/{self.id}/memory-store:flush",
             authorization=self.__api_key,
@@ -1130,7 +1130,7 @@ classes/MessagingService).
             True,
         )
 
-    def fetch_subscription(
+    async def fetch_subscription(
         self, product_id: str, user_id: int
     ) -> Subscription:
         """
@@ -1147,7 +1147,7 @@ classes/MessagingService).
             The subscription for the product ID and user ID.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/universes/{self.id}/subscription-products/\
 {product_id}/subscriptions/{user_id}",
@@ -1158,9 +1158,9 @@ classes/MessagingService).
 
         return Subscription(data)
 
-    def list_ban_logs(
+    async def list_ban_logs(
         self, user_id: int = None, place_id: int = None, limit: int = None
-    ) -> Iterable[UserRestriction]:
+    ) -> AsyncGenerator[Any, UserRestriction]:
         """
         Lists all ban and unban logs within the universe, optionally filtered \
         to a specific user and/ or place.
@@ -1170,7 +1170,7 @@ classes/MessagingService).
             place_id: Only include ban logs for this specific place ID.
         
         Yields:
-            Restriction information for each ban log found.
+            Restriction information for each restriction log found.
         """
 
         filter = []
@@ -1180,13 +1180,19 @@ classes/MessagingService).
         if place_id:
             filter.append(f"place == 'places/{place_id}'")
 
-        for entry in iterate_request(
+        print(
+            {
+                "maxPageSize": limit if limit and limit <= 100 else 100,
+                "filter": "&&".join(filter),
+            }
+        )
+        async for entry in iterate_request(
             "GET",
             f"/universes/{self.id}/user-restrictions:listLogs",
             authorization=self.__api_key,
             expected_status=[200],
             params={
-                "maxPageSize": limit if limit and limit <= 100 else 100,
+                "maxPageSize": str(limit if limit and limit <= 100 else 100),
                 "filter": "&&".join(filter),
             },
             max_yields=limit,
@@ -1195,7 +1201,7 @@ classes/MessagingService).
         ):
             yield UserRestriction(entry, self.__api_key)
 
-    def fetch_user_restriction(self, user_id: int) -> UserRestriction:
+    async def fetch_user_restriction(self, user_id: int) -> UserRestriction:
         """
         Fetches the current restriction information for a user universe-wide. \
         (e.g. whether they are banned.)
@@ -1207,7 +1213,7 @@ classes/MessagingService).
             The current restriction information for the requested user.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             f"/universes/{self.id}/user-restrictions/{user_id}",
             authorization=self.__api_key,
@@ -1216,7 +1222,7 @@ classes/MessagingService).
 
         return UserRestriction(data, self.__api_key)
 
-    def ban_user(
+    async def ban_user(
         self,
         user_id: int,
         duration_seconds: Optional[int],
@@ -1241,7 +1247,7 @@ classes/MessagingService).
             The updated restriction information for the requested user.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "PATCH",
             f"/universes/{self.id}/user-restrictions/{user_id}",
             authorization=self.__api_key,
@@ -1261,7 +1267,7 @@ classes/MessagingService).
 
         return UserRestriction(data, self.__api_key)
 
-    def unban_user(self, user_id: int) -> UserRestriction:
+    async def unban_user(self, user_id: int) -> UserRestriction:
         """
         Removes the current user restriction for a user on the universe-wide \
         level.
@@ -1273,7 +1279,7 @@ classes/MessagingService).
             The updated restriction information for the requested user.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "PATCH",
             f"/universes/{self.id}/user-restrictions/{user_id}",
             authorization=self.__api_key,
@@ -1282,37 +1288,3 @@ classes/MessagingService).
         )
 
         return UserRestriction(data, self.__api_key)
-
-    def update_badge(
-        self,
-        badge_id: int,
-        enabled: bool = None,
-        name: str = None,
-        description: str = None,
-    ):
-        """
-        Updates a badge with the provided badge ID.
-
-        Args:
-            enabled: Whether it can be awarded and appear on the game page.
-            name: The new name for the badge.
-            description: The new description for the badge.
-
-        !!! warning
-            This endpoint uses the legacy badges API. Roblox has noted on \
-the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
-may change without notice and break your application, therefore they should \
-be used with caution.  
-        """
-
-        send_request(
-            "PATCH",
-            f"legacy-badges/v1/badges/{badge_id}",
-            authorization=self.__api_key,
-            expected_status=[200],
-            json={
-                "name": name,
-                "description": description,
-                "enabled": enabled,
-            },
-        )

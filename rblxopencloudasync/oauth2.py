@@ -132,7 +132,7 @@ class PartialAccessToken:
         return f'<rblxopencloud.PartialAccessToken \
     token="{self.token[:15]}...">'
 
-    def fetch_userinfo(self) -> User:
+    async def fetch_userinfo(self) -> User:
         """
         Fetches user information for this access token.
 
@@ -141,7 +141,7 @@ class PartialAccessToken:
             apis (such as uploading files).
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             "oauth/v1/userinfo",
             authorization=f"Bearer {self.token}",
@@ -160,7 +160,7 @@ class PartialAccessToken:
 
         return user
 
-    def fetch_resources(self) -> Resources:
+    async def fetch_resources(self) -> Resources:
         """
         Fetches the authorized accounts (users and groups) and experiences.
 
@@ -168,7 +168,7 @@ class PartialAccessToken:
             The objects for authorized accounts and experiences.
         """
 
-        status, data, _ = send_request(
+        status, data, _ = await send_request(
             "GET",
             "oauth/v1/token/resources",
             expected_status=[200],
@@ -206,7 +206,7 @@ class PartialAccessToken:
 
         return Resources(experiences=experiences, accounts=accounts)
 
-    def fetch_token_info(self) -> AccessTokenInfo:
+    async def fetch_token_info(self) -> AccessTokenInfo:
         """
         Fetches token information such as the user's id, the authorized \
         scope, and it's expiry time.
@@ -215,7 +215,7 @@ class PartialAccessToken:
             The information about the access token.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "GET",
             "oauth/v1/token/introspect",
             expected_status=[200],
@@ -284,13 +284,7 @@ user={self.user})'
 
     def revoke_refresh_token(self):
         """
-        Shortcut for [`OAuth2App.revoke_token()`][rblxopencloud.OAuth2App.revoke_token] to revoke the refresh token.
-        Raises:
-            InvalidKey: The client ID or client secret is invalid.
-            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
-            rblx_opencloudException: Roblox gave an unexpected response.
-        !!! warning
-            Revoking an access token or refresh token will also invalidate it's pair, so you should only revoke a token once you're completely done with it.
+        Shortcut to revoke the refresh token.
         """
         self.app.revoke_token(self.refresh_token)
 
@@ -336,8 +330,8 @@ class OAuth2App:
         return f'<rblxopencloud.OAuth2App(id={self.id} \
 redirect_uri="{self.redirect_uri}")'
 
-    def __refresh_openid_certs_cache(self):
-        certs_status, certs, _ = send_request("GET", "oauth/v1/certs")
+    async def __refresh_openid_certs_cache(self):
+        certs_status, certs, _ = await send_request("GET", "oauth/v1/certs")
         self.__openid_certs_cache = []
         self.__openid_certs_cache_updated = time.time()
 
@@ -458,7 +452,7 @@ redirect_uri="{self.redirect_uri}")'
 
         return PartialAccessToken(self, access_token)
 
-    def exchange_code(
+    async def exchange_code(
         self, code: str, code_verifier: Optional[str] = None
     ) -> AccessToken:
         """
@@ -475,7 +469,7 @@ redirect_uri="{self.redirect_uri}")'
             The access token created from the provided code.
         """
 
-        status, data, _ = send_request(
+        status, data, _ = await send_request(
             "POST",
             "oauth/v1/token",
             expected_status=[200, 401],
@@ -501,7 +495,7 @@ redirect_uri="{self.redirect_uri}")'
                 or time.time() - self.__openid_certs_cache_updated
                 > self.openid_certs_cache_seconds
             ):
-                self.__refresh_openid_certs_cache()
+                await self.__refresh_openid_certs_cache()
 
             for cert in self.__openid_certs_cache:
                 try:
@@ -521,7 +515,7 @@ redirect_uri="{self.redirect_uri}")'
 
         return AccessToken(self, data, id_token)
 
-    def refresh_token(self, refresh_token: str) -> AccessToken:
+    async def refresh_token(self, refresh_token: str) -> AccessToken:
         """
         Refrehes an access token for a new access token with a refresh token. \
         After refreshing, a new refresh token is provided to be stored.
@@ -533,7 +527,7 @@ redirect_uri="{self.redirect_uri}")'
             The new access token from the refresh token.
         """
 
-        _, data, _ = send_request(
+        _, data, _ = await send_request(
             "POST",
             "oauth/v1/token",
             expected_status=[200],
@@ -548,7 +542,7 @@ redirect_uri="{self.redirect_uri}")'
 
         return AccessToken(self, data, None)
 
-    def revoke_token(self, token: str):
+    async def revoke_token(self, token: str):
         """
         Revokes the authorization for a given access or refresh token.
 
@@ -556,7 +550,7 @@ redirect_uri="{self.redirect_uri}")'
             token: The access or refresh token to revoke.
         """
 
-        send_request(
+        await send_request(
             "POST",
             "oauth/v1/token/revoke",
             expected_status=[200],
