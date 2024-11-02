@@ -1282,37 +1282,3 @@ classes/MessagingService).
         )
 
         return UserRestriction(data, self.__api_key)
-
-    def update_badge(
-        self,
-        badge_id: int,
-        enabled: bool = None,
-        name: str = None,
-        description: str = None,
-    ):
-        """
-        Updates a badge with the provided badge ID.
-
-        Args:
-            enabled: Whether it can be awarded and appear on the game page.
-            name: The new name for the badge.
-            description: The new description for the badge.
-
-        !!! warning
-            This endpoint uses the legacy badges API. Roblox has noted on \
-the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
-may change without notice and break your application, therefore they should \
-be used with caution.  
-        """
-
-        send_request(
-            "PATCH",
-            f"legacy-badges/v1/badges/{badge_id}",
-            authorization=self.__api_key,
-            expected_status=[200],
-            json={
-                "name": name,
-                "description": description,
-                "enabled": enabled,
-            },
-        )
