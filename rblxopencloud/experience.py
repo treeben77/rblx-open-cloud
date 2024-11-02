@@ -360,6 +360,106 @@ class UserRestriction:
 user={repr(self.user)}>"
 
 
+class LuauSessionTaskState(Enum):
+    """
+    Enum representing the an experience's age rating.
+
+    Attributes:
+        Unknown (0): The state is unknown, unspecified or not implemented.
+        Queued (1): The task is waiting to be processed.
+        Processing (2): The task is being processed.
+        Cancelled (3): The task was stopped by the user.
+        Complete (4): The task has finished processing.
+        Failed (5): The task failed to complete.
+    """
+
+    Unknown = 0
+    Queued = 1
+    Processing = 2
+    Cancelled = 3
+    Complete = 4
+    Failed = 5
+
+
+LUAU_SESSION_STATES = {
+    "QUEUED": LuauSessionTaskState.Queued,
+    "PROCESSING": LuauSessionTaskState.Processing,
+    "CANCELLED": LuauSessionTaskState.Cancelled,
+    "COMPLETE": LuauSessionTaskState.Complete,
+    "FAILED": LuauSessionTaskState.Failed,
+}
+
+
+class LuauSessionTaskError:
+    def __init__(self, data) -> None:
+        self.message: str = data["message"]
+        self.code: str = data["code"]
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.LuauSessionTaskError \
+code="{self.code}" message="{self.message}">'
+
+
+class LuauSessionTask(Operation["LuauSessionTask"]):
+    def __init__(self, data, api_key: str, place) -> None:
+
+        self.place_version_id: int = int(data["path"].split("/")[5])
+        self.place: Place = place
+        self.session_id: str = data["path"].split("/")[7]
+
+        self.__api_key = api_key
+        self.__update_params(data)
+
+        super().__init__(
+            f"/{data['path']}",
+            api_key,
+            self.__update_params,
+            None,
+            lambda data: data["state"] not in ("QUEUED", "PROCESSING"),
+            lambda data: data,
+        )
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.LuauSessionTask \
+state={self.state} session_id="{self.session_id}">'
+
+    def __update_params(self, data) -> "LuauSessionTask":
+        self.state: LuauSessionTaskState = LUAU_SESSION_STATES.get(
+            data["state"], LuauSessionTaskState.Unknown
+        )
+        self.created_at: Optional[datetime] = (
+            parser.parse(data["createTime"])
+            if data.get("createTime")
+            else None
+        )
+        self.updated_at: Optional[datetime] = (
+            parser.parse(data["updateTime"])
+            if data.get("updateTime")
+            else None
+        )
+        self.user: User = User(data["user"], self.__api_key)
+
+        self.result: Optional[
+            Union[
+                list[Union[str, dict, list, int, float, None]],
+                LuauSessionTaskError,
+            ]
+        ] = (
+            data["output"]["results"]
+            if data.get("output")
+            else (
+                LuauSessionTaskError(data["error"])
+                if data.get("error")
+                else None
+            )
+        )
+
+        if data.get("script") or not self.script:
+            self.script: Optional[str] = data.get("script")
+
+        return self
+
+
 class Place:
     """
     Represents a place within an experience on Roblox.
@@ -606,6 +706,18 @@ experience={repr(self.experience)}>"
     #     return Operation(f"/{data['path']}", self.__api_key,
     #         lambda r: Instance._determine_instance_subclass(r)
     #         (r["engineInstance"]["Id"], r, place=self, api_key=self.__api_key))
+
+    def create_luau_session_task(self, script: str) -> LuauSessionTask:
+        _, data, _ = send_request(
+            "POST",
+            f"/universes/{self.experience.id}/places/{self.id}"
+            "/luau-execution-session-tasks",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={"script": script},
+        )
+
+        return LuauSessionTask(data, self.__api_key, self)
 
 
 class Experience:

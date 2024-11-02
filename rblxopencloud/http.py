@@ -218,6 +218,8 @@ class Operation(Generic[T]):
         api_key: str,
         return_type: T,
         cached_response: dict = None,
+        done_lambda: Callable = None,
+        resp_lambda: Callable = None,
         **return_meta,
     ) -> None:
         self.__path: str = path
@@ -225,6 +227,13 @@ class Operation(Generic[T]):
         self.__return_type: T = return_type
         self.__return_meta: dict = return_meta
         self.__cached_response: dict = cached_response
+        self.__done_lambda: Callable = (
+            done_lambda if done_lambda else lambda data: data.get("done")
+        )
+        self.__response_lambda: Callable = (
+            resp_lambda if resp_lambda else lambda data: data["response"]
+        )
+        self.__custom_lambda: bool = bool(done_lambda or resp_lambda)
         self.is_done: bool = cached_response is not None
 
     def __repr__(self) -> str:
@@ -245,14 +254,20 @@ class Operation(Generic[T]):
         _, body, _ = send_request(
             "GET", self.__path, self.__api_key, expected_status=[200]
         )
-        if not body.get("done"):
+
+        if not self.__done_lambda(body):
+            self.__return_type(
+                self.__response_lambda(body), **self.__return_meta
+            )
             return None
 
         self.is_done = True
 
         if callable(self.__return_type):
-            self.__cached_response = body["response"]
-            return self.__return_type(body["response"], **self.__return_meta)
+            self.__cached_response = self.__response_lambda(body)
+            return self.__return_type(
+                self.__response_lambda(body), **self.__return_meta
+            )
         else:
             return self.__return_type
 
