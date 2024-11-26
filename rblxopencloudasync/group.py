@@ -185,7 +185,7 @@ class GroupMember(User):
     def __repr__(self) -> str:
         return f"<rblxopencloud.GroupMember id={self.id} group={self.group}>"
 
-    def fetch_role(self, skip_cache: bool = False) -> GroupRole:
+    async def fetch_role(self, skip_cache: bool = False) -> GroupRole:
         """
         Fetches and returns the user's role info (rank, role name, etc). The \
         roles are cached therefore it runs faster. Shortcut for \
@@ -199,9 +199,9 @@ class GroupMember(User):
             rank.
         """
 
-        return self.group.fetch_role(self.role_id, skip_cache=skip_cache)
+        return await self.group.fetch_role(self.role_id, skip_cache=skip_cache)
 
-    def update(self, role_id: int = None):
+    async def update(self, role_id: int = None):
         """
         Updates the member with the requested information and updates the \
         member object attributes.
@@ -216,7 +216,7 @@ class GroupMember(User):
             The updated [`GroupMember`][rblxopencloud.GroupMember] object.
         """
 
-        member = self.group.update_member(self.id, role_id)
+        member = await self.group.update_member(self.id, role_id)
 
         self.role_id: int = member.role_id
         self.updated_at: datetime.datetime = member.updated_at
@@ -493,7 +493,7 @@ class Group(Creator):
             [`GroupRole`][rblxopencloud.GroupRole] for every role in the group.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/groups/{self.id}/roles",
             authorization=self.__api_key,
