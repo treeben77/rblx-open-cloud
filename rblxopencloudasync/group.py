@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from base64 import urlsafe_b64encode
 import datetime
 from typing import Any, AsyncGenerator, Optional
 
@@ -399,10 +400,15 @@ class Group(Creator):
             provided user.
         """
 
+        membership_id = (
+            urlsafe_b64encode(str(user_id).encode()).strip(b"=").decode()
+        )
+
         _, data, _ = await send_request(
             "PATCH",
-            f"/groups/{self.id}/memberships/{user_id}",
+            f"/groups/{self.id}/memberships/{membership_id}",
             json={
+                "path": f"groups/{self.id}/memberships/{membership_id}",
                 "user": f"users/{user_id}",
                 "role": (
                     f"groups/{self.id}/roles/{role_id}" if role_id else None
