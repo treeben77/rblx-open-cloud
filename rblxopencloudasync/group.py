@@ -464,7 +464,7 @@ class Group(Creator):
         if role_id:
             filter = f"role == 'groups/{self.id}/roles/{role_id}'"
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/groups/{self.id}/memberships",
             authorization=self.__api_key,

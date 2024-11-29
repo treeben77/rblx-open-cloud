@@ -559,7 +559,7 @@ class User(Creator):
 
         from .group import GroupMember
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             "/groups/-/memberships",
             authorization=self.__api_key,

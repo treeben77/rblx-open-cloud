@@ -684,7 +684,7 @@ class Creator:
             An asset version for each version of the asset.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"assets/v1/assets/{asset_id}/versions",
             params={
