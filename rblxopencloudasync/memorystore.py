@@ -134,7 +134,7 @@ class SortedMap:
                 upper_bound_sort_key = f'"{upper_bound_sort_key}"'
             filter.append(f"sortKey < {upper_bound_sort_key}")
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items",

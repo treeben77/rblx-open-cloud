@@ -205,7 +205,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             for no limit.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"datastores/v1/universes/\
 {self.experience.id}/standard-datastores/datastore/entries",
