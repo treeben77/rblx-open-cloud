@@ -105,7 +105,7 @@ class SortedMap:
             than this value.
             upper_bound_sort_key: Only return values with sort keys less than \
             this value.
-            
+
         Yields:
             A sorted map entry representing for each entry in the sorted map.
         """
@@ -134,7 +134,7 @@ class SortedMap:
                 upper_bound_sort_key = f'"{upper_bound_sort_key}"'
             filter.append(f"sortKey < {upper_bound_sort_key}")
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/universes/{self.experience.id}/memory-store/\
 sorted-maps/{urllib.parse.quote_plus(self.name)}/items",
@@ -193,9 +193,9 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
             sort_key: The sort key used for sorting.
             exclusive_create: Wether to fail if the key already has a value.
             exclusive_update: Wether to fail if the key doesn't have a value.
-        
+
         Returns:
-            The new entry information. 
+            The new entry information.
         """
 
         if exclusive_create and exclusive_update:
@@ -344,7 +344,7 @@ queues/{urllib.parse.quote_plus(self.name)}/items:add",
             items in the queue to fullfill the requested `count`.
             invisibility_seconds: The number of seconds the items in the \
             queue should be invisible from further read requests.
-        
+
         Returns:
             A list of values as the first parameter and a readid string as \
             the second parameter. The read ID string can be passed to \
@@ -373,7 +373,7 @@ queues/{urllib.parse.quote_plus(self.name)}/items:read",
 
     async def remove_items(self, read_id: str) -> None:
         """
-        Permanently removes previously read values from the queue. 
+        Permanently removes previously read values from the queue.
 
         Args:
             read_id: The read ID returned by [`MemoryStoreQueue.read_items`\

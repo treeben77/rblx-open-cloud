@@ -233,7 +233,7 @@ class GroupJoinRequest(User):
         group (Group): The group this object is related to.
         requested_at (datetime.datetime): The time when the user requested to \
         join the Group.
-    
+
     !!! tip
         This class bases [`User`][rblxopencloud.User], so all methods of it \
         can be used from this object, such as \
@@ -273,13 +273,13 @@ class Group(Creator):
     """
     Represents a group on Roblox. It can be used for both uploading assets, \
     and accessing group information.
-    
+
     Args:
         id: The group's ID.
         api_key: Your API key created from \
         [Creator Dashboard](https://create.roblox.com/credentials) with \
         access to this group.
-    
+
     Attributes:
         id (int): The group's ID.
         name (Optional[str]): The group's name.
@@ -389,7 +389,7 @@ class Group(Creator):
 
         Args:
             user_id: The user ID to fetch member info for. Must not be the \
-                authorizing user. 
+                authorizing user.
             role_id: If provided, updates the member's group role to the \
                 provided [`GroupRole.id`][rblxopencloud.GroupRole.id]. This \
                 role must not be Owner or Guest and must be lower than the \
@@ -448,13 +448,13 @@ class Group(Creator):
         """
         Iterates each member in the group, optionally limited to a specific \
         role.
-                
+
         Args:
             limit: The maximum number of members to iterate. \
             This can be `None` to return all members.
             role_id: If present, the api will only provide \
             members with this role.
-        
+
         Yields:
             [`GroupMember`][rblxopencloud.GroupMember] for every member in \
             the group.
@@ -464,7 +464,7 @@ class Group(Creator):
         if role_id:
             filter = f"role == 'groups/{self.id}/roles/{role_id}'"
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/groups/{self.id}/memberships",
             authorization=self.__api_key,
@@ -484,11 +484,11 @@ class Group(Creator):
     ) -> AsyncGenerator[Any, GroupRole]:
         """
         Iterates every role in the group.
-        
+
         Args:
             limit: The maximum number of roles to iterate. This can be \
             `None` to return all role.
-        
+
         Yields:
             [`GroupRole`][rblxopencloud.GroupRole] for every role in the group.
         """
@@ -512,19 +512,19 @@ class Group(Creator):
     ) -> AsyncGenerator[Any, "GroupJoinRequest"]:
         """
         Iterates every group join request for private groups.
-        
+
         Args:
             limit: The maximum number of join requests to iterate. This can \
             be `None` to return all join requests.
             user_id: If present, the api will only provide the join request \
             with this user ID.
-        
+
         Yields:
             [`GroupJoinRequest`][rblxopencloud.GroupJoinRequest] for each \
             user who has requested to join.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/groups/{self.id}/join-requests",
             authorization=self.__api_key,
@@ -562,7 +562,7 @@ class Group(Creator):
     async def accept_join_request(self, user_id: int):
         """
         Accepts the join request for the provided user.
-        
+
         Args:
             user_id: The user ID to accept the join request for. Must have \
             requested to join.

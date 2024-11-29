@@ -86,12 +86,12 @@ async def send_request(
         python object to be sent in the request.
         data (Union[bytes], dict): The data to send with the request. *Can \
         not be used with `json` parameter.*
-    
+
     Returns:
         A tuple with the first value being the status code, the second value \
         being the response body pre-json decoded if possible, and the last \
         value being the response headers.
-    
+
     Raises:
         HttpException: HTTP status `400`, `401` 5xx`, or another unepexted \
         status returned which is not in `expected_status` and is not `None`.
@@ -101,7 +101,7 @@ async def send_request(
         `None` and `401` is not in the list.
         RateLimited: HTTP status `429` returned when `expected_status` is not \
         `None` and `429` is not in the list.
-    
+
     Note:
         The `send_request` function may function slightly differently between \
         the `rblxopencloud` and `rblxopencloudasync` modules.

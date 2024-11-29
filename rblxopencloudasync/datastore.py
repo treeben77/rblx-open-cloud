@@ -205,7 +205,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             for no limit.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"datastores/v1/universes/\
 {self.experience.id}/standard-datastores/datastore/entries",
@@ -227,7 +227,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
     ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key in the scope and datastore.
-        
+
         Args:
             key: The key to fetch. If `DataStore.scope` is `None`, this must \
             include the scope in the `scope/key` syntax.
@@ -281,7 +281,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
     ) -> EntryVersion:
         """
         Sets the value of a key in the datastore and scope.
-        
+
         Args:
             key: The key to update. If `DataStore.scope` is `None`, this must \
             include the scope in the `scope/key` syntax.
@@ -381,7 +381,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
     ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Increments the value of a key in the datastore and scope.
-        
+
         Args:
             key: The key to increment. If `DataStore.scope` is `None`, this \
             must include the scope in the `scope/key` syntax.
@@ -440,7 +440,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
     async def remove_entry(self, key: str) -> None:
         """
         Removes the value of a key from the datastore and scope.
-        
+
         Args:
             key: The key to remove. If `DataStore.scope` is `None`, this must \
             include the scope in the `scope/key` syntax.
@@ -495,7 +495,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"datastores/v1/universes/\
 {self.experience.id}/standard-datastores/datastore/entries/versions",
@@ -528,7 +528,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
     ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key at a specific version ID.
-        
+
         Args:
             key: The key to get. If `DataStore.scope` is `None`, this must \
             include the scope in the `scope/key` syntax.
@@ -589,7 +589,7 @@ class SortedEntry:
         key: The entry's key.
         scope: The entry's scope.
         value: The entry's value.
-    
+
     **Supported Operations:**
 
     | Operator | Description |
@@ -653,7 +653,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             limit: Max number of entries to loop through.
             min: Minimum entry value to retrieve
             max: Maximum entry value to retrieve.
-        
+
         !!! note
             `OrderedDataStore.scope` must not be `None` to sort keys. It is \
             not possible to sort keys from all scopes.
@@ -674,7 +674,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         elif max:
             filter = f"entry <= {max}"
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"ordered-data-stores/v1/universes\
 /{self.experience.id}/orderedDataStores/{urllib.parse.quote(self.name)}/scopes\
@@ -695,7 +695,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
     async def get_entry(self, key: str) -> int:
         """
         Gets the value of a key.
-        
+
         Args:
             key: The key to find. If `OrderedDataStore.scope` is `None`, this \
             must include the scope in the `scope/key` syntax.
@@ -789,7 +789,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
     async def increment_entry(self, key: str, delta: int) -> None:
         """
         Increments the value of a key.
-        
+
         Args:
             key: The key to increment.
             delta: The amount to increment the key by. Negative numbers will \

@@ -262,7 +262,7 @@ class Money:
     Attributes:
         currency: The [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) \
             currency code for this price. Crypto and virtual \
-            currencies will begin with `X-`. 
+            currencies will begin with `X-`.
         quantity: The quantity of the currency. For instance, `4.99` would be \
             four dollars and ninety-nine cents in USD.
 
@@ -517,7 +517,7 @@ class Creator:
         Returns:
             Returns a [`Operation`][rblxopencloud.Operation] for the asset \
             upload operation where `T` is an [`Asset`][rblxopencloud.Asset].
-        
+
         !!! danger
             Avoid uploading assets to Roblox that you don't have full control \
             over, such as AI generated assets or content created by unknown \
@@ -679,12 +679,12 @@ class Creator:
         Args:
             asset_id: The ID of the asset to find versions for.
             limit: The maximum number of versions to return.
-        
+
         Yields:
             An asset version for each version of the asset.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"assets/v1/assets/{asset_id}/versions",
             params={
