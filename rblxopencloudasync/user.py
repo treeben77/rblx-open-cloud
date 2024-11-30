@@ -659,7 +659,7 @@ class User(Creator):
                 [str(private_server) for private_server in private_servers]
             )
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/users/{self.id}/inventory-items",
             params={

@@ -524,7 +524,7 @@ class Group(Creator):
             user who has requested to join.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/groups/{self.id}/join-requests",
             authorization=self.__api_key,
