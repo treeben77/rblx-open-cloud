@@ -24,7 +24,7 @@ rblx-open-cloud is a Python API wrapper for [Roblox Open Cloud](https://create.r
 pip install rblx-open-cloud~=2.0
 
 # Development (GitHub)
-pip install "rblx-open-cloud @ git+https://github.com/treeben77/rblx-open-cloud@v2"
+pip install "rblx-open-cloud @ git+https://github.com/treeben77/rblx-open-cloud@main"
 ```
 
 2. Create an API key from the [Creator Dashboard](https://create.roblox.com/credentials). You can read [Managing API Keys](https://create.roblox.com/docs/open-cloud/managing-api-keys) for help.
