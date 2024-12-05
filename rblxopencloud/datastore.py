@@ -80,6 +80,13 @@ class EntryVersion:
         content_length: The length of the value.
         created: When this version was created.
         key_created: When the key was first created.
+    
+    **Supported Operations:**
+
+    | Operator | Description |
+    | -------- | ----------- |
+    | `==`     | Whether two [`EntryVersion`][rblxopencloud.EntryVersion] \
+        have the same `version` and are of the same key and scope. |
     """
 
     def __init__(
@@ -137,6 +144,13 @@ class ListedEntry:
     Attributes:
         key: The entry's key.
         scope: The entry's scope, usually is `global`.
+
+    **Supported Operations:**
+
+    | Operator | Description |
+    | -------- | ----------- |
+    | `==`     | Whether two [`ListedEntry`][rblxopencloud.ListedEntry] \
+        have the same `key` and `scope`. |
     """
 
     def __init__(self, key, scope) -> None:
@@ -510,7 +524,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             )
 
     def get_version(
-        self, key: str, version: str
+        self, key: str, version: str | datetime.datetime
     ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key at a specific version ID.
@@ -518,7 +532,8 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         Args:
             key: The key to get. If `DataStore.scope` is `None`, this must \
             include the scope in the `scope/key` syntax.
-            version: The version ID string to fetch.
+            version: The version ID string to fetch or datetime object to get \
+            latest version at specific time.
         """
 
         try:
@@ -528,17 +543,15 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        status_code, data, headers = send_request(
+        if type(version) == datetime.datetime:
+            time = version.astimezone(tz=datetime.timezone.utc)
+            version = f"latest:{time.isoformat('T').split('.')[0] + 'Z'}"
+
+        status_code, data, _ = send_request(
             "GET",
-            f"datastores/v1/universes/{self.experience.id}/standard-datastores\
-/datastore/entries/entry/versions/version",
+            f"/universes/{self.experience.id}/\
+data-stores/{self.name}/entries/{key}@{version}",
             authorization=self.__api_key,
-            params={
-                "datastoreName": self.name,
-                "scope": scope,
-                "entryKey": key,
-                "versionId": version,
-            },
             expected_status=[200, 400],
         )
 
@@ -548,22 +561,14 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             else:
                 raise HttpException(status_code, data)
 
-        if headers.get("roblox-entry-attributes"):
-            metadata = json.loads(headers["roblox-entry-attributes"])
-        else:
-            metadata = {}
-
-        if headers.get("roblox-entry-userids"):
-            userids = json.loads(headers["roblox-entry-userids"])
-        else:
-            userids = []
-
-        return data, EntryInfo(
-            headers["roblox-entry-version"],
-            headers["roblox-entry-created-time"],
-            headers["roblox-entry-version-created-time"],
-            userids,
-            metadata,
+        return data["value"], EntryInfo(
+            data["revisionId"],
+            data["createTime"],
+            data["revisionCreateTime"],
+            users=[
+                int(user_id.split("/")[1]) for user_id in data.get("users", [])
+            ],
+            metadata=data["attributes"],
         )
 
 
@@ -575,6 +580,13 @@ class SortedEntry:
         key: The entry's key.
         scope: The entry's scope.
         value: The entry's value.
+    
+    **Supported Operations:**
+
+    | Operator | Description |
+    | -------- | ----------- |
+    | `==`     | Whether two [`SortedEntry`][rblxopencloud.SortedEntry] \
+        have the same `key`, `scope` and `value`. |
     """
 
     def __init__(self, key: str, value: int, scope: str = "global") -> None:
@@ -624,7 +636,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         max: int = None,
     ) -> Iterable[SortedEntry]:
         """
-        Returns a list of keys and their values.
+        Returns an Iterable of keys in order based on their value.
 
         Args:
             descending: Wether the largest or the smallest number should be \

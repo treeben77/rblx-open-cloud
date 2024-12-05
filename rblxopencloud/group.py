@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from base64 import urlsafe_b64encode
 import datetime
 from typing import Iterable, Optional
 
@@ -200,6 +201,28 @@ class GroupMember(User):
 
         return self.group.fetch_role(self.role_id, skip_cache=skip_cache)
 
+    def update(self, role_id: int = None):
+        """
+        Updates the member with the requested information and updates the \
+        member object attributes.
+
+        Args:
+            role_id: If provided, updates the member's group role to the \
+                provided [`GroupRole.id`][rblxopencloud.GroupRole.id]. This \
+                role must not be Owner or Guest and must be lower than the \
+                authorizing user's rank.
+
+        Returns:
+            The updated [`GroupMember`][rblxopencloud.GroupMember] object.
+        """
+
+        member = self.group.update_member(self.id, role_id)
+
+        self.role_id: int = member.role_id
+        self.updated_at: datetime.datetime = member.updated_at
+
+        return self
+
 
 class GroupJoinRequest(User):
     """
@@ -357,6 +380,46 @@ class Group(Creator):
             return None
         return GroupMember(data["groupMemberships"][0], self.__api_key, self)
 
+    def update_member(
+        self, user_id: int, role_id: int = None
+    ) -> Optional[GroupMember]:
+        """
+        Updates the member with the requested information and returns the \
+        updated member info.
+
+        Args:
+            user_id: The user ID to fetch member info for. Must not be the \
+                authorizing user. 
+            role_id: If provided, updates the member's group role to the \
+                provided [`GroupRole.id`][rblxopencloud.GroupRole.id]. This \
+                role must not be Owner or Guest and must be lower than the \
+                authorizing user's rank.
+
+        Returns:
+            The updated [`GroupMember`][rblxopencloud.GroupMember] for the \
+            provided user.
+        """
+
+        membership_id = (
+            urlsafe_b64encode(str(user_id).encode()).strip(b"=").decode()
+        )
+
+        _, data, _ = send_request(
+            "PATCH",
+            f"/groups/{self.id}/memberships/{membership_id}",
+            json={
+                "path": f"groups/{self.id}/memberships/{membership_id}",
+                "user": f"users/{user_id}",
+                "role": (
+                    f"groups/{self.id}/roles/{role_id}" if role_id else None
+                ),
+            },
+            expected_status=[200],
+            authorization=self.__api_key,
+        )
+
+        return GroupMember(data, self.__api_key, self)
+
     def fetch_role(
         self, role_id: int, skip_cache: bool = False
     ) -> Optional[GroupRole]:
@@ -396,6 +459,7 @@ class Group(Creator):
             [`GroupMember`][rblxopencloud.GroupMember] for every member in \
             the group.
         """
+
         filter = None
 
         if role_id:

@@ -80,6 +80,13 @@ class EntryVersion:
         content_length: The length of the value.
         created: When this version was created.
         key_created: When the key was first created.
+
+    **Supported Operations:**
+
+    | Operator | Description |
+    | -------- | ----------- |
+    | `==`     | Whether two [`EntryVersion`][rblxopencloud.EntryVersion] \
+        have the same `version` and are of the same key and scope. |
     """
 
     def __init__(
@@ -137,6 +144,13 @@ class ListedEntry:
     Attributes:
         key: The entry's key.
         scope: The entry's scope, usually is `global`.
+
+    **Supported Operations:**
+
+    | Operator | Description |
+    | -------- | ----------- |
+    | `==`     | Whether two [`ListedEntry`][rblxopencloud.ListedEntry] \
+        have the same `key` and `scope`. |
     """
 
     def __init__(self, key, scope) -> None:
@@ -191,7 +205,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             for no limit.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"datastores/v1/universes/\
 {self.experience.id}/standard-datastores/datastore/entries",
@@ -481,7 +495,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"datastores/v1/universes/\
 {self.experience.id}/standard-datastores/datastore/entries/versions",
@@ -575,6 +589,13 @@ class SortedEntry:
         key: The entry's key.
         scope: The entry's scope.
         value: The entry's value.
+    
+    **Supported Operations:**
+
+    | Operator | Description |
+    | -------- | ----------- |
+    | `==`     | Whether two [`SortedEntry`][rblxopencloud.SortedEntry] \
+        have the same `key`, `scope` and `value`. |
     """
 
     def __init__(self, key: str, value: int, scope: str = "global") -> None:

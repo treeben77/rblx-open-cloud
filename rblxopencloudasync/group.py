@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from base64 import urlsafe_b64encode
 import datetime
 from typing import Any, AsyncGenerator, Optional
 
@@ -184,7 +185,7 @@ class GroupMember(User):
     def __repr__(self) -> str:
         return f"<rblxopencloud.GroupMember id={self.id} group={self.group}>"
 
-    def fetch_role(self, skip_cache: bool = False) -> GroupRole:
+    async def fetch_role(self, skip_cache: bool = False) -> GroupRole:
         """
         Fetches and returns the user's role info (rank, role name, etc). The \
         roles are cached therefore it runs faster. Shortcut for \
@@ -198,7 +199,29 @@ class GroupMember(User):
             rank.
         """
 
-        return self.group.fetch_role(self.role_id, skip_cache=skip_cache)
+        return await self.group.fetch_role(self.role_id, skip_cache=skip_cache)
+
+    async def update(self, role_id: int = None):
+        """
+        Updates the member with the requested information and updates the \
+        member object attributes.
+
+        Args:
+            role_id: If provided, updates the member's group role to the \
+                provided [`GroupRole.id`][rblxopencloud.GroupRole.id]. This \
+                role must not be Owner or Guest and must be lower than the \
+                authorizing user's rank.
+
+        Returns:
+            The updated [`GroupMember`][rblxopencloud.GroupMember] object.
+        """
+
+        member = await self.group.update_member(self.id, role_id)
+
+        self.role_id: int = member.role_id
+        self.updated_at: datetime.datetime = member.updated_at
+
+        return self
 
 
 class GroupJoinRequest(User):
@@ -357,6 +380,46 @@ class Group(Creator):
             return None
         return GroupMember(data["groupMemberships"][0], self.__api_key, self)
 
+    async def update_member(
+        self, user_id: int, role_id: int = None
+    ) -> Optional[GroupMember]:
+        """
+        Updates the member with the requested information and returns the \
+        updated member info.
+
+        Args:
+            user_id: The user ID to fetch member info for. Must not be the \
+                authorizing user. 
+            role_id: If provided, updates the member's group role to the \
+                provided [`GroupRole.id`][rblxopencloud.GroupRole.id]. This \
+                role must not be Owner or Guest and must be lower than the \
+                authorizing user's rank.
+
+        Returns:
+            The updated [`GroupMember`][rblxopencloud.GroupMember] for the \
+            provided user.
+        """
+
+        membership_id = (
+            urlsafe_b64encode(str(user_id).encode()).strip(b"=").decode()
+        )
+
+        _, data, _ = await send_request(
+            "PATCH",
+            f"/groups/{self.id}/memberships/{membership_id}",
+            json={
+                "path": f"groups/{self.id}/memberships/{membership_id}",
+                "user": f"users/{user_id}",
+                "role": (
+                    f"groups/{self.id}/roles/{role_id}" if role_id else None
+                ),
+            },
+            expected_status=[200],
+            authorization=self.__api_key,
+        )
+
+        return GroupMember(data, self.__api_key, self)
+
     async def fetch_role(
         self, role_id: int, skip_cache: bool = False
     ) -> Optional[GroupRole]:
@@ -401,7 +464,7 @@ class Group(Creator):
         if role_id:
             filter = f"role == 'groups/{self.id}/roles/{role_id}'"
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/groups/{self.id}/memberships",
             authorization=self.__api_key,
@@ -430,7 +493,7 @@ class Group(Creator):
             [`GroupRole`][rblxopencloud.GroupRole] for every role in the group.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/groups/{self.id}/roles",
             authorization=self.__api_key,
@@ -461,7 +524,7 @@ class Group(Creator):
             user who has requested to join.
         """
 
-        for entry in await iterate_request(
+        async for entry in iterate_request(
             "GET",
             f"/groups/{self.id}/join-requests",
             authorization=self.__api_key,

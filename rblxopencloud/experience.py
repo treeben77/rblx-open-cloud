@@ -1126,6 +1126,32 @@ class Experience:
                 scope,
             )
 
+    def snapshot_datastores(self) -> tuple[bool, datetime]:
+        """
+        Takes a new snapshot of the data stores in an experience. This means \
+        that all current versions are guaranteed to be available for at least \
+        30 days.
+
+        Only one snapshot may be taken each UTC day and returns the last time \
+        a snapshot was created if one has already been made today.
+
+        Returns:
+            A tuple with a boolean of whether a new snapshot was taken and \
+            the time of the last snapshot.
+        """
+
+        _, data, _ = send_request(
+            "POST",
+            f"/universes/{self.id}/data-stores:snapshot",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={},
+        )
+
+        return data["newSnapshotTaken"], parser.parse(
+            data["latestSnapshotTime"]
+        )
+
     def get_sorted_map(self, name: str) -> SortedMap:
         """
         Creates a [`SortedMap`][rblxopencloud.SortedMap] with \
@@ -1425,37 +1451,3 @@ classes/MessagingService).
         )
 
         return UserRestriction(data, self.__api_key)
-
-    def update_badge(
-        self,
-        badge_id: int,
-        enabled: bool = None,
-        name: str = None,
-        description: str = None,
-    ):
-        """
-        Updates a badge with the provided badge ID.
-
-        Args:
-            enabled: Whether it can be awarded and appear on the game page.
-            name: The new name for the badge.
-            description: The new description for the badge.
-
-        !!! warning
-            This endpoint uses the legacy badges API. Roblox has noted on \
-the [DevForum](https://devforum.roblox.com/t/3106190) that these endpoints \
-may change without notice and break your application, therefore they should \
-be used with caution.  
-        """
-
-        send_request(
-            "PATCH",
-            f"legacy-badges/v1/badges/{badge_id}",
-            authorization=self.__api_key,
-            expected_status=[200],
-            json={
-                "name": name,
-                "description": description,
-                "enabled": enabled,
-            },
-        )

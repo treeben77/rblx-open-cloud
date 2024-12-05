@@ -60,7 +60,7 @@ class SortedMapEntry:
 
     def __repr__(self) -> str:
         return f'<rblxopencloud.SortedMapEntry \
-"{self.key}" value={json.dumps(self.value)}>'
+key="{self.key}" value={json.dumps(self.value)}>'
 
 
 class SortedMap:
@@ -213,6 +213,7 @@ sorted-maps/{urllib.parse.quote_plus(self.name)}/items/\
                 expected_status=[200, 404, 409],
                 params={"allowMissing": str(not exclusive_update).lower()},
                 json={
+                    "id": key,
                     "Value": value,
                     "Ttl": f"{expiration_seconds}s",
                     (

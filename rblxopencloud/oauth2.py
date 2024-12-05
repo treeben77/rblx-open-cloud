@@ -284,7 +284,13 @@ user={self.user})'
 
     def revoke_refresh_token(self):
         """
-        Shortcut to revoke the refresh token.
+        Shortcut for [`OAuth2App.revoke_token()`][rblxopencloud.OAuth2App.revoke_token] to revoke the refresh token.
+        Raises:
+            InvalidKey: The client ID or client secret is invalid.
+            ServiceUnavailable: The Roblox servers ran into an error, or are unavailable right now.
+            rblx_opencloudException: Roblox gave an unexpected response.
+        !!! warning
+            Revoking an access token or refresh token will also invalidate it's pair, so you should only revoke a token once you're completely done with it.
         """
         self.app.revoke_token(self.refresh_token)
 
