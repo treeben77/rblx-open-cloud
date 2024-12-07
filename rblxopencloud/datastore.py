@@ -524,7 +524,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             )
 
     def get_version(
-        self, key: str, version: str | datetime.datetime
+        self, key: str, version: Union[str, datetime.datetime]
     ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key at a specific version ID.

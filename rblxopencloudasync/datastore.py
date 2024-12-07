@@ -524,7 +524,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             )
 
     async def get_version(
-        self, key: str, version: str
+        self, key: str, version: Union[str, datetime.datetime]
     ) -> tuple[Union[str, dict, list, int, float], EntryInfo]:
         """
         Gets the value of a key at a specific version ID.
@@ -542,17 +542,15 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        status_code, data, headers = await send_request(
+        if type(version) == datetime.datetime:
+            time = version.astimezone(tz=datetime.timezone.utc)
+            version = f"latest:{time.isoformat('T').split('.')[0] + 'Z'}"
+
+        status_code, data, _ = await send_request(
             "GET",
-            f"datastores/v1/universes/{self.experience.id}/standard-datastores\
-/datastore/entries/entry/versions/version",
+            f"/universes/{self.experience.id}/\
+data-stores/{self.name}/entries/{key}@{version}",
             authorization=self.__api_key,
-            params={
-                "datastoreName": self.name,
-                "scope": scope,
-                "entryKey": key,
-                "versionId": version,
-            },
             expected_status=[200, 400],
         )
 
@@ -562,22 +560,14 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             else:
                 raise HttpException(status_code, data)
 
-        if headers.get("roblox-entry-attributes"):
-            metadata = json.loads(headers["roblox-entry-attributes"])
-        else:
-            metadata = {}
-
-        if headers.get("roblox-entry-userids"):
-            userids = json.loads(headers["roblox-entry-userids"])
-        else:
-            userids = []
-
-        return data, EntryInfo(
-            headers["roblox-entry-version"],
-            headers["roblox-entry-created-time"],
-            headers["roblox-entry-version-created-time"],
-            userids,
-            metadata,
+        return data["value"], EntryInfo(
+            data["revisionId"],
+            data["createTime"],
+            data["revisionCreateTime"],
+            users=[
+                int(user_id.split("/")[1]) for user_id in data.get("users", [])
+            ],
+            metadata=data["attributes"],
         )
 
 

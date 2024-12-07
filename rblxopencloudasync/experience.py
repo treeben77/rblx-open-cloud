@@ -983,6 +983,32 @@ class Experience:
                 scope,
             )
 
+    async def snapshot_datastores(self) -> tuple[bool, datetime]:
+        """
+        Takes a new snapshot of the data stores in an experience. This means \
+        that all current versions are guaranteed to be available for at least \
+        30 days.
+
+        Only one snapshot may be taken each UTC day and returns the last time \
+        a snapshot was created if one has already been made today.
+
+        Returns:
+            A tuple with a boolean of whether a new snapshot was taken and \
+            the time of the last snapshot.
+        """
+
+        _, data, _ = await send_request(
+            "POST",
+            f"/universes/{self.id}/data-stores:snapshot",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={},
+        )
+
+        return data["newSnapshotTaken"], parser.parse(
+            data["latestSnapshotTime"]
+        )
+
     def get_sorted_map(self, name: str) -> SortedMap:
         """
         Creates a [`SortedMap`][rblxopencloud.SortedMap] with \
