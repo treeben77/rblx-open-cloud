@@ -24,7 +24,7 @@ from typing import Literal
 
 import requests
 
-VERSION: str = "2.1.2"
+VERSION: str = "2.1.3"
 VERSION_INFO: Literal["alpha", "beta", "final"] = "alpha"
 
 user_agent: str = (
