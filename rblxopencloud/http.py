@@ -135,6 +135,7 @@ def send_request(
         body = response.text
 
     if VERSION_INFO == "alpha":
+        print(kwargs["json"])
         print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")
 
     if expected_status and response.status_code not in expected_status:
