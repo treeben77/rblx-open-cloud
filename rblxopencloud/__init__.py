@@ -24,8 +24,8 @@ from typing import Literal
 
 import requests
 
-VERSION: str = "2.1.3"
-VERSION_INFO: Literal["alpha", "beta", "final"] = "alpha"
+VERSION: str = "2.1.4"
+VERSION_INFO: Literal["alpha", "beta", "final"] = "final"
 
 user_agent: str = (
     f"rblx-open-cloud/{VERSION} (https://github.com/treeben77/rblx-open-cloud)"

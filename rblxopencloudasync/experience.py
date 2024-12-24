@@ -830,19 +830,11 @@ class Experience:
             "vrEnabled": vr_enabled,
         }, []
 
-        # if the key values are not None then add them to the field mask
-        if voice_chat_enabled is not None:
-            field_mask.append("voiceChatEnabled")
-        if desktop_enabled is not None:
-            field_mask.append("desktopEnabled")
-        if mobile_enabled is not None:
-            field_mask.append("mobileEnabled")
-        if tablet_enabled is not None:
-            field_mask.append("tabletEnabled")
-        if console_enabled is not None:
-            field_mask.append("consoleEnabled")
-        if vr_enabled is not None:
-            field_mask.append("vrEnabled")
+        for key, value in payload.copy().items():
+            if value is not None:
+                field_mask.append(key)
+            else:
+                del payload[key]
 
         if private_server_price is not None:
             if private_server_price is True:
