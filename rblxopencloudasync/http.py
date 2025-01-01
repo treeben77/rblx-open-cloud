@@ -1,6 +1,6 @@
 # MIT License
 
-# Copyright (c) 2022-2024 treeben77
+# Copyright (c) 2022-2025 treeben77
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -86,6 +86,8 @@ async def send_request(
         python object to be sent in the request.
         data (Union[bytes], dict): The data to send with the request. *Can \
         not be used with `json` parameter.*
+        timeout (float): The number of seconds until the request times out. \
+        Defaults to 15 seconds. Set to `None` for no timeout (not recommended).
     
     Returns:
         A tuple with the first value being the status code, the second value \
@@ -135,12 +137,14 @@ async def send_request(
             if type(v) == bool:
                 kwargs["params"][k] = str(v).lower()
 
+    if not kwargs.get("timeout"):
+        kwargs["timeout"] = 15
+
     response = await http_session.request(
         method,
         f"https://apis.roblox.com/{path}",
         headers=headers,
         **kwargs,
-        timeout=10,
     )
 
     if "application/json" in response.headers.get("Content-Type", ""):
