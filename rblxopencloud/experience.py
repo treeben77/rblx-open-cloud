@@ -89,7 +89,7 @@ eference/engine/classes/HttpService#GetSecret).
     def __repr__(self) -> str:
         return f'<rblxopencloud.Secret id="{self.id}" domain="{self.domain}">'
 
-    def update_secret(
+    def update(
         self,
         id: str,
         secret: Union[str, bytes],
