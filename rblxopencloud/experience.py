@@ -1388,6 +1388,17 @@ classes/MessagingService).
         return UserRestriction(data, self.__api_key)
 
     def list_secrets(self, limit: int = None) -> Iterable[Secret]:
+        """
+        Lists all HTTP secrets within the experience.
+
+        Args:
+            limit: The maximum number of secrets to return. Defaults to no \
+            limit.
+        
+        Yields:
+            The secret information including their domain, update time and \
+            create time.
+        """
 
         for secret in iterate_request(
             "GET",

@@ -12,6 +12,8 @@
 
 ::: rblxopencloud.UserRestriction
 
+::: rblxopencloud.Secret
+
 ::: rblxopencloud.Subscription
 
 ::: rblxopencloud.SubscriptionState
