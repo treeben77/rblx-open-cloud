@@ -1,6 +1,6 @@
 # MIT License
 
-# Copyright (c) 2022-2024 treeben77
+# Copyright (c) 2022-2025 treeben77
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,13 @@ from typing import Callable, Generic, Optional, TypeVar, Union
 import aiohttp
 
 from . import VERSION_INFO, http_session, user_agent
-from .exceptions import Forbidden, HttpException, NotFound, RateLimited
+from .exceptions import (
+    Conflict,
+    Forbidden,
+    HttpException,
+    NotFound,
+    RateLimited,
+)
 
 __all__ = ("send_request", "iterate_request", "Operation")
 
@@ -86,6 +92,8 @@ async def send_request(
         python object to be sent in the request.
         data (Union[bytes], dict): The data to send with the request. *Can \
         not be used with `json` parameter.*
+        timeout (float): The number of seconds until the request times out. \
+        Defaults to 15 seconds. Set to `None` for no timeout (not recommended).
     
     Returns:
         A tuple with the first value being the status code, the second value \
@@ -135,12 +143,14 @@ async def send_request(
             if type(v) == bool:
                 kwargs["params"][k] = str(v).lower()
 
+    if not kwargs.get("timeout"):
+        kwargs["timeout"] = 15
+
     response = await http_session.request(
         method,
         f"https://apis.roblox.com/{path}",
         headers=headers,
         **kwargs,
-        timeout=10,
     )
 
     if "application/json" in response.headers.get("Content-Type", ""):
@@ -176,6 +186,8 @@ async def send_request(
                 )
 
             raise HttpException(response.status, body)
+        elif response.status_code == 409:
+            raise Conflict(response.status, body)
         elif response.status not in expected_status:
             raise HttpException(response.status, body)
 
@@ -203,6 +215,9 @@ async def iterate_request(
         if post_request_hook:
             post_request_hook(status, data, headers)
 
+        if not data.get(data_key) or len(data[data_key]) == 0:
+            break
+
         for entry in data[data_key]:
             yield entry
 
@@ -210,9 +225,11 @@ async def iterate_request(
             if max_yields is not None and yields >= max_yields:
                 break
 
-        next_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
-        if not next_cursor:
+        data_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
+        if next_cursor == data_cursor or not data_cursor:
             break
+
+        next_cursor = data_cursor
 
 
 class Operation(Generic[T]):

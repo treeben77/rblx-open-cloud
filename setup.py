@@ -28,5 +28,6 @@ setup(
         "cryptography",
         "pyjwt",
         "python-dateutil",
+        "PyNaCl",
     ],
 )

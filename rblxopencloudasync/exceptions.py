@@ -1,6 +1,6 @@
 # MIT License
 
-# Copyright (c) 2022-2024 treeben77
+# Copyright (c) 2022-2025 treeben77
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,14 @@
 # SOFTWARE.
 
 from typing import TYPE_CHECKING, Optional, Union
+from json import loads, JSONDecodeError
 
 if TYPE_CHECKING:
     from .datastore import EntryInfo
 
 __all__ = (
     "BaseException",
+    "Conflict",
     "HttpException",
     "NotFound",
     "RateLimited",
@@ -92,6 +94,12 @@ class HttpException(BaseException):
 
         self.status_code: Optional[int] = status
 
+        if type(body) == str:
+            try:
+                body = loads(body)
+            except JSONDecodeError:
+                pass
+
         if type(body) == dict and body.get("errors"):
             self.error_code: Optional[Union[str, int]] = body["errors"][0].get(
                 "code"
@@ -99,10 +107,12 @@ class HttpException(BaseException):
             self.message: Optional[str] = body["errors"][0].get("message")
             self.details: Optional[list[dict]] = body["errors"]
         elif type(body) == dict:
-            self.error_code: Optional[Union[str, int]] = body.get(
-                "code"
-            ) or body.get("error")
-            self.message: Optional[str] = body.get("message")
+            self.error_code: Optional[Union[str, int]] = (
+                body.get("code") or body.get("error") or body.get("status")
+            )
+            self.message: Optional[str] = body.get("message") or body.get(
+                "title"
+            )
             self.details: Optional[list[dict]] = body.get(
                 "details"
             ) or body.get("errorDetails")
@@ -159,6 +169,14 @@ class Forbidden(HttpException):
         super().__init__(
             "Authorization lacks permission to this resource", *args
         )
+
+
+class Conflict(HttpException):
+    """
+    There was a conflict with existing data and your request. For instance, \
+    for [`Experience.create_secret`][rblxopencloud.Experience.create_secret], \
+    this could be raised if a secret with the same name already exists.
+    """
 
 
 class PreconditionFailed(HttpException):

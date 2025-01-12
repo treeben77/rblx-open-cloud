@@ -1,6 +1,6 @@
 # MIT License
 
-# Copyright (c) 2022-2024 treeben77
+# Copyright (c) 2022-2025 treeben77
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@ from typing import Literal
 
 import requests
 
-VERSION: str = "2.1.2"
-VERSION_INFO: Literal["alpha", "beta", "final"] = "alpha"
+VERSION: str = "2.2.0"
+VERSION_INFO: Literal["alpha", "beta", "final"] = "final"
 
 user_agent: str = (
     f"rblx-open-cloud/{VERSION} (https://github.com/treeben77/rblx-open-cloud)"
