@@ -24,7 +24,7 @@ from typing import Literal, Optional
 
 import aiohttp
 
-VERSION: str = "2.1.5"
+VERSION: str = "2.1.6"
 VERSION_INFO: Literal["alpha", "beta", "final"] = "final"
 
 user_agent: str = (

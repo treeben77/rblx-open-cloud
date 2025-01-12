@@ -20,11 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import io
-import urllib.parse
+from base64 import b64encode
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncGenerator, Optional, Union
+import io
+from nacl import encoding, public
+from typing import Any, AsyncGenerator, Optional, Union, Self
+import urllib.parse
 
 from dateutil import parser
 
@@ -41,11 +43,93 @@ __all__ = (
     "PaymentProvider",
     "Place",
     "Platform",
+    "Secret",
     "Subscription",
     "SubscriptionExpirationReason",
     "SubscriptionState",
     "UserRestriction",
 )
+
+
+class Secret:
+    """
+    Represents a secret in an experience. Secrets can be accessed in game \
+    servers using [`HttpService:GetSecret()`](https://create.roblox.com/docs/r\
+eference/engine/classes/HttpService#GetSecret).
+
+    Attributes:
+        id: The id or key of this secret. This is unique accross the \
+        experience and is used by game servers to fetch its value.
+        domain: The domain the secret can be used with. `*` means it may be \
+        used with any domain. Depending on how this secret was obtained, this \
+        may be `None`.
+        created_at: The time this secret was created. Depending on how this \
+        secret was obtained, this may be `None`.
+        updated_at: The time this secret was last updated. Depending on how \
+        this secret was obtained, this may be `None`.
+        experience: The experience this key belongs to.
+    """
+
+    def __init__(self, data, experience) -> None:
+        self.id: str = data["id"]
+        self.domain: str = data.get("domain")
+        self.created_at: Optional[datetime] = (
+            parser.parse(data["create_time"])
+            if data.get("create_time")
+            else None
+        )
+        self.updated_at: Optional[datetime] = (
+            parser.parse(data["update_time"])
+            if data.get("update_time")
+            else None
+        )
+
+        self.experience: Experience = experience
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.Secret id="{self.id}" domain="{self.domain}">'
+
+    async def update_secret(
+        self,
+        id: str,
+        secret: Union[str, bytes],
+        key_id: str = None,
+        domain: str = None,
+    ) -> Self:
+        """
+        Updates the secret. The secret is encrypted automatically if `key_id` \
+        is not present; make sure `key_id` is provided if manually encrypted.
+
+        Args:
+            secret: The new value of the secret. This may be encrypted using \
+            your own logic or left unencrypted.
+            key_id: If encrypted manually using own logic, this must be the \
+            key ID provided by Roblox. Do not provide this if the key was not \
+            manually encrypted with [`fetch_secrets_public_key`\
+            ][rblxopencloud.Experience.fetch_secrets_public_key].
+            domain: The domain this secret is allowed for, optionally \
+            starting with a wildcard. Defaults to leaving unchanged.
+        
+        Returns:
+            The [`Secret`][rblxopencloud.Secret] itself with updated values.
+        """
+
+        secret: Secret = await self.experience.update_secret(
+            self.id, id, secret, key_id, domain
+        )
+
+        self.created_at = secret.created_at or self.created_at
+        self.updated_at = secret.updated_at or self.updated_at
+        self.domain = secret.domain or self.domain
+
+        return self
+
+    async def delete(self):
+        """
+        Deletes the secret for this secret.
+        """
+
+        return await self.experience.delete_secret(self.id)
 
 
 class Platform(Enum):
@@ -629,6 +713,7 @@ class Experience:
     def __init__(self, id: int, api_key: str):
         self.id: int = id
         self.__api_key: str = api_key
+        self.__cached_secrets_public_key: Optional[public.PublicKey] = None
 
         self.name: Optional[str] = None
         self.description: Optional[str] = None
@@ -1307,3 +1392,197 @@ classes/MessagingService).
         )
 
         return UserRestriction(data, self.__api_key)
+
+    async def list_secrets(
+        self, limit: int = None
+    ) -> AsyncGenerator[Any, Secret]:
+
+        async for secret in iterate_request(
+            "GET",
+            f"/universes/{self.id}/secrets",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
+                "maxPageSize": limit if limit and limit <= 500 else 500,
+            },
+            max_yields=limit,
+            data_key="secrets",
+            cursor_key="cursor",
+        ):
+            yield Secret(secret, self)
+
+    async def fetch_secrets_public_key(self) -> tuple[str, bytes]:
+        """
+        Fetches the public key used to encrypt secrets for this experience. \
+        This is used for encrypting secrets manually before sending them to \
+        Roblox. This endpoint is not neccessary as the library will handle \
+        this when using \
+        [`create_secret`][rblxopencloud.Experience.create_secret] and \
+        [`update_secret`][rblxopencloud.Experience.update_asset].
+
+        Returns:
+            A tuple with the key ID and the public key encoded.
+
+        Example:
+            This is an example to manually encode using PyNaCl. This is \
+            essentially what the library already does for you.
+
+            ```python
+            from nacl import public, encoding
+
+            secret_content = 'secret content'
+            key_id, public_key = experience.fetch_secrets_public_key()
+
+            # Create a LibSodium sealed box using PyNaCl
+            public_key = public.PublicKey(
+                public_key, encoding.Base64Encoder()
+            )
+            sealed_box = public.SealedBox(public_key)
+
+            # Encrypt the secret content
+            encrypted = sealed_box.encrypt(secret_content.encode("utf-8"))
+
+            # Upload the secret to Roblox.
+            experience.create_secret(
+                'secret_id', b64encode(encrypted), key_id=key_id
+            )
+            ```
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"/universes/{self.id}/secrets/public-key",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        public_key = data["secret"].encode()
+        self.__cached_secrets_public_key = (data["key_id"], public_key)
+
+        return data["key_id"], public_key
+
+    async def create_secret(
+        self,
+        id: str,
+        secret: Union[str, bytes],
+        key_id: str = None,
+        domain: str = "*",
+    ) -> Secret:
+        """
+        Creates a new secret for the experience. The secret is encrypted \
+        automatically if `key_id` is not present; make sure `key_id` is \
+        provided if manually encrypted.
+
+        Args:
+            id: The ID of the secret, must be unqiue.
+            secret: The value of the secret. This may be encrypted using your \
+            own logic or left unencrypted.
+            key_id: If encrypted manually using own logic, this must be the \
+            key ID provided by Roblox. Do not provide this if the key was not \
+            manually encrypted with [`fetch_secrets_public_key`\
+            ][rblxopencloud.Experience.fetch_secrets_public_key].
+            domain: The domain this secret is allowed for, optionally \
+            starting with a wildcard. Defaults to `*`, allowing all domains.
+        
+        Returns:
+            The created secret with only the update and create time and id \
+            attributes.
+        """
+        if type(secret) == str:
+            secret = secret.encode("utf-8")
+
+        if not key_id:
+            if not self.__cached_secrets_public_key:
+                key_id, public_key = await self.fetch_secrets_public_key()
+            else:
+                key_id, public_key = self.__cached_secrets_public_key
+            public_key = public.PublicKey(public_key, encoding.Base64Encoder())
+
+            sealed_box = public.SealedBox(public_key)
+            secret = b64encode(sealed_box.encrypt(secret))
+
+        _, data, _ = await send_request(
+            "POST",
+            f"/universes/{self.id}/secrets",
+            json={
+                "id": id,
+                "domain": domain,
+                "secret": secret.decode("utf-8"),
+                "key_id": key_id,
+            },
+            authorization=self.__api_key,
+            expected_status=[200, 201],
+        )
+
+        return Secret(data, self)
+
+    async def update_secret(
+        self,
+        id: str,
+        secret: Union[str, bytes],
+        key_id: str = None,
+        domain: str = None,
+    ) -> Secret:
+        """
+        Updates an existing secret for the experience. The secret is \
+        encrypted automatically if `key_id` is not present; make sure \
+        `key_id` is provided if manually encrypted.
+
+        Args:
+            id: The ID of the existing secret.
+            secret: The new value of the secret. This may be encrypted using \
+            your own logic or left unencrypted.
+            key_id: If encrypted manually using own logic, this must be the \
+            key ID provided by Roblox. Do not provide this if the key was not \
+            manually encrypted with [`fetch_secrets_public_key`\
+            ][rblxopencloud.Experience.fetch_secrets_public_key].
+            domain: The domain this secret is allowed for, optionally \
+            starting with a wildcard. Defaults to leaving unchanged.
+        
+        Returns:
+            The updated secret with only the update time and id attributes.
+        """
+
+        if type(secret) == str:
+            secret = secret.encode("utf-8")
+
+        if not key_id:
+            if not self.__cached_secrets_public_key:
+                key_id, public_key = await self.fetch_secrets_public_key()
+            else:
+                key_id, public_key = self.__cached_secrets_public_key
+            public_key = public.PublicKey(public_key, encoding.Base64Encoder())
+
+            sealed_box = public.SealedBox(public_key)
+            secret = b64encode(sealed_box.encrypt(secret))
+
+        _, data, _ = send_request(
+            "PATCH",
+            f"/universes/{self.id}/secrets/{id}",
+            json={
+                "domain": domain,
+                "secret": secret.decode("utf-8"),
+                "key_id": key_id,
+            },
+            authorization=self.__api_key,
+            expected_status=[200, 201],
+        )
+
+        return Secret(data, self)
+
+    async def delete_secret(self, id: str):
+        """
+        Deletes an existing secret for the experience.
+
+        Args:
+            id: The ID of the secret to delete.
+        """
+
+        await send_request(
+            "DELETE",
+            f"/universes/{self.id}/secrets/{id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return None

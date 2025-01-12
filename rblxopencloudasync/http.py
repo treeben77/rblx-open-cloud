@@ -26,7 +26,13 @@ from typing import Callable, Generic, Optional, TypeVar, Union
 import aiohttp
 
 from . import VERSION_INFO, http_session, user_agent
-from .exceptions import Forbidden, HttpException, NotFound, RateLimited
+from .exceptions import (
+    Conflict,
+    Forbidden,
+    HttpException,
+    NotFound,
+    RateLimited,
+)
 
 __all__ = ("send_request", "iterate_request", "Operation")
 
@@ -180,6 +186,8 @@ async def send_request(
                 )
 
             raise HttpException(response.status, body)
+        elif response.status_code == 409:
+            raise Conflict(response.status, body)
         elif response.status not in expected_status:
             raise HttpException(response.status, body)
 
@@ -207,6 +215,9 @@ async def iterate_request(
         if post_request_hook:
             post_request_hook(status, data, headers)
 
+        if not data.get(data_key) or len(data[data_key]) == 0:
+            break
+
         for entry in data[data_key]:
             yield entry
 
@@ -214,9 +225,11 @@ async def iterate_request(
             if max_yields is not None and yields >= max_yields:
                 break
 
-        next_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
-        if not next_cursor:
+        data_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
+        if next_cursor == data_cursor or not data_cursor:
             break
+
+        next_cursor = data_cursor
 
 
 class Operation(Generic[T]):
