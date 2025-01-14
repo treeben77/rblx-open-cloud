@@ -362,11 +362,11 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             )
 
         return EntryVersion(
-            data["version"],
-            data["deleted"],
-            data["contentLength"],
-            data["createdTime"],
-            data["objectCreatedTime"],
+            data.get("version"),
+            data.get("deleted"),
+            data.get("contentLength"),
+            data.get("createdTime"),
+            data.get("objectCreatedTime"),
             self,
             key,
             self.scope if self.scope else scope,
@@ -513,11 +513,11 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             data_key="keys",
         ):
             yield EntryVersion(
-                entry["version"],
-                entry["deleted"],
-                entry["contentLength"],
-                entry["createdTime"],
-                entry["objectCreatedTime"],
+                entry.get("version"),
+                entry.get("deleted"),
+                entry.get("contentLength"),
+                entry.get("createdTime"),
+                entry.get("objectCreatedTime"),
                 self,
                 key,
                 self.scope if self.scope else scope,

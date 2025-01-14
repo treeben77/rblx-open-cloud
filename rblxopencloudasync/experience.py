@@ -25,7 +25,7 @@ from datetime import datetime
 from enum import Enum
 import io
 from nacl import encoding, public
-from typing import Any, AsyncGenerator, Optional, Union, Self
+from typing import Any, AsyncGenerator, Optional, Union
 import urllib.parse
 
 from dateutil import parser
@@ -95,7 +95,7 @@ eference/engine/classes/HttpService#GetSecret).
         secret: Union[str, bytes],
         key_id: str = None,
         domain: str = None,
-    ) -> Self:
+    ) -> "Secret":
         """
         Updates the secret. The secret is encrypted automatically if `key_id` \
         is not present; make sure `key_id` is provided if manually encrypted.
