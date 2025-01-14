@@ -103,12 +103,8 @@ class EntryVersion:
         self.version: str = version
         self.deleted: bool = deleted
         self.content_length: int = content_length
-        self.created: datetime.datetime = (
-            parser.parse(created) if created else None
-        )
-        self.key_created: datetime.datetime = (
-            parser.parse(key_created) if created else None
-        )
+        self.created: datetime.datetime = parser.parse(created)
+        self.key_created: datetime.datetime = parser.parse(key_created)
         self.__datastore: DataStore = datastore
         self.__key = key
         self.__scope = scope
