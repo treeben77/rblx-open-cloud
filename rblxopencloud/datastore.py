@@ -596,7 +596,7 @@ class SortedEntry:
     def __init__(self, key: str, value: int, scope: str = "global") -> None:
         self.key: str = key
         self.scope: str = scope
-        self.value: int = value
+        self.value: int = int(value)
 
     def __eq__(self, object) -> bool:
         if not isinstance(object, SortedEntry):

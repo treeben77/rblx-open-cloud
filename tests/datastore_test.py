@@ -152,7 +152,10 @@ class ordered_data_stores(unittest.TestCase):
 
             self.assertIsInstance(entry, rblxopencloud.SortedEntry)
             self.assertEqual(entry.scope, "global")
-            self.assertTrue(not prev_value or entry.value <= prev_value)
+            self.assertIsInstance(entry.value, int)
+
+            if prev_value:
+                self.assertLessEqual(entry.value, prev_value)
 
             prev_value = entry.value
 
