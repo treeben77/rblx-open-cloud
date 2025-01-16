@@ -1,14 +1,17 @@
+from datetime import datetime
 import os
 import secrets
 import unittest
-from datetime import datetime
+
+import rblxopencloud
+
+# enables HTTP request debug logging
+rblxopencloud.http.VERSION_INFO = "alpha"
 
 if not os.environ.get("OPEN_CLOUD_USER"):
     from dotenv import load_dotenv
 
     load_dotenv()
-
-import rblxopencloud
 
 experience = rblxopencloud.Experience(
     os.environ["EXPERIENCE_ID"], os.environ["OPEN_CLOUD_USER"]
@@ -45,6 +48,12 @@ class experience_data_stores(unittest.TestCase):
             self.assertIsInstance(datastore.created, datetime)
 
         self.assertIn("rblxopencloud_unittest", datastore_names)
+
+    def test_snapshot_datastores(self):
+        was_created, last_created = experience.snapshot_datastores()
+
+        self.assertIsInstance(was_created, bool)
+        self.assertIsInstance(last_created, datetime)
 
 
 datastore = experience.get_datastore("rblxopencloud_unittest")
