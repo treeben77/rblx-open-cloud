@@ -73,25 +73,28 @@ class standard_data_stores(unittest.TestCase):
             datastore.get_entry("test_entry_not_exists")
 
     def test_set_entry(self):
+        nonce = secrets.token_hex(8)
         value = secrets.token_urlsafe(16)
 
-        version = datastore.set_entry("test_entry_set", value)
+        version = datastore.set_entry(f"test_entry_set_{nonce}", value)
 
         self.assertIsInstance(version, rblxopencloud.EntryVersion)
         self.assertEqual(version.content_length, len(value) + 2)
 
-        entry, info = datastore.get_entry("test_entry_set")
+        entry, info = datastore.get_entry(f"test_entry_set_{nonce}")
 
         self.assertEqual(entry, value)
         self.assertEqual(info.version, version.version)
 
     def test_remove_entry(self):
-        datastore.set_entry("test_entry_remove", 1)
+        nonce = secrets.token_hex(8)
 
-        datastore.remove_entry("test_entry_remove")
+        datastore.set_entry(f"test_entry_remove_{nonce}", 1)
+
+        datastore.remove_entry(f"test_entry_remove_{nonce}")
 
         with self.assertRaises(rblxopencloud.NotFound):
-            datastore.get_entry("test_entry_remove")
+            datastore.get_entry(f"test_entry_remove_{nonce}")
 
     def test_list_keys(self):
         entry_keys = []
@@ -120,23 +123,25 @@ class ordered_data_stores(unittest.TestCase):
             ordered_datastore.get_entry("test_entry_not_exists")
 
     def test_set_entry(self):
+        nonce = secrets.token_hex(8)
         value = secrets.randbelow(1000)
 
-        entry = ordered_datastore.set_entry("test_entry_set", value)
+        entry = ordered_datastore.set_entry(f"test_entry_set_{nonce}", value)
 
         self.assertEqual(value, entry)
 
-        entry = ordered_datastore.get_entry("test_entry_set")
+        entry = ordered_datastore.get_entry(f"test_entry_set_{nonce}")
 
         self.assertEqual(entry, value)
 
     def test_remove_entry(self):
-        ordered_datastore.set_entry("test_entry_remove", 1)
+        nonce = secrets.token_hex(8)
+        ordered_datastore.set_entry(f"test_entry_remove_{nonce}", 1)
 
-        ordered_datastore.remove_entry("test_entry_remove")
+        ordered_datastore.remove_entry(f"test_entry_remove_{nonce}")
 
         with self.assertRaises(rblxopencloud.NotFound):
-            ordered_datastore.get_entry("test_entry_remove")
+            ordered_datastore.get_entry(f"test_entry_remove_{nonce}")
 
     def test_sort_keys(self):
         prev_value = None
