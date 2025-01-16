@@ -1,0 +1,6 @@
+requests
+aiohttp
+cryptography
+pyjwt
+python-dateutil
+PyNaCl

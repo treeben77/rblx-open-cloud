@@ -91,7 +91,6 @@ eference/engine/classes/HttpService#GetSecret).
 
     def update(
         self,
-        id: str,
         secret: Union[str, bytes],
         key_id: str = None,
         domain: str = None,
@@ -115,7 +114,7 @@ eference/engine/classes/HttpService#GetSecret).
         """
 
         secret: Secret = self.experience.update_secret(
-            self.id, id, secret, key_id, domain
+            self.id, secret, key_id, domain
         )
 
         self.created_at = secret.created_at or self.created_at
@@ -621,18 +620,17 @@ experience={repr(self.experience)}>"
             The place object with the empty parameters filled.
         """
 
-        payload, field_mask = {
-            "displayName": name,
-            "description": description,
-            "serverSize": server_size,
-        }, []
+        payload, field_mask = {}, []
 
         if name:
             field_mask.append("displayName")
+            payload["displayName"] = name
         if description:
             field_mask.append("description")
+            payload["description"] = description
         if server_size:
             field_mask.append("serverSize")
+            payload["serverSize"] = server_size
 
         _, data, _ = send_request(
             "PATCH",
@@ -1351,6 +1349,7 @@ classes/MessagingService).
             f"/universes/{self.id}:restartServers",
             authorization=self.__api_key,
             expected_status=[200],
+            json={},
         )
 
     def flush_memory_store(self) -> Operation[bool]:
