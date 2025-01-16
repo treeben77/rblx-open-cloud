@@ -12,14 +12,15 @@ import rblxopencloud
 # enables HTTP request debug logging
 rblxopencloud.http.VERSION_INFO = "alpha"
 
-if not os.environ.get("OPEN_CLOUD_USER"):
+if not os.environ.get("TEST_USER_CLOUD_KEY"):
     from dotenv import load_dotenv
 
     load_dotenv()
 
 
 experience = rblxopencloud.Experience(
-    os.environ["EXPERIENCE_ID"], os.environ["OPEN_CLOUD_USER"]
+    os.environ["TEST_UNIVERSE_ID"],
+    os.environ["TEST_USER_CLOUD_KEY"],
 )
 
 
