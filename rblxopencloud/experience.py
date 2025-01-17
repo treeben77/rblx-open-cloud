@@ -48,6 +48,10 @@ __all__ = (
     "SubscriptionExpirationReason",
     "SubscriptionState",
     "UserRestriction",
+    "LuauSessionTask",
+    "LuauSessionTaskState",
+    "LuauSessionTaskError",
+    "LuauSessionTaskErrorCode",
 )
 
 
@@ -445,7 +449,7 @@ user={repr(self.user)}>"
 
 class LuauSessionTaskState(Enum):
     """
-    Enum representing the an experience's age rating.
+    Enum representing a Luau session task's status.
 
     Attributes:
         Unknown (0): The state is unknown, unspecified or not implemented.
@@ -473,10 +477,44 @@ LUAU_SESSION_STATES = {
 }
 
 
+class LuauSessionTaskErrorCode(Enum):
+    """
+    Enum representing a Luau session task's status.
+
+    Attributes:
+        Unknown (0): The error is unknown, unspecified or not implemented.
+        ScriptError (1): The task raised an unhandled error.
+        DeadlineExceeded (2): The task took too long to complete.
+        OutputLimitExceeded (3): The task's output exceeded the size limit.
+        InternalError (4): The task failed due to an internal issue.
+    """
+
+    Unknown = 0
+    ScriptError = 1
+    DeadlineExceeded = 2
+    OutputLimitExceeded = 3
+    InternalError = 4
+
+
+LUAU_SESSION_ERROR_CODES = {
+    "SCRIPT_ERROR": LuauSessionTaskErrorCode.ScriptError,
+    "DEADLINE_EXCEEDED": LuauSessionTaskErrorCode.DeadlineExceeded,
+    "OUTPUT_SIZE_LIMIT_EXCEEDED": LuauSessionTaskErrorCode.OutputLimitExceeded,
+    "INTERNAL_ERROR": LuauSessionTaskErrorCode.InternalError,
+}
+
+
 class LuauSessionTaskError:
+    """
+    A data class containing infomration about an error raised by a session \
+    task.
+    """
+
     def __init__(self, data) -> None:
         self.message: str = data["message"]
-        self.code: str = data["code"]
+        self.code: str = LUAU_SESSION_ERROR_CODES.get(
+            data["code"], LuauSessionTaskErrorCode.Unknown
+        )
 
     def __repr__(self) -> str:
         return f'<rblxopencloud.LuauSessionTaskError \
@@ -484,13 +522,46 @@ code="{self.code}" message="{self.message}">'
 
 
 class LuauSessionTask(Operation["LuauSessionTask"]):
+    """
+    Represents a Luau Session Task created within a Place. Contains \
+    information about its last known execution status. Since it bases \
+    [`Operation`][rblxopencloud.Operation], it can be waited and updated \
+    using those endpoints.
+
+    Attributes:
+        place: The place object the task is running within. 
+        place_version_id: The version ID of the place the task is running on.
+        session_id: A unique uuid representing the session.
+        task_id: A unique uuid representing the specific task in the session.
+        created_at: The time this session task was created.
+        updated_at: The time this session was last updated.
+        user: The user who created this task, effectively the API key owner.
+        result: A list of JSON serialized results from the task or an object \
+        representing the error raised by the task.
+        script: If available, the string script provided to be executed.
+    """
+
     def __init__(self, data, api_key: str, place) -> None:
 
         self.place_version_id: int = int(data["path"].split("/")[5])
         self.place: Place = place
         self.session_id: str = data["path"].split("/")[7]
+        self.task_id: str = data["path"].split("/")[9]
 
         self.__api_key = api_key
+
+        self.state: LuauSessionTaskState = None
+        self.created_at: Optional[datetime] = None
+        self.updated_at: Optional[datetime] = None
+        self.user: Optional[datetime] = None
+        self.result: Optional[
+            Union[
+                list[Union[str, dict, list, int, float, None]],
+                LuauSessionTaskError,
+            ]
+        ] = None
+        self.script: Optional[str] = None
+
         self.__update_params(data)
 
         super().__init__(
@@ -541,6 +612,35 @@ state={self.state} session_id="{self.session_id}">'
             self.script: Optional[str] = data.get("script")
 
         return self
+
+    def list_task_logs(self, limit: int = None) -> Iterable[str]:
+        """
+        List logs outputted from the session task. The is a limit to the \
+        amount of logs retained by Roblox.
+
+        Args:
+            limit: The maximum amount of logs to return.
+
+        Yields:
+            A string for each line of task logs.
+        """
+
+        for chunk in iterate_request(
+            "GET",
+            f"/universes/{self.place.experience.id}/places/{self.place.id}"
+            f"/versions/{self.place_version_id}/luau-execution-sessions"
+            f"/{self.session_id}/tasks/{self.task_id}/logs",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
+                "maxPageSize": limit if limit and limit <= 10000 else 10000
+            },
+            max_yields=limit,
+            data_key="luauExecutionSessionTaskLogs",
+            cursor_key="pageToken",
+        ):
+            for message in chunk["messages"]:
+                yield message
 
 
 class Place:
@@ -759,6 +859,38 @@ experience={repr(self.experience)}>"
 
         return UserRestriction(data, self.__api_key)
 
+    def create_luau_session_task(self, script: str) -> LuauSessionTask:
+        """
+        Creates a Luau Execution Session Task but does not wait for it to \
+        complete.
+        
+        Tasks can access the place data model, cloud apis (such as data \
+        stores or reserving servers) and invoke module scripts; however, \
+        cannot make save changes made to the data model. For more information \
+        about task limitations, view [Roblox's API reference\
+        ](https://create.roblox.com/docs/en-us/cloud/reference/LuauExecutionSessionTask).
+
+        Args:
+            script: The Luau script to execute. It is executed as is, so it \
+            does not need to be wrapped and the `return` statement may be \
+            used to retrieve JSON serialized output.
+        
+        Returns:
+            An operation than can be waited using \
+            [`LuauSessionTask.wait()` ](rblxopencloud.LuauSessionTask.wait). \
+            Provides information about the task.
+        """
+        _, data, _ = send_request(
+            "POST",
+            f"/universes/{self.experience.id}/places/{self.id}"
+            "/luau-execution-session-tasks",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={"script": script},
+        )
+
+        return LuauSessionTask(data, self.__api_key, self)
+
     # def list_root_children(self) -> Operation[list[InstanceType]]:
     #     _, data, _ = send_request("GET", "/universes/"+
     #         f"{self.experience.id}/places/{self.id}/instances/"+
@@ -789,18 +921,6 @@ experience={repr(self.experience)}>"
     #     return Operation(f"/{data['path']}", self.__api_key,
     #         lambda r: Instance._determine_instance_subclass(r)
     #         (r["engineInstance"]["Id"], r, place=self, api_key=self.__api_key))
-
-    def create_luau_session_task(self, script: str) -> LuauSessionTask:
-        _, data, _ = send_request(
-            "POST",
-            f"/universes/{self.experience.id}/places/{self.id}"
-            "/luau-execution-session-tasks",
-            authorization=self.__api_key,
-            expected_status=[200],
-            json={"script": script},
-        )
-
-        return LuauSessionTask(data, self.__api_key, self)
 
 
 class Experience:

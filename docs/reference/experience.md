@@ -14,6 +14,14 @@
 
 ::: rblxopencloud.Secret
 
+::: rblxopencloud.LuauSessionTask
+
+::: rblxopencloud.LuauSessionTaskState
+
+::: rblxopencloud.LuauSessionTaskError
+
+::: rblxopencloud.LuauSessionTaskErrorCode
+
 ::: rblxopencloud.Subscription
 
 ::: rblxopencloud.SubscriptionState

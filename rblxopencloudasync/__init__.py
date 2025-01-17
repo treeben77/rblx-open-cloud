@@ -25,7 +25,7 @@ from typing import Literal, Optional
 import aiohttp
 
 VERSION: str = "2.2.3"
-VERSION_INFO: Literal["alpha", "beta", "final"] = "final"
+VERSION_INFO: Literal["alpha", "beta", "final"] = "alpha"
 
 user_agent: str = (
     f"rblx-open-cloud/{VERSION} (https://github.com/treeben77/rblx-open-cloud)"
