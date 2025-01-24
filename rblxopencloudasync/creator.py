@@ -584,7 +584,11 @@ class Creator:
             raise HttpException(status, data)
 
         return Operation(
-            f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
+            f"assets/v1/{data['path']}",
+            self.__api_key,
+            Asset,
+            creator=self,
+            api_key=self.__api_key,
         )
 
     async def update_asset(
@@ -666,7 +670,11 @@ class Creator:
                 raise ModeratedText(status, body)
 
         return Operation(
-            f"assets/v1/{data['path']}", self.__api_key, Asset, creator=self
+            f"assets/v1/{data['path']}",
+            self.__api_key,
+            Asset,
+            creator=self,
+            api_key=self.__api_key,
         )
 
     async def list_asset_versions(
