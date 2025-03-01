@@ -569,10 +569,11 @@ class Group(Creator):
         """
 
         await send_request(
-            "DELETE",
+            "POST",
             f"/groups/{self.id}/join-requests/{user_id}:accept",
             authorization=self.__api_key,
             expected_status=[200],
+            json={},
         )
 
     async def decline_join_request(self, user_id: int):
@@ -585,8 +586,9 @@ class Group(Creator):
         """
 
         await send_request(
-            "DELETE",
+            "POST",
             f"/groups/{self.id}/join-requests/{user_id}:decline",
             authorization=self.__api_key,
             expected_status=[200],
+            json={},
         )
