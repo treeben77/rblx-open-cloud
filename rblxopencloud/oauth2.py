@@ -169,7 +169,7 @@ class PartialAccessToken:
         """
 
         status, data, _ = send_request(
-            "GET",
+            "POST",
             "oauth/v1/token/resources",
             expected_status=[200],
             data={
@@ -216,7 +216,7 @@ class PartialAccessToken:
         """
 
         _, data, _ = send_request(
-            "GET",
+            "POST",
             "oauth/v1/token/introspect",
             expected_status=[200],
             data={
