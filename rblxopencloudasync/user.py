@@ -483,7 +483,7 @@ class User(Creator):
         self.username = data["name"]
         self.display_name = data["displayName"]
         self.created_at = parser.parse(data["createTime"])
-        self.about = data["about"]
+        self.about = data.get("about")
         self.locale = data["locale"]
         self.premium = data.get("premium")
         self.id_verified = data.get("idVerified")
