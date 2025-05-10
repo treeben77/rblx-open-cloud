@@ -96,7 +96,8 @@ class experience_info(unittest.TestCase):
             experience.discord_social_link.uri, "https://discord.gg/6Y3bzJ59KU"
         )
         self.assertEqual(
-            experience.age_rating, rblxopencloud.ExperienceAgeRating.AllAges
+            experience.age_rating,
+            rblxopencloud.ExperienceAgeRating.ThirteenPlus,
         )
         self.assertTrue(experience.desktop_enabled)
 
