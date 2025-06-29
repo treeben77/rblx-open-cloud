@@ -1124,21 +1124,19 @@ classes/MessagingService).
         Args:
             topic: The topic to publish the message into.
             data: The message to send. Open Cloud only supports string data, \
-            not tables. 
+            not dictionaries nor json objects. 
         
         !!! note
-            Messages sent by Open Cloud with only be recieved by live \
+            Messages sent by Open Cloud will only be recieved by live \
             servers. Studio won't recieve thesse messages.
         """
 
-        topic = urllib.parse.quote(topic)
-
         await send_request(
             "POST",
-            f"messaging-service/v1/universes/{self.id}/topics/{topic}",
+            f"/universes/{self.id}:publishMessage",
             authorization=self.__api_key,
             expected_status=[200],
-            json={"message": data},
+            json={"topic": topic, "message": data},
         )
 
     async def send_notification(

@@ -108,6 +108,27 @@ class standard_data_stores(unittest.TestCase):
 
         self.assertIn("test_entry", entry_keys)
 
+    def test_list_versions(self):
+        did_iterate = False
+
+        for entry in datastore.list_versions("test_entry"):
+
+            self.assertIsInstance(entry.version, str)
+            self.assertIsInstance(entry.created, datetime)
+            self.assertIsInstance(entry.key_created, datetime)
+            self.assertIsInstance(entry, rblxopencloud.EntryVersion)
+
+            value, info = entry.get_value()
+
+            self.assertIsInstance(info, rblxopencloud.EntryInfo)
+            self.assertEqual(value, {"key1": "value", "key2": 3.14})
+            self.assertEqual(info.users, [287113233])
+            self.assertEqual(entry.version, info.version)
+
+            did_iterate = True
+
+        self.assertTrue(did_iterate)
+
 
 ordered_datastore = experience.get_ordered_datastore("rblxopencloud_unittest")
 

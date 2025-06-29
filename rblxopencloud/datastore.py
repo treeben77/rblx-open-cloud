@@ -197,7 +197,7 @@ class DataStore:
 scope="{self.scope}" experience={repr(self.experience)}>'
 
     def list_keys(
-        self, prefix: str = "", limit: int = None
+        self, prefix: str = "", limit: int = None, show_deleted: bool = False
     ) -> Iterable[ListedEntry]:
         """
         Iterates all keys in the database and scope, optionally matching a \
@@ -209,22 +209,24 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             for no limit.
         """
 
+        scope = self.scope if self.scope else "-"
+
         for entry in iterate_request(
             "GET",
-            f"datastores/v1/universes/\
-{self.experience.id}/standard-datastores/datastore/entries",
+            f"/universes/{self.experience.id}/data-stores/\
+{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/entries",
             params={
-                "datastoreName": self.name,
-                "scope": self.scope,
-                "AllScopes": not self.scope,
-                "prefix": prefix,
+                "maxPageSize": limit if limit and limit < 256 else 256,
+                "filter": f'id.startsWith("{prefix}")' if prefix else None,
+                "showDeleted": show_deleted,
             },
             expected_status=[200],
             authorization=self.__api_key,
-            cursor_key="cursor",
-            data_key="keys",
+            cursor_key="nextPageToken",
+            data_key="dataStoreEntries",
+            max_yields=limit,
         ):
-            yield ListedEntry(entry["key"], entry["scope"])
+            yield ListedEntry(entry["id"], entry["path"].split("/")[5])
 
     def get_entry(
         self, key: str
@@ -236,6 +238,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             key: The key to fetch. If `DataStore.scope` is `None`, this must \
             include the scope in the `scope/key` syntax.
         """
+
         try:
             scope = self.scope
             if not scope:
@@ -243,35 +246,22 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
-        _, data, headers = send_request(
+        _, data, _ = send_request(
             "GET",
-            f"datastores/v1/universes/{self.experience.id}/standard-datastores\
-/datastore/entries/entry",
+            f"/universes/{self.experience.id}/\
+data-stores/{self.name}/entries/{key}@latest",
             authorization=self.__api_key,
             expected_status=[200],
-            params={
-                "datastoreName": self.name,
-                "scope": scope,
-                "entryKey": key,
-            },
         )
 
-        if headers.get("roblox-entry-attributes"):
-            metadata = json.loads(headers["roblox-entry-attributes"])
-        else:
-            metadata = {}
-
-        if headers.get("roblox-entry-userids"):
-            userids = json.loads(headers["roblox-entry-userids"])
-        else:
-            userids = []
-
-        return data, EntryInfo(
-            headers["roblox-entry-version"],
-            headers["roblox-entry-created-time"],
-            headers["roblox-entry-version-created-time"],
-            userids,
-            metadata,
+        return data["value"], EntryInfo(
+            data["revisionId"],
+            data["createTime"],
+            data["revisionCreateTime"],
+            users=[
+                int(user_id.split("/")[1]) for user_id in data.get("users", [])
+            ],
+            metadata=data["attributes"],
         )
 
     def set_entry(
@@ -499,32 +489,40 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
 
+        filter = None
+        if after and before:
+            if after > before:
+                raise ValueError("before must not be later than after.")
+            filter = f"revision_create_time >= {after.isoformat()} && revision_create_time <= {before.isoformat()}"
+        elif after:
+            filter = f"revision_create_time >= {after.isoformat()}"
+        elif before:
+            filter = f"revision_create_time <= {before.isoformat()}"
+
         for entry in iterate_request(
             "GET",
-            f"datastores/v1/universes/\
-{self.experience.id}/standard-datastores/datastore/entries/versions",
+            f"/universes/{self.experience.id}/data-stores/\
+{urllib.parse.quote(self.name)}/scopes/{urllib.parse.quote(scope)}/\
+entries/{urllib.parse.quote(key)}:listRevisions",
             params={
-                "datastoreName": self.name,
-                "scope": self.scope,
-                "entryKey": key,
-                "sortOrder": "Descending" if descending else "Ascending",
-                "startTime": after.isoformat() if after else None,
-                "endTime": before.isoformat() if before else None,
+                "maxPageSize": limit if limit and limit < 100 else 100,
+                "filter": filter,
             },
             expected_status=[200],
             authorization=self.__api_key,
-            cursor_key="cursor",
-            data_key="keys",
+            cursor_key="nextPageToken",
+            data_key="dataStoreEntries",
+            max_yields=limit,
         ):
             yield EntryVersion(
-                entry.get("version"),
-                entry.get("deleted"),
-                entry.get("contentLength"),
-                entry.get("createdTime"),
-                entry.get("objectCreatedTime"),
+                entry.get("revisionId"),
+                entry.get("state") == "DELETED",
+                entry.get("contentLength"),  # always None since v2
+                entry.get("createTime"),
+                entry.get("revisionCreateTime"),
                 self,
                 key,
-                self.scope if self.scope else scope,
+                scope,
             )
 
     def get_version(
