@@ -94,7 +94,7 @@ class Webhook:
         Args:
             body (bytes): The HTTP raw body.
             secret_header (bytes): The raw value of the `Roblox-Signature` header.
-            validate_signature (bool): Wether to validate the signature or \
+            validate_signature (bool): whether to validate the signature or \
             not. This should not be disabled in production.
         """
 
