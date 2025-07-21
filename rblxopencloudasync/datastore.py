@@ -72,11 +72,11 @@ users={self.users} metadata={self.metadata}>'
 class EntryVersion:
     """
     Contains data about a version such as it's ID, timestamps, content length \
-    and wether this version is deleted.
+    and whether this version is deleted.
 
     Attributes:
         version: The string ID of this version.
-        deleted: Wether this version has been deleted.
+        deleted: whether this version has been deleted.
         content_length: The length of the value.
         created: When this version was created.
         key_created: When the key was first created.
@@ -642,7 +642,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         Returns a list of keys and their values.
 
         Args:
-            descending: Wether the largest or the smallest number should be \
+            descending: whether the largest or the smallest number should be \
             first.
             limit: Max number of entries to loop through.
             min: Minimum entry value to retrieve
@@ -727,8 +727,8 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             key: The key to create or update. If `OrderedDataStore.scope` is \
             `None`, this must include the scope in the `scope/key` syntax.
             value: The new integer value. Must be positive.
-            exclusive_create: Wether to fail if the key already has a value.
-            exclusive_update: Wether to fail if the key does not have a value.
+            exclusive_create: whether to fail if the key already has a value.
+            exclusive_update: whether to fail if the key does not have a value.
         """
         try:
             if not self.scope:
