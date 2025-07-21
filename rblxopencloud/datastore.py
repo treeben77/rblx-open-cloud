@@ -249,7 +249,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         _, data, _ = send_request(
             "GET",
             f"/universes/{self.experience.id}/\
-data-stores/{self.name}/entries/{key}@latest",
+data-stores/{self.name}/scopes/{scope}/entries/{key}@latest",
             authorization=self.__api_key,
             expected_status=[200],
         )
@@ -303,6 +303,22 @@ data-stores/{self.name}/entries/{key}@latest",
                 scope, key = key.split("/", maxsplit=1)
         except ValueError:
             raise ValueError("'scope/key' syntax expected for key.")
+
+        if exclusive_create:
+            status_code, data, headers = send_request(
+                "POST",
+                f"/universes/{self.experience.id}/data-stores/{self.name}\
+/scopes/{scope}/entries",
+                authorization=self.__api_key,
+                params={
+                    "id": key,
+                },
+                json={
+                    "value": value,
+                    "users": [f"users/{user_id}" for user_id in users],
+                    "attributes": metadata,
+                },
+            )
 
         status_code, data, headers = send_request(
             "POST",
