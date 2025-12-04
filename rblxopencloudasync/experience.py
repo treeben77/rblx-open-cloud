@@ -1721,7 +1721,7 @@ classes/MessagingService).
     async def translate_text(
         self,
         text: str,
-        target_language_codes: list[str] = "en-us",
+        target_language_codes: list[str] = None,
         source_language_code: Optional[str] = None,
     ) -> tuple[str, dict[str, str]]:
         """
