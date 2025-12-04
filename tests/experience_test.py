@@ -3,9 +3,9 @@ from datetime import datetime
 import os
 import pathlib
 import secrets
+import sys
 import time
 import unittest
-
 from nacl import public, encoding
 
 import rblxopencloud
@@ -42,8 +42,10 @@ class user_restrictions(unittest.TestCase):
         self.assertEqual(restriction.private_reason, "some private reason")
 
     def test_ban_user(self):
+        # avoids per user rate limits
+        offset = sys.version_info.minor
         restriction = experience.ban_user(
-            287113235,
+            287113235 + offset,
             duration_seconds=86400,
             display_reason="some display reason",
             private_reason="some private reason",
