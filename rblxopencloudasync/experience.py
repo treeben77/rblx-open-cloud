@@ -603,7 +603,7 @@ experience={repr(self.experience)}>"
             to upload new assets.
 
         !!! tip
-            Use [`Place.fetch_asset`][rblxopencloud.Experience.fetch_asset] \
+            Use [`Place.fetch_asset`][rblxopencloud.Place.fetch_asset] \
             to ensure a fully populated asset is returned.
         """
         if self.experience and self.experience.owner:
