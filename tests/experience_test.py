@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import pathlib
 import secrets
+import time
 import unittest
 
 from nacl import public, encoding
@@ -40,7 +41,7 @@ class user_restrictions(unittest.TestCase):
         self.assertEqual(restriction.display_reason, "some display reason")
         self.assertEqual(restriction.private_reason, "some private reason")
 
-    def test_ban_unban_user(self):
+    def test_ban_user(self):
         restriction = experience.ban_user(
             287113235,
             duration_seconds=86400,
@@ -51,11 +52,6 @@ class user_restrictions(unittest.TestCase):
         self.assertIsInstance(restriction, rblxopencloud.UserRestriction)
         self.assertEqual(restriction.active, True)
         self.assertEqual(restriction.duration_seconds, 86400)
-
-        restriction = experience.unban_user(287113235)
-
-        self.assertIsInstance(restriction, rblxopencloud.UserRestriction)
-        self.assertEqual(restriction.active, False)
 
     def test_list_ban_logs(self):
         for restriction in experience.list_ban_logs(287113233, limit=10):

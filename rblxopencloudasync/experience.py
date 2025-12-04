@@ -30,6 +30,7 @@ import urllib.parse
 
 from dateutil import parser
 
+from .creator import Asset, Creator
 from .datastore import DataStore, OrderedDataStore
 from .group import Group
 from .http import Operation, iterate_request, send_request
@@ -570,6 +571,65 @@ experience={repr(self.experience)}>"
         )
 
         return data["versionNumber"]
+
+    def get_asset(self) -> Asset:
+        """
+        Creates a partial [`Asset`][rblxopencloud.Asset] representing this \
+        place. This exposes endpoints related to assets, such as versioning \
+        and rollback.
+
+        Returns:
+            The asset representing the place, where `moderation_status`, 
+            `revision_id`, and `revision_time` are not populated. Further,
+            `name` and `description` are only populated from the place if
+            previously fetched.
+        
+        !!! warning
+            If the place's experience has not been fetched, the asset's creator
+            will be blank and not represent the actual creator of the place.
+            In this case, do not attempt to use the returned asset's creator \
+            to upload new assets.
+
+        !!! tip
+            Use [`Place.fetch_asset`][rblxopencloud.Experience.fetch_asset] \
+            to ensure a fully populated asset is returned.
+        """
+        if self.experience and self.experience.owner:
+            creator = self.experience.owner
+        else:
+            creator = Creator(None, self.__api_key, None)
+
+        return Asset(
+            {
+                "assetId": self.id,
+                "assetType": "Place",
+                "displayName": self.name,
+                "description": self.description,
+            },
+            creator,
+            self.__api_key,
+        )
+
+    async def fetch_asset(self) -> Asset:
+        """
+        Fetches a fully populated [`Asset`][rblxopencloud.Asset] representing \
+        this place. This exposes endpoints related to assets, such as \
+        versioning and rollback. If the place's experience's info has not \
+        been fetched, the library will automatically do that first.
+
+        Returns:
+            The asset representing the place.
+
+        !!! tip
+            Use [`Place.to_asset`][rblxopencloud.Place.to_asset] to get a \
+            partial asset without making additional requests. This is useful \
+            if you do not require the additional asset information.
+        """
+
+        if not self.experience.owner:
+            await self.experience.fetch_info()
+
+        return await self.experience.owner.fetch_asset(self.id)
 
     async def fetch_user_restriction(self, user_id: int) -> UserRestriction:
         """

@@ -63,6 +63,50 @@ class AssetType(Enum):
         Video (7): Only for fetching assets; does not support uploading.
         Animation (8): Only for fetching assets; does not support uploading.
         Image (9): Only for fetching assets; does not support uploading.
+        Place (10): Only for fetching assets; does not support uploading.
+        ClassicTShirt (100): Only for fetching assets; does not support uploading.
+        Hat (101): Only for fetching assets; does not support uploading.
+        ClassicShirt (102): Only for fetching assets; does not support uploading.
+        ClassicPants (103): Only for fetching assets; does not support uploading.
+        ClassicHead (104): Only for fetching assets; does not support uploading.
+        Face (105): Only for fetching assets; does not support uploading.
+        Gear (106): Only for fetching assets; does not support uploading.
+        Torso (107): Only for fetching assets; does not support uploading.
+        RightArm (108): Only for fetching assets; does not support uploading.
+        LeftArm (109): Only for fetching assets; does not support uploading.
+        LeftLeg (110): Only for fetching assets; does not support uploading.
+        RightLeg (111): Only for fetching assets; does not support uploading.
+        Package (112): Only for fetching assets; does not support uploading.
+        HairAccessory (113): Only for fetching assets; does not support uploading.
+        FaceAccessory (114): Only for fetching assets; does not support uploading.
+        NeckAccessory (115): Only for fetching assets; does not support uploading.
+        ShoulderAccessory (116): Only for fetching assets; does not support uploading.
+        FrontAccessory (117): Only for fetching assets; does not support uploading.
+        BackAccessory (118): Only for fetching assets; does not support uploading.
+        WaistAccessory (119): Only for fetching assets; does not support uploading.
+        ClimbAnimation (120): Only for fetching assets; does not support uploading.
+        DeathAnimation (121): Only for fetching assets; does not support uploading.
+        FallAnimation (122): Only for fetching assets; does not support uploading.
+        IdleAnimation (123): Only for fetching assets; does not support uploading.
+        JumpAnimation (124): Only for fetching assets; does not support uploading.
+        RunAnimation (125): Only for fetching assets; does not support uploading.
+        SwimAnimation (126): Only for fetching assets; does not support uploading.
+        WalkAnimation (127): Only for fetching assets; does not support uploading.
+        PoseAnimation (128): Only for fetching assets; does not support uploading.
+        EmoteAnimation (129): Only for fetching assets; does not support uploading.
+        TShirtAccessory (130): Only for fetching assets; does not support uploading.
+        ShirtAccessory (131): Only for fetching assets; does not support uploading.
+        PantsAccessory (132): Only for fetching assets; does not support uploading.
+        JacketAccessory (133): Only for fetching assets; does not support uploading.
+        SweaterAccessory (134): Only for fetching assets; does not support uploading.
+        ShortsAccessory (135): Only for fetching assets; does not support uploading.
+        LeftShoeAccessory (136): Only for fetching assets; does not support uploading.
+        RightShoeAccessory (137): Only for fetching assets; does not support uploading.
+        DressSkirtAccessory (138): Only for fetching assets; does not support uploading.
+        EyebrowAccessory (140): Only for fetching assets; does not support uploading.
+        EyelashAccessory (141): Only for fetching assets; does not support uploading.
+        MoodAnimation (142): Only for fetching assets; does not support uploading.
+        DynamicHead (143): Only for fetching assets; does not support uploading.
     """
 
     Unknown = 0
@@ -75,6 +119,51 @@ class AssetType(Enum):
     Video = 7
     Animation = 8
     Image = 9
+    Place = 10
+
+    ClassicTShirt = 100
+    Hat = 101
+    ClassicShirt = 102
+    ClassicPants = 103
+    ClassicHead = 104
+    Face = 105
+    Gear = 106
+    Torso = 107
+    RightArm = 108
+    LeftArm = 109
+    LeftLeg = 110
+    RightLeg = 111
+    Package = 112
+    HairAccessory = 113
+    FaceAccessory = 114
+    NeckAccessory = 115
+    ShoulderAccessory = 116
+    FrontAccessory = 117
+    BackAccessory = 118
+    WaistAccessory = 119
+    ClimbAnimation = 120
+    DeathAnimation = 121
+    FallAnimation = 122
+    IdleAnimation = 123
+    JumpAnimation = 124
+    RunAnimation = 125
+    SwimAnimation = 126
+    WalkAnimation = 127
+    PoseAnimation = 128
+    EmoteAnimation = 129
+    TShirtAccessory = 130
+    ShirtAccessory = 131
+    PantsAccessory = 132
+    JacketAccessory = 133
+    SweaterAccessory = 134
+    ShortsAccessory = 135
+    LeftShoeAccessory = 136
+    RightShoeAccessory = 137
+    DressSkirtAccessory = 138
+    EyebrowAccessory = 140
+    EyelashAccessory = 141
+    MoodAnimation = 142
+    DynamicHead = 143
 
 
 ASSET_TYPE_ENUMS = {
@@ -90,6 +179,50 @@ ASSET_TYPE_ENUMS = {
     "ASSET_TYPE_DECAL": AssetType.Decal,
     "ASSET_TYPE_AUDIO": AssetType.Audio,
     "ASSET_TYPE_MODEL": AssetType.Model,
+    "Place": AssetType.Place,
+    "ClassicTShirt": AssetType.ClassicTShirt,
+    "Hat": AssetType.Hat,
+    "ClassicShirt": AssetType.ClassicShirt,
+    "ClassicPants": AssetType.ClassicPants,
+    "ClassicHead": AssetType.ClassicHead,
+    "Face": AssetType.Face,
+    "Gear": AssetType.Gear,
+    "Torso": AssetType.Torso,
+    "RightArm": AssetType.RightArm,
+    "LeftArm": AssetType.LeftArm,
+    "LeftLeg": AssetType.LeftLeg,
+    "RightLeg": AssetType.RightLeg,
+    "Package": AssetType.Package,
+    "HairAccessory": AssetType.HairAccessory,
+    "FaceAccessory": AssetType.FaceAccessory,
+    "NeckAccessory": AssetType.NeckAccessory,
+    "ShoulderAccessory": AssetType.ShoulderAccessory,
+    "FrontAccessory": AssetType.FrontAccessory,
+    "BackAccessory": AssetType.BackAccessory,
+    "WaistAccessory": AssetType.WaistAccessory,
+    "ClimbAnimation": AssetType.ClimbAnimation,
+    "DeathAnimation": AssetType.DeathAnimation,
+    "FallAnimation": AssetType.FallAnimation,
+    "IdleAnimation": AssetType.IdleAnimation,
+    "JumpAnimation": AssetType.JumpAnimation,
+    "RunAnimation": AssetType.RunAnimation,
+    "SwimAnimation": AssetType.SwimAnimation,
+    "WalkAnimation": AssetType.WalkAnimation,
+    "PoseAnimation": AssetType.PoseAnimation,
+    "EmoteAnimation": AssetType.EmoteAnimation,
+    "TShirtAccessory": AssetType.TShirtAccessory,
+    "ShirtAccessory": AssetType.ShirtAccessory,
+    "PantsAccessory": AssetType.PantsAccessory,
+    "JacketAccessory": AssetType.JacketAccessory,
+    "SweaterAccessory": AssetType.SweaterAccessory,
+    "ShortsAccessory": AssetType.ShortsAccessory,
+    "LeftShoeAccessory": AssetType.LeftShoeAccessory,
+    "RightShoeAccessory": AssetType.RightShoeAccessory,
+    "DressSkirtAccessory": AssetType.DressSkirtAccessory,
+    "EyebrowAccessory": AssetType.EyebrowAccessory,
+    "EyelashAccessory": AssetType.EyelashAccessory,
+    "MoodAnimation": AssetType.MoodAnimation,
+    "DynamicHead": AssetType.DynamicHead,
 }
 
 
@@ -198,6 +331,51 @@ class Asset:
         return await self.creator.fetch_creator_store_product(
             self.type, self.id
         )
+
+    async def fetch_version(self, version_number: int) -> "AssetVersion":
+        """
+        Fetches a specific version of the asset.
+
+        Args:
+            version_number: The version number of the asset to fetch.
+
+        Returns:
+            An [`AssetVersion`][rblxopencloud.AssetVersion] representing the \
+            specified version of the asset.
+        """
+
+        return await self.creator.fetch_asset_version(self.id, version_number)
+
+    async def list_versions(
+        self, limit: int = None
+    ) -> AsyncGenerator[Any, "AssetVersion"]:
+        """
+        Iterates all avaliable versions of the asset, providing the latest \
+        version first.
+
+        Args:
+            limit: The maximum number of versions to return.
+        
+        Yields:
+            An asset version for each version of the asset.
+        """
+
+        async for version in self.creator.list_asset_versions(self.id, limit):
+            yield version
+
+    async def rollback(self, version_number: int) -> "AssetVersion":
+        """
+        Rolls back the asset to restore a previous version.
+
+        Args:
+            version_number: The version number of the asset to roll back to.
+
+        Returns:
+            An [`AssetVersion`][rblxopencloud.AssetVersion] representing the \
+            rolled back version of the asset.
+        """
+
+        return await self.creator.rollback_asset(self.id, version_number)
 
 
 class AssetVersion:
@@ -677,6 +855,26 @@ class Creator:
             api_key=self.__api_key,
         )
 
+    async def fetch_asset_version(
+        self, asset_id: int, version_number: int
+    ) -> AssetVersion:
+        """
+        Fetches the version for a specific version number of the asset.
+
+        Args:
+            asset_id: The ID of the asset to find the version for.
+            version_number: The version number to find.
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"assets/v1/assets/{asset_id}/versions/{version_number}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return AssetVersion(data, self)
+
     async def list_asset_versions(
         self, asset_id: int, limit: int = None
     ) -> AsyncGenerator[Any, AssetVersion]:
@@ -726,7 +924,7 @@ class Creator:
             expected_status=[200],
         )
 
-        return AssetVersion(data)
+        return AssetVersion(data, self)
 
     async def rollback_asset(
         self, asset_id: int, version_number: int
@@ -752,7 +950,7 @@ class Creator:
             },
         )
 
-        return AssetVersion(data)
+        return AssetVersion(data, self)
 
     async def fetch_creator_store_product(
         self, asset_type: Union[AssetType, str], product_id: int
