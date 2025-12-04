@@ -591,9 +591,9 @@ experience={repr(self.experience)}>"
         and rollback.
 
         Returns:
-            The asset representing the place, where `moderation_status`, 
-            `revision_id`, and `revision_time` are not populated. Further,
-            `name` and `description` are only populated from the place if
+            The asset representing the place, where `moderation_status`, \
+            `revision_id`, and `revision_time` are not populated. Further, \
+            `name` and `description` are only populated from the place if \
             previously fetched.
         
         !!! warning
