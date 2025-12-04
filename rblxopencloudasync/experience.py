@@ -456,10 +456,18 @@ class Place:
         created_at: The time the place was created.
         updated_at: The time the place was last updated.
         server_size: The number of players the can be in a single server.
+        is_root_place: Whether this place is the primary place of its \
+        universe/experience.
+        is_universe_runtime_creation: Whether this place was created using \
+        `AssetService:CreatePlaceAsync()`.
     """
 
     def __init__(self, id, data, api_key, experience) -> None:
         self.id: int = id
+        self.is_root_place: bool = data.get("root") if data else None
+        self.is_universe_runtime_creation: bool = (
+            data.get("universeRuntimeCreation") if data else None
+        )
         self.experience: Experience = experience
         self.name: Optional[str] = data["displayName"] if data else None
         self.description: Optional[str] = data["description"] if data else None
@@ -483,6 +491,10 @@ experience={repr(self.experience)}>"
         self.created_at = parser.parse(data["createTime"])
         self.updated_at = parser.parse(data["updateTime"])
         self.server_size = data["serverSize"]
+        self.is_root_place = data.get("root")
+        self.is_universe_runtime_creation: bool = data.get(
+            "universeRuntimeCreation"
+        )
 
         return self
 
@@ -787,6 +799,7 @@ class Experience:
         self.tablet_enabled: Optional[bool] = None
         self.console_enabled: Optional[bool] = None
         self.vr_enabled: Optional[bool] = None
+        self.root_place: Optional[Place] = None
 
         self.facebook_social_link: Optional[ExperienceSocialLink] = None
         self.twitter_social_link: Optional[ExperienceSocialLink] = None
@@ -898,6 +911,8 @@ class Experience:
         self.tablet_enabled = data["tabletEnabled"]
         self.console_enabled = data["consoleEnabled"]
         self.vr_enabled = data["vrEnabled"]
+
+        self.root_place = self.get_place(int(data["rootPlace"].split("/")[-1]))
 
         return self
 
@@ -1643,3 +1658,61 @@ classes/MessagingService).
         )
 
         return None
+
+    async def generate_speech_asset(
+        self,
+        text: str,
+        voice_id: str = "1",
+        pitch: float = 0.0,
+        speed: float = 1.0,
+    ) -> Operation[Asset]:
+        """
+        Generates a text-to-speech asset. Supports English only.
+
+        Args:
+            text: The text to convert to speech.
+            voice_id: The voice ID to use. View voice IDs on the \
+            [Creator Documentation](https://create.roblox.com/docs/audio/objects#text-to-speech:~:text=List%20of%20artificial%20voices)
+            pitch: The pitch adjustment for the voice.
+            speed: The speed adjustment for the voice.
+
+        Returns:
+            Returns an [`Operation`][rblxopencloud.Operation] that can be \
+            resolved to an [`Asset`][rblxopencloud.Asset] for the generated \
+            text-to-speech.
+
+        Example:
+            ```python
+            operation = experience.generate_speech_asset(
+                "Hello World!", voice_id="1", pitch=0.0, speed=1.0
+            )
+
+            asset = operation.wait()
+
+            print(asset)
+            >>> <rblxopencloud.Asset id=113523671173037 type=AssetType.Audio>
+            ```
+        """
+
+        _, data, _ = await send_request(
+            "POST",
+            f"/universes/{self.id}:generateSpeechAsset",
+            authorization=self.__api_key,
+            expected_status=[200, 201],
+            json={
+                "text": text,
+                "speechStyle": {
+                    "voiceId": voice_id,
+                    "pitch": pitch,
+                    "speed": speed,
+                },
+            },
+        )
+
+        return Operation(
+            f"assets/v1/{data['path']}",
+            self.__api_key,
+            Asset,
+            creator=self,
+            api_key=self.__api_key,
+        )
