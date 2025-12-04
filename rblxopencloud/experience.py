@@ -749,6 +749,7 @@ class Experience:
         description (Optional[str]): The experience's description. 
         created_at (Optional[datetime]): When the experience was created. 
         updated_at (Optional[datetime]): When the experience was last updated. 
+        root_place (Optional[Place]): The experience's root/primary place.
         public (Optional[bool]): Whether the game is public. 
         voice_chat_enabled (Optional[bool]): Whether voice chat is enabled. 
         age_rating (Optional[ExperienceAgeRating]: The experience's age rating.
@@ -777,7 +778,7 @@ class Experience:
         group_social_link (Optional[ExperienceSocialLink]): The Group social \
         link, if there is one. 
         guilded_social_link (Optional[ExperienceSocialLink]): The Guilded \
-        social link, if there is one. 
+        social link, if there is one.
     """
 
     def __init__(self, id: int, api_key: str):
@@ -1701,7 +1702,7 @@ classes/MessagingService).
             "POST",
             f"/universes/{self.id}:generateSpeechAsset",
             authorization=self.__api_key,
-            expected_status=[200, 201],
+            expected_status=[200],
             json={
                 "text": text,
                 "speechStyle": {
@@ -1719,3 +1720,49 @@ classes/MessagingService).
             creator=self,
             api_key=self.__api_key,
         )
+
+    def translate_text(
+        self,
+        text: str,
+        target_language_codes: list[str] = "en-us",
+        source_language_code: Optional[str] = None,
+    ) -> tuple[str, dict[str, str]]:
+        """
+        Translates the provided text into the target language codes.
+
+        Supported language codes include: English (en-us), French (fr-fr), \
+        Vietnamese (vi-vn), Thai (th-th), Turkish (tr-tr), Russian (ru-ru), \
+        Spanish (es-es), Portuguese (pt-br), Korean (ko-kr), \
+        Japanese (ja-jp), Chinese Simplified (zh-cn), Chinese Traditional \
+        (zh-tw), German (de-de), Polish (pl-pl), Italian (it-it), Indonesian \
+        (id-id)
+        
+        Args:
+            text: The text to translate.
+            target_language_codes: The IETF BCP-47 language codes to \
+            translate the text into.
+            source_language_code: The source IETF BCP-47 language code of the \
+            text. If not provided, the source language will be auto-detected.
+        
+        Returns:
+            A tuple with the source language code as the first return and a \
+            dictionary mapping target language codes to the translated text.
+        """
+
+        payload = {
+            "text": text,
+            "targetLanguageCodes": target_language_codes,
+        }
+
+        if source_language_code:
+            payload["sourceLanguageCode"] = source_language_code
+
+        _, data, _ = send_request(
+            "POST",
+            f"/universes/{self.id}:translateText",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json=payload,
+        )
+
+        return data["sourceLanguageCode"], data["translations"]
