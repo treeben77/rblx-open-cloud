@@ -314,19 +314,32 @@ product_id="{self.product_id}" state={self.state}>'
 
 class ExperienceAgeRating(Enum):
     """
-    Enum representing the an experience's age rating.
+    Enum representing an experience's age rating.
 
     Attributes:
         Unknown (0): The experience age rating is unknown or not implemented.
         Unspecified (1): The experience has not provided an age rating.
-        AllAges (2): The experience is marked as All Ages.
-        NinePlus (3): The experience is marked as 9+.
-        ThirteenPlus (4): The experience is marked as 13+.
-        SeventeenPlus (5): The experience is marked as 17+.
+        Minimal (2): The experience is marked as Minimal. Renders on the \
+        Roblox website as 5+.
+        Mild (3): The experience is marked as Mild. Renders on the Roblox \
+        website as 5+.
+        Moderate (4): The experience is marked as Moderate. Renders on the \
+        Roblox website as 13+.
+        Restricted (5): The experience is marked as Restricted. Renders on \
+        the Roblox website as 18+.
+        AllAges (2): Deprecated in favor of `Minimal`.
+        NinePlus (3): Deprecated in favor of `Mild`.
+        ThirteenPlus (4): Deprecated in favor of `Moderate`.
+        SeventeenPlus (5): Deprecated in favor of `Restricted`.
     """
 
     Unknown = 0
     Unspecified = 1
+    Minimal = 2
+    Mild = 3
+    Moderate = 4
+    Restricted = 5
+
     AllAges = 2
     NinePlus = 3
     ThirteenPlus = 4
@@ -356,10 +369,10 @@ class ExperienceSocialLink:
 
 EXPERIENCE_AGE_RATING_STRINGS = {
     "AGE_RATING_UNSPECIFIED": ExperienceAgeRating.Unspecified,
-    "AGE_RATING_ALL": ExperienceAgeRating.AllAges,
-    "AGE_RATING_9_PLUS": ExperienceAgeRating.NinePlus,
-    "AGE_RATING_13_PLUS": ExperienceAgeRating.ThirteenPlus,
-    "AGE_RATING_17_PLUS": ExperienceAgeRating.SeventeenPlus,
+    "AGE_RATING_ALL": ExperienceAgeRating.Minimal,
+    "AGE_RATING_9_PLUS": ExperienceAgeRating.Mild,
+    "AGE_RATING_13_PLUS": ExperienceAgeRating.Moderate,
+    "AGE_RATING_17_PLUS": ExperienceAgeRating.Restricted,
 }
 
 
