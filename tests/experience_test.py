@@ -210,3 +210,31 @@ class restart_servers(unittest.TestCase):
 
     def test_restart_servers(self):
         experience.restart_servers()
+
+
+class developer_products(unittest.TestCase):
+
+    def test_list_developer_products(self):
+        found_products = False
+
+        for product in experience.list_developer_products():
+            self.assertIsInstance(product, rblxopencloud.DeveloperProduct)
+            self.assertIs(product.experience, experience)
+
+            self.assertIsInstance(product.id, int)
+            self.assertIsInstance(product.name, str)
+            self.assertIsInstance(product.description, str)
+            self.assertIsInstance(product.icon_asset_id, int)
+            self.assertIsInstance(product.is_for_sale, bool)
+            self.assertIsInstance(product.is_store_page_enabled, bool)
+            self.assertIsInstance(product.is_regionally_priced, bool)
+            self.assertTrue(
+                product.price_in_robux is None
+                or isinstance(product.price_in_robux, int)
+            )
+            self.assertIsInstance(product.created_at, datetime)
+            self.assertIsInstance(product.updated_at, datetime)
+
+            found_products = True
+
+        self.assertTrue(found_products, "No developer products found")

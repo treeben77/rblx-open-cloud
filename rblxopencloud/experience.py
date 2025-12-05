@@ -48,6 +48,7 @@ __all__ = (
     "Subscription",
     "SubscriptionExpirationReason",
     "SubscriptionState",
+    "DeveloperProduct",
     "UserRestriction",
 )
 
@@ -455,6 +456,58 @@ class UserRestriction:
     def __repr__(self) -> str:
         return f"<rblxopencloud.UserRestriction active={self.active} \
 user={repr(self.user)}>"
+
+
+class DeveloperProduct:
+    """
+    Represents a developer product within an experience on Roblox.
+
+    Attributes:
+        id: The developer product's ID.
+        experience: The experience this developer product belongs to.
+        name: The developer product's name.
+        description: The developer product's description.
+        icon_asset_id: The Roblox image asset ID of the developer product's \
+        icon.
+        is_for_sale: Whether the developer product is currently for sale.
+        is_store_page_enabled: Whether the developer product can be purchased \
+        on the experience's store page.
+        is_regionally_priced: Whether the developer product has regional \
+        pricing enabled.
+        price_in_robux: The price of the developer product in Robux.
+        created_at: The time the developer product was created.
+        updated_at: The time the developer product was last updated.
+    """
+
+    def __init__(self, data, experience, api_key) -> None:
+
+        # {'productId': 3221543243, 'name': 'rewfewfe', 'description': 'this is a test',
+        # 'iconImageAssetId': 95081834295058, 'universeId': 3499447036, 'isForSale': True,
+        # 'storePageEnabled': True, 'priceInformation': {'defaultPriceInRobux': 15, 'enabledFeatures': []},
+        # 'isImmutable': False, 'createdTimestamp': '2025-02-21T22:24:52.775Z',
+        # 'updatedTimestamp': '2025-02-22T03:29:43.446Z'}
+
+        self.id: int = data["productId"]
+        self.experience: Experience = experience
+        self.name: str = data["name"]
+        self.description: str = data["description"]
+        self.icon_asset_id: int = data["iconImageAssetId"]
+        self.is_for_sale: bool = data["isForSale"]
+        self.is_store_page_enabled: bool = data["storePageEnabled"]
+        self.is_regionally_priced: bool = "RegionalPricing" in data.get(
+            "priceInformation", {}
+        ).get("enabledFeatures", [])
+        self.price_in_robux: Optional[int] = data.get(
+            "priceInformation", {}
+        ).get("defaultPriceInRobux")
+        self.created_at: datetime = parser.parse(data["createdTimestamp"])
+        self.updated_at: datetime = parser.parse(data["updatedTimestamp"])
+        self.__api_key = api_key
+
+    def __repr__(self) -> str:
+        return (
+            f'<rblxopencloud.DeveloperProduct id={self.id} name="{self.name}">'
+        )
 
 
 class Place:
@@ -1779,3 +1832,94 @@ classes/MessagingService).
         )
 
         return data["sourceLanguageCode"], data["translations"]
+
+    def list_developer_products(
+        self, limit: int = None
+    ) -> Iterable[DeveloperProduct]:
+        """
+        Lists all developer products within the experience.
+
+        Args:
+            limit: The maximum number of developer products to return. \
+            Defaults to no limit.
+        
+        Yields:
+            The developer product information for each developer product.
+        """
+
+        for developer_product in iterate_request(
+            "GET",
+            f"developer-products/v2/universes/{self.id}/developer-products/creator",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
+                "pageSize": limit if limit and limit <= 50 else 50,
+            },
+            max_yields=limit,
+            data_key="developerProducts",
+            cursor_key="pageToken",
+        ):
+            yield DeveloperProduct(developer_product, self, self.__api_key)
+
+    def fetch_developer_product(self, product_id: int):
+        """
+        Fetches a specific developer product within the experience.
+
+        Args:
+            product_id: The developer product ID to fetch.
+
+        Returns:
+            The developer product information.
+        """
+
+        _, data, _ = send_request(
+            "GET",
+            f"developer-products/v2/universes/{self.id}/developer-products/{product_id}/creator",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return DeveloperProduct(data, self, self.__api_key)
+
+    # non functional as of current
+
+    # def create_developer_product(
+    #     self,
+    #     name: str,
+    #     description: str = None,
+    #     price_in_robux: Optional[int] = None,
+    #     regional_pricing_enabled: bool = False,
+    #     icon_file: io.BytesIO = None,
+    # ) -> DeveloperProduct:
+    #     """
+    #     Creates a specific developer product within the experience.
+
+    #     Args:
+    #         product_id: The developer product ID to fetch.
+
+    #     Returns:
+    #         The created developer product information.
+    #     """
+
+    #     _, data, _ = send_request(
+    #         "POST",
+    #         f"developer-products/v2/universes/{self.id}/developer-products",
+    #         authorization=self.__api_key,
+    #         expected_status=[200],
+    #         params={
+    #             "Name": name,
+    #             "description": description,
+    #             "isForSale": True if price_in_robux else False,
+    #             "price": price_in_robux,
+    #             "isRegionalPricingEnabled": regional_pricing_enabled,
+    #         },
+    #         files={
+    #             "imageFile": (
+    #                 (icon_file.name, icon_file, "application/octet-stream")
+    #                 if icon_file
+    #                 else None
+    #             ),
+    #         },
+    #     )
+
+    #     return DeveloperProduct(data, self, self.__api_key)
