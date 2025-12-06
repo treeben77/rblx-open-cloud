@@ -226,8 +226,8 @@ class developer_products(unittest.TestCase):
             self.assertIsInstance(product.description, str)
             self.assertIsInstance(product.icon_asset_id, int)
             self.assertIsInstance(product.is_for_sale, bool)
-            self.assertIsInstance(product.is_store_page_enabled, bool)
-            self.assertIsInstance(product.is_regionally_priced, bool)
+            self.assertIsInstance(product.store_page_enabled, bool)
+            self.assertIsInstance(product.regional_pricing_enabled, bool)
             self.assertTrue(
                 product.price_in_robux is None
                 or isinstance(product.price_in_robux, int)
@@ -238,3 +238,62 @@ class developer_products(unittest.TestCase):
             found_products = True
 
         self.assertTrue(found_products, "No developer products found")
+
+    def test_fetch_developer_product(self):
+        product = experience.fetch_developer_product(3472883382)
+
+        self.assertIsInstance(product, rblxopencloud.DeveloperProduct)
+        self.assertIs(product.experience, experience)
+
+        self.assertEqual(product.id, 3472883382)
+        self.assertEqual(product.name, "Test Open Cloud Product 5")
+        self.assertEqual(product.description, "Hello World!")
+        self.assertEqual(product.icon_asset_id, 82396052319080)
+        self.assertEqual(product.is_for_sale, True)
+        self.assertEqual(product.store_page_enabled, True)
+        self.assertEqual(product.regional_pricing_enabled, True)
+        self.assertEqual(product.price_in_robux, 67)
+        self.assertIsInstance(product.created_at, datetime)
+        self.assertIsInstance(product.updated_at, datetime)
+
+    def test_update_developer_product(self):
+        new_name = f"rblx-open-cloud unittest {secrets.token_hex(8)}"
+        new_description = secrets.token_hex(16)
+        new_price = secrets.randbelow(10000)
+        new_regional_pricing_enabled = secrets.choice([True, False])
+        new_is_store_page_enabled = secrets.choice([True, False])
+
+        experience.update_developer_product(
+            3472891726,
+            name=new_name,
+            description=new_description,
+            price_in_robux=new_price,
+            regional_pricing_enabled=new_regional_pricing_enabled,
+            store_page_enabled=new_is_store_page_enabled,
+        )
+
+        developer_product = experience.fetch_developer_product(3472891726)
+
+        self.assertEqual(developer_product.id, 3472891726)
+        self.assertEqual(developer_product.name, new_name)
+        self.assertEqual(developer_product.description, new_description)
+        self.assertEqual(developer_product.price_in_robux, new_price)
+        self.assertEqual(
+            developer_product.regional_pricing_enabled,
+            new_regional_pricing_enabled,
+        )
+        self.assertEqual(
+            developer_product.store_page_enabled,
+            new_is_store_page_enabled,
+        )
+
+        self.assertIsInstance(developer_product.created_at, datetime)
+        self.assertIsInstance(developer_product.updated_at, datetime)
+        self.assertGreater(
+            developer_product.updated_at, developer_product.created_at
+        )
+        self.assertAlmostEqual(
+            developer_product.updated_at.timestamp(),
+            time.time(),
+            delta=10,
+        )

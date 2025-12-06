@@ -26,7 +26,7 @@ from enum import Enum
 import io
 from nacl import encoding, public
 from typing import Any, AsyncGenerator, Optional, Union
-import urllib.parse
+import urllib3
 
 from dateutil import parser
 
@@ -470,9 +470,9 @@ class DeveloperProduct:
         icon_asset_id: The Roblox image asset ID of the developer product's \
         icon.
         is_for_sale: Whether the developer product is currently for sale.
-        is_store_page_enabled: Whether the developer product can be purchased \
+        store_page_enabled: Whether the developer product can be purchased \
         on the experience's store page.
-        is_regionally_priced: Whether the developer product has regional \
+        regional_pricing_enabled: Whether the developer product has regional \
         pricing enabled.
         price_in_robux: The price of the developer product in Robux.
         created_at: The time the developer product was created.
@@ -481,25 +481,23 @@ class DeveloperProduct:
 
     def __init__(self, data, experience, api_key) -> None:
 
-        # {'productId': 3221543243, 'name': 'rewfewfe', 'description': 'this is a test',
-        # 'iconImageAssetId': 95081834295058, 'universeId': 3499447036, 'isForSale': True,
-        # 'storePageEnabled': True, 'priceInformation': {'defaultPriceInRobux': 15, 'enabledFeatures': []},
-        # 'isImmutable': False, 'createdTimestamp': '2025-02-21T22:24:52.775Z',
-        # 'updatedTimestamp': '2025-02-22T03:29:43.446Z'}
-
         self.id: int = data["productId"]
         self.experience: Experience = experience
         self.name: str = data["name"]
         self.description: str = data["description"]
         self.icon_asset_id: int = data["iconImageAssetId"]
         self.is_for_sale: bool = data["isForSale"]
-        self.is_store_page_enabled: bool = data["storePageEnabled"]
-        self.is_regionally_priced: bool = "RegionalPricing" in data.get(
-            "priceInformation", {}
-        ).get("enabledFeatures", [])
-        self.price_in_robux: Optional[int] = data.get(
-            "priceInformation", {}
-        ).get("defaultPriceInRobux")
+        self.store_page_enabled: bool = data["storePageEnabled"]
+        self.regional_pricing_enabled: bool = data.get(
+            "priceInformation"
+        ) and "RegionalPricing" in data["priceInformation"].get(
+            "enabledFeatures", []
+        )
+        self.price_in_robux: Optional[int] = (
+            data["priceInformation"].get("defaultPriceInRobux")
+            if data.get("priceInformation")
+            else None
+        )
         self.created_at: datetime = parser.parse(data["createdTimestamp"])
         self.updated_at: datetime = parser.parse(data["updatedTimestamp"])
         self.__api_key = api_key
@@ -1877,3 +1875,167 @@ classes/MessagingService).
         )
 
         return DeveloperProduct(data, self, self.__api_key)
+
+    async def create_developer_product(
+        self,
+        name: str,
+        description: str = None,
+        price_in_robux: Optional[int] = None,
+        regional_pricing_enabled: bool = False,
+        icon_file: io.BytesIO = None,
+    ) -> DeveloperProduct:
+        """
+        Creates a developer product within the experience.
+
+        Args:
+            name: The name of the developer product. Must be unique within \
+            the experience.
+            description: The optional description of the developer product.
+            price_in_robux: The price in robux of the developer product. \
+            Provide `None` for it to be off sale.
+            regional_pricing_enabled: Whether regional pricing is enabled for \
+            the developer product. Must have a price set to enable.
+            icon_file: An optional icon file for the developer product as a \
+            file opened with `rb` mode. 
+
+        Returns:
+            The created developer product information.
+
+        Example:
+            ```python
+            with open("icon.png", "rb") as icon_file:
+                developer_product = experience.create_developer_product(
+                    name="My Developer Product",
+                    description="This is my developer product.",
+                    price_in_robux=670,
+                    regional_pricing_enabled=True,
+                    icon_file=icon_file,
+                )
+            print(developer_product)
+            >>> <rblxopencloud.DeveloperProduct id=0000000000 name='My Developer Product'>
+            ```
+        """
+
+        payload = {
+            "request.Name": (None, name),
+            "request.IsForSale": (None, "true" if price_in_robux else "false"),
+        }
+
+        if icon_file:
+            payload["request.ImageFile"] = (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            )
+
+        if description:
+            payload["request.Description"] = (None, description)
+
+        if price_in_robux is not None:
+            payload["request.Price"] = (None, str(price_in_robux))
+
+        if regional_pricing_enabled is not None:
+            payload["request.IsRegionalPricingEnabled"] = (
+                None,
+                "true" if regional_pricing_enabled else "false",
+            )
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        _, data, _ = await send_request(
+            "POST",
+            f"developer-products/v2/universes/{self.id}/developer-products",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200],
+            data=body,
+        )
+
+        return DeveloperProduct(data, self, self.__api_key)
+
+    async def update_developer_product(
+        self,
+        product_id: int,
+        name: str = None,
+        description: str = None,
+        price_in_robux: Union[str, False] = None,
+        regional_pricing_enabled: bool = None,
+        store_page_enabled: bool = None,
+        icon_file: io.BytesIO = None,
+    ) -> None:
+        """
+        Updates an existing developer product within the experience.
+
+        Args:
+            product_id: The developer product ID to update.
+            name: The name of the developer product. Must be unique within \
+            the experience.
+            description: The optional description of the developer product. \
+            Set to `""` to clear any existing description.
+            price_in_robux: The price in robux of the developer product. \
+            Provide `None` for it to be off sale.
+            regional_pricing_enabled: Whether regional pricing is enabled for \
+            the developer product. Must have a price set to enable.
+            icon_file: An optional icon file for the developer product as a \
+            file opened with `rb` mode. 
+
+        Example:
+            ```python
+            with open("icon.png", "rb") as icon_file:
+                developer_product = experience.create_developer_product(
+                    name="My Developer Product",
+                    description="This is my developer product.",
+                    price_in_robux=670,
+                    regional_pricing_enabled=True,
+                    icon_file=icon_file,
+                )
+            print(developer_product)
+            >>> <rblxopencloud.DeveloperProduct id=0000000000 name='My Developer Product'>
+            ```
+        """
+
+        payload = {}
+
+        if price_in_robux is False:
+            payload["request.IsForSale"] = (None, "false")
+        elif price_in_robux is not None:
+            payload["request.IsForSale"] = (None, "true")
+            payload["request.Price"] = (None, str(price_in_robux))
+
+        if icon_file:
+            payload["request.ImageFile"] = (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            )
+
+        if name:
+            payload["request.Name"] = (None, name)
+
+        if description is not None:
+            payload["request.Description"] = (None, description)
+
+        if regional_pricing_enabled is not None:
+            payload["request.IsRegionalPricingEnabled"] = (
+                None,
+                "true" if regional_pricing_enabled else "false",
+            )
+
+        if store_page_enabled is not None:
+            payload["request.IsStorePageEnabled"] = (
+                None,
+                "true" if store_page_enabled else "false",
+            )
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        await send_request(
+            "PATCH",
+            f"developer-products/v2/universes/{self.id}/developer-products/{product_id}",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200, 204],
+            data=body,
+        )
+
+        return None

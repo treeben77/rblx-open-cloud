@@ -10,6 +10,8 @@
 
 ::: rblxopencloud.ExperienceAgeRating
 
+::: rblxopencloud.DeveloperProduct
+
 ::: rblxopencloud.UserRestriction
 
 ::: rblxopencloud.Secret

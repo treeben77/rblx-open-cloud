@@ -100,7 +100,11 @@ class HttpException(BaseException):
             except JSONDecodeError:
                 pass
 
-        if type(body) == dict and body.get("errors"):
+        if (
+            type(body) == dict
+            and body.get("errors")
+            and type(body["errors"]) == list
+        ):
             self.error_code: Optional[Union[str, int]] = body["errors"][0].get(
                 "code"
             )
@@ -108,10 +112,15 @@ class HttpException(BaseException):
             self.details: Optional[list[dict]] = body["errors"]
         elif type(body) == dict:
             self.error_code: Optional[Union[str, int]] = (
-                body.get("code") or body.get("error") or body.get("status")
+                body.get("code")
+                or body.get("error")
+                or body.get("status")
+                or body.get("errorCode")
             )
-            self.message: Optional[str] = body.get("message") or body.get(
-                "title"
+            self.message: Optional[str] = (
+                body.get("message")
+                or body.get("title")
+                or body.get("errorMessage")
             )
             self.details: Optional[list[dict]] = body.get(
                 "details"
