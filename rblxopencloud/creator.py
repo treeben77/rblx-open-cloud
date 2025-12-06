@@ -410,6 +410,18 @@ asset_id={self.asset_id} version_number={self.version_number}>"
 
 
 class ProductRestriction(Enum):
+    """
+    Enum denoting a restriction applied to a creator store product.
+
+    Attributes:
+        Unknown (0): An unknown restriction that was returned by Roblox.
+        Unspecified (1): An unspecified restriction returned by Roblox.
+        ItemRestricted (2): The item is restricted.
+        SellerTemporarilyRestricted (3): The seller is temporarily restricted.
+        SellerPermanentlyRestricted (4): The seller is permanently restricted.
+        SellerNoLongerActive (5): The seller is no longer active.
+    """
+
     Unknown = 0
     Unspecified = 1
     ItemRestricted = 2
