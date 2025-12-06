@@ -224,7 +224,10 @@ class developer_products(unittest.TestCase):
             self.assertIsInstance(product.id, int)
             self.assertIsInstance(product.name, str)
             self.assertIsInstance(product.description, str)
-            self.assertIsInstance(product.icon_asset_id, int)
+            self.assertIsInstance(
+                product.icon_asset_id,
+                int if product.icon_asset_id else type(None),
+            )
             self.assertIsInstance(product.is_for_sale, bool)
             self.assertIsInstance(product.store_page_enabled, bool)
             self.assertIsInstance(product.regional_pricing_enabled, bool)

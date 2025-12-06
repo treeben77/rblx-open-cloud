@@ -488,10 +488,11 @@ class DeveloperProduct:
         self.icon_asset_id: int = data["iconImageAssetId"]
         self.is_for_sale: bool = data["isForSale"]
         self.store_page_enabled: bool = data["storePageEnabled"]
-        self.regional_pricing_enabled: bool = data.get(
-            "priceInformation"
-        ) and "RegionalPricing" in data["priceInformation"].get(
-            "enabledFeatures", []
+        self.regional_pricing_enabled: bool = (
+            "RegionalPricing"
+            in data["priceInformation"].get("enabledFeatures", [])
+            if data.get("priceInformation")
+            else False
         )
         self.price_in_robux: Optional[int] = (
             data["priceInformation"].get("defaultPriceInRobux")
