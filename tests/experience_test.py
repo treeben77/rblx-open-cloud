@@ -260,7 +260,7 @@ class developer_products(unittest.TestCase):
         self.assertIsInstance(product.updated_at, datetime)
 
     def test_update_developer_product(self):
-        new_name = f"rblx-open-cloud unittest {secrets.token_hex(8)}"
+        new_name = f"rblx-open-cloud unittest {secrets.token_hex(2)}"
         new_description = secrets.token_hex(16)
         new_price = secrets.randbelow(10000)
         new_regional_pricing_enabled = secrets.choice([True, False])
@@ -274,6 +274,8 @@ class developer_products(unittest.TestCase):
             regional_pricing_enabled=new_regional_pricing_enabled,
             store_page_enabled=new_is_store_page_enabled,
         )
+
+        time.sleep(2)  # wait for eventual consistency
 
         developer_product = experience.fetch_developer_product(3472891726)
 

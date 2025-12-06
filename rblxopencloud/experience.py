@@ -25,7 +25,7 @@ from datetime import datetime
 from enum import Enum
 import io
 from nacl import encoding, public
-from typing import Iterable, Optional, Union
+from typing import Iterable, Literal, Optional, Union
 import urllib3
 
 from dateutil import parser
@@ -1962,7 +1962,7 @@ classes/MessagingService).
         product_id: int,
         name: str = None,
         description: str = None,
-        price_in_robux: Union[str, False] = None,
+        price_in_robux: Union[str, Literal[False]] = None,
         regional_pricing_enabled: bool = None,
         store_page_enabled: bool = None,
         icon_file: io.BytesIO = None,
@@ -2026,7 +2026,7 @@ classes/MessagingService).
             )
 
         if store_page_enabled is not None:
-            payload["request.IsStorePageEnabled"] = (
+            payload["request.StorePageEnabled"] = (
                 None,
                 "true" if store_page_enabled else "false",
             )
