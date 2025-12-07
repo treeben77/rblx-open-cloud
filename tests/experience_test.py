@@ -302,3 +302,78 @@ class developer_products(unittest.TestCase):
             time.time(),
             delta=10,
         )
+
+
+class game_passes(unittest.TestCase):
+    def test_list_game_passes(self):
+        found_passes = False
+
+        for game_pass in experience.list_game_passes():
+            self.assertIsInstance(game_pass, rblxopencloud.GamePass)
+            self.assertIs(game_pass.experience, experience)
+
+            self.assertIsInstance(game_pass.id, int)
+            self.assertIsInstance(game_pass.name, str)
+            self.assertIsInstance(game_pass.description, str)
+            self.assertIsInstance(
+                game_pass.icon_asset_id,
+                int if game_pass.icon_asset_id else type(None),
+            )
+            self.assertIsInstance(game_pass.price_in_robux, int)
+            self.assertIsInstance(game_pass.regional_pricing_enabled, bool)
+            self.assertIsInstance(game_pass.created_at, datetime)
+            self.assertIsInstance(game_pass.updated_at, datetime)
+
+            found_passes = True
+
+        self.assertTrue(found_passes, "No game passes found")
+
+    def test_fetch_game_pass(self):
+        game_pass = experience.fetch_game_pass(1617590110)
+
+        self.assertIsInstance(game_pass, rblxopencloud.GamePass)
+        self.assertIs(game_pass.experience, experience)
+
+        self.assertEqual(game_pass.id, 1617590110)
+        self.assertEqual(game_pass.name, "rblx-open-cloud unittest gamepass")
+        self.assertEqual(game_pass.description, "This is a test game pass.")
+        self.assertEqual(game_pass.icon_asset_id, 139446863449203)
+        self.assertEqual(game_pass.price_in_robux, 670)
+        self.assertEqual(game_pass.regional_pricing_enabled, False)
+        self.assertIsInstance(game_pass.created_at, datetime)
+        self.assertIsInstance(game_pass.updated_at, datetime)
+
+    def test_update_game_pass(self):
+        new_name = f"rblx-open-cloud unittest {secrets.token_hex(2)}"
+        new_description = secrets.token_hex(16)
+        new_price = secrets.randbelow(10000)
+        new_regional_pricing_enabled = secrets.choice([True, False])
+
+        experience.update_game_pass(
+            1618032326,
+            name=new_name,
+            description=new_description,
+            price_in_robux=new_price,
+            regional_pricing_enabled=new_regional_pricing_enabled,
+        )
+
+        time.sleep(2)  # wait for eventual consistency
+
+        game_pass = experience.fetch_game_pass(1618032326)
+
+        self.assertEqual(game_pass.id, 1618032326)
+        self.assertEqual(game_pass.name, new_name)
+        self.assertEqual(game_pass.description, new_description)
+        self.assertEqual(game_pass.price_in_robux, new_price)
+        self.assertEqual(
+            game_pass.regional_pricing_enabled,
+            new_regional_pricing_enabled,
+        )
+        self.assertIsInstance(game_pass.created_at, datetime)
+        self.assertIsInstance(game_pass.updated_at, datetime)
+        self.assertGreater(game_pass.updated_at, game_pass.created_at)
+        self.assertAlmostEqual(
+            game_pass.updated_at.timestamp(),
+            time.time(),
+            delta=10,
+        )

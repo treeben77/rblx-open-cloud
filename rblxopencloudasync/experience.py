@@ -49,6 +49,7 @@ __all__ = (
     "SubscriptionExpirationReason",
     "SubscriptionState",
     "DeveloperProduct",
+    "GamePass",
     "UserRestriction",
 )
 
@@ -507,6 +508,52 @@ class DeveloperProduct:
         return (
             f'<rblxopencloud.DeveloperProduct id={self.id} name="{self.name}">'
         )
+
+
+class GamePass:
+    """
+    Represents a game pass within an experience on Roblox.
+
+    Attributes:
+        id: The game pass's ID.
+        experience: The experience this game pass belongs to.
+        name: The game pass's name.
+        description: The game pass's description.
+        icon_asset_id: The Roblox image asset ID of the game pass's \
+        icon.
+        is_for_sale: Whether the game pass is currently for sale.
+        regional_pricing_enabled: Whether the game pass has regional \
+        pricing enabled.
+        price_in_robux: The price of the game pass in Robux.
+        created_at: The time the game pass was created.
+        updated_at: The time the game pass was last updated.
+    """
+
+    def __init__(self, data, experience, api_key) -> None:
+
+        self.id: int = data["gamePassId"]
+        self.experience: Experience = experience
+        self.name: str = data["name"]
+        self.description: str = data["description"]
+        self.icon_asset_id: int = data["iconAssetId"]
+        self.is_for_sale: bool = data["isForSale"]
+        self.regional_pricing_enabled: bool = (
+            "RegionalPricing"
+            in data["priceInformation"].get("enabledFeatures", [])
+            if data.get("priceInformation")
+            else False
+        )
+        self.price_in_robux: Optional[int] = (
+            data["priceInformation"].get("defaultPriceInRobux")
+            if data.get("priceInformation")
+            else None
+        )
+        self.created_at: datetime = parser.parse(data["createdTimestamp"])
+        self.updated_at: datetime = parser.parse(data["updatedTimestamp"])
+        self.__api_key = api_key
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.GamePass id={self.id} name="{self.name}">'
 
 
 class Place:
@@ -1959,7 +2006,7 @@ classes/MessagingService).
         product_id: int,
         name: str = None,
         description: str = None,
-        price_in_robux: Union[str, Literal[False]] = None,
+        price_in_robux: Union[int, Literal[False]] = None,
         regional_pricing_enabled: bool = None,
         store_page_enabled: bool = None,
         icon_file: io.BytesIO = None,
@@ -2033,6 +2080,165 @@ classes/MessagingService).
         await send_request(
             "PATCH",
             f"developer-products/v2/universes/{self.id}/developer-products/{product_id}",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200, 204],
+            data=body,
+        )
+
+        return None
+
+    async def list_game_passes(
+        self, limit: int = None
+    ) -> AsyncGenerator[Any, GamePass]:
+        """
+        Lists all game passes within the experience.
+
+        Args:
+            limit: The maximum number of game passes to return. \
+            Defaults to no limit.
+        
+        Yields:
+            The game pass information for each game pass.
+        """
+
+        async for game_pass in iterate_request(
+            "GET",
+            f"game-passes/v1/universes/{self.id}/game-passes/creator",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
+                "pageSize": limit if limit and limit <= 50 else 50,
+            },
+            max_yields=limit,
+            data_key="gamePasses",
+            cursor_key="pageToken",
+        ):
+            yield GamePass(game_pass, self, self.__api_key)
+
+    async def fetch_game_pass(self, pass_id: int):
+        """
+        Fetches a specific game pass within the experience.
+
+        Args:
+            pass_id: The game pass ID to fetch.
+
+        Returns:
+            The game pass information.
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"game-passes/v1/universes/{self.id}/game-passes/{pass_id}/creator",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return GamePass(data, self, self.__api_key)
+
+    async def create_game_pass(
+        self,
+        name: str,
+        description: str = None,
+        price_in_robux: Optional[int] = None,
+        regional_pricing_enabled: bool = False,
+        icon_file: io.BytesIO = None,
+    ):
+        """
+        Creates a game pass within the experience.
+
+        Args:
+            pass_id: The game pass ID to fetch.
+
+        Returns:
+            The created game pass information.
+        """
+
+        payload = {
+            "request.Name": (None, name),
+            "request.IsForSale": (None, "true" if price_in_robux else "false"),
+        }
+
+        if icon_file:
+            payload["request.ImageFile"] = (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            )
+
+        if description:
+            payload["request.Description"] = (None, description)
+
+        if price_in_robux is not None:
+            payload["request.Price"] = (None, str(price_in_robux))
+
+        if regional_pricing_enabled is not None:
+            payload["request.IsRegionalPricingEnabled"] = (
+                None,
+                "true" if regional_pricing_enabled else "false",
+            )
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        _, data, _ = await send_request(
+            "POST",
+            f"game-passes/v1/universes/{self.id}/game-passes",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200],
+            data=body,
+        )
+
+        return GamePass(data, self, self.__api_key)
+
+    async def update_game_pass(
+        self,
+        pass_id: int,
+        name: str = None,
+        description: str = None,
+        price_in_robux: Union[int, Literal[False]] = None,
+        regional_pricing_enabled: bool = False,
+        icon_file: io.BytesIO = None,
+    ) -> None:
+        """
+        Updates a game pass within the experience.
+
+        Args:
+            pass_id: The game pass ID to fetch.
+        """
+
+        payload = {}
+
+        if price_in_robux is False:
+            payload["request.IsForSale"] = (None, "false")
+        elif price_in_robux is not None:
+            payload["request.IsForSale"] = (None, "true")
+            payload["request.Price"] = (None, str(price_in_robux))
+
+        if icon_file:
+            payload["request.File"] = (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            )
+
+        if name:
+            payload["request.Name"] = (None, name)
+
+        if description is not None:
+            payload["request.Description"] = (None, description)
+
+        if regional_pricing_enabled is not None:
+            payload["request.IsRegionalPricingEnabled"] = (
+                None,
+                "true" if regional_pricing_enabled else "false",
+            )
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        await send_request(
+            "PATCH",
+            f"game-passes/v1/universes/{self.id}/game-passes/{pass_id}",
             authorization=self.__api_key,
             headers={"content-type": contentType},
             expected_status=[200, 204],
