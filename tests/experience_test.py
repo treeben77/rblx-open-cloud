@@ -24,6 +24,13 @@ experience = rblxopencloud.Experience(
     os.environ["TEST_USER_CLOUD_KEY"],
 )
 
+version = f"{sys.version_info.major}.{sys.version_info.minor}"
+
+SKIP_UPDATE_TESTS = os.environ.get("PRIMARY_VERSION") not in (
+    None,
+    version,
+)
+
 
 class user_restrictions(unittest.TestCase):
 
@@ -100,7 +107,7 @@ class experience_info(unittest.TestCase):
         self.assertTrue(experience.desktop_enabled)
 
     def test_update_info(self):
-        expected_price = secrets.randbelow(501)
+        expected_price = secrets.randbelow(490) + 10
 
         result = experience.update(private_server_price=expected_price)
 
@@ -260,6 +267,9 @@ class developer_products(unittest.TestCase):
         self.assertIsInstance(product.updated_at, datetime)
 
     def test_update_developer_product(self):
+        if SKIP_UPDATE_TESTS:
+            self.skipTest("Skipped updating resource test for version.")
+
         new_name = f"rblx-open-cloud unittest {secrets.token_hex(2)}"
         new_description = secrets.token_hex(16)
         new_price = secrets.randbelow(10000)
@@ -275,7 +285,7 @@ class developer_products(unittest.TestCase):
             store_page_enabled=new_is_store_page_enabled,
         )
 
-        time.sleep(2)  # wait for eventual consistency
+        time.sleep(5)  # wait for eventual consistency
 
         developer_product = experience.fetch_developer_product(3472891726)
 
@@ -344,6 +354,9 @@ class game_passes(unittest.TestCase):
         self.assertIsInstance(game_pass.updated_at, datetime)
 
     def test_update_game_pass(self):
+        if SKIP_UPDATE_TESTS:
+            self.skipTest("Skipped updating resource test for version.")
+
         new_name = f"rblx-open-cloud unittest {secrets.token_hex(2)}"
         new_description = secrets.token_hex(16)
         new_price = secrets.randbelow(10000)
@@ -357,7 +370,7 @@ class game_passes(unittest.TestCase):
             regional_pricing_enabled=new_regional_pricing_enabled,
         )
 
-        time.sleep(2)  # wait for eventual consistency
+        time.sleep(5)  # wait for eventual consistency
 
         game_pass = experience.fetch_game_pass(1618032326)
 

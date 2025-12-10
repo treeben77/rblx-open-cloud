@@ -1214,7 +1214,7 @@ class Experience:
         prefix: str = None,
         limit: int = None,
         scope: Optional[str] = "global",
-        show_deleted: bool = True,
+        show_deleted: bool = False,
     ) -> Iterable[DataStore]:
         """
         Iterates all data stores in the experience.

@@ -46,7 +46,7 @@ class experience_data_stores(unittest.TestCase):
 
             self.assertIsInstance(datastore, rblxopencloud.DataStore)
             self.assertEqual(datastore.experience, experience)
-            self.assertIsInstance(datastore.created, datetime)
+            self.assertIsInstance(datastore.created_at, datetime)
 
         self.assertIn("rblxopencloud_unittest", datastore_names)
 
