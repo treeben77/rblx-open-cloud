@@ -250,10 +250,15 @@ class InventoryItem:
 
     Attributes:
         id (int): The ID of the inventory item.
+        added_at (Optional[datetime]): The time the item was added to the \
+        inventory. Currently not present for game passes.
     """
 
-    def __init__(self, id) -> None:
+    def __init__(self, id, timestamp) -> None:
         self.id: int = id
+        self.added_at: Optional[datetime.datetime] = (
+            parser.parse(timestamp) if timestamp else None
+        )
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryItem id={self.id}>"
@@ -266,6 +271,8 @@ class InventoryAsset(InventoryItem):
 
     Attributes:
         id (int): The ID of the asset.
+        added_at (Optional[datetime]): The time the asset was added to the \
+        inventory.
         type (InventoryAssetType): The asset's type.
         instance_id (int): The unique ID of this asset's instance.
         collectable_item_id (Optional[str]): A unique item UUID for \
@@ -277,8 +284,8 @@ class InventoryAsset(InventoryItem):
         ready for sale or in hold.
     """
 
-    def __init__(self, data: dict) -> None:
-        super().__init__(data["assetId"])
+    def __init__(self, data: dict, add_time: Optional[str]) -> None:
+        super().__init__(data["assetId"], add_time)
         self.type: InventoryAssetType = InventoryAssetType(
             ASSET_TYPE_STRINGS.get(
                 data["inventoryItemAssetType"], InventoryAssetType.Unknown
@@ -318,10 +325,11 @@ class InventoryBadge(InventoryItem):
 
     Attributes:
         id (int): The ID of the badge.
+        added_at (Optional[datetime]): The time the badge was awarded.
     """
 
-    def __init__(self, data) -> None:
-        super().__init__(data["badgeId"])
+    def __init__(self, data, add_time: Optional[str]) -> None:
+        super().__init__(data["badgeId"], add_time)
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryBadge id={self.id}>"
@@ -335,8 +343,8 @@ class InventoryGamePass(InventoryItem):
         id (int): The ID of the game pass.
     """
 
-    def __init__(self, data) -> None:
-        super().__init__(data["gamePassId"])
+    def __init__(self, data, add_time: Optional[str]) -> None:
+        super().__init__(data["gamePassId"], add_time)
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryGamePass id={self.id}>"
@@ -348,10 +356,12 @@ class InventoryPrivateServer(InventoryItem):
 
     Attributes:
         id (int): The ID of the private server.
+        added_at (Optional[datetime]): The time the private server was \
+        purchased.
     """
 
-    def __init__(self, data) -> None:
-        super().__init__(data["privateServerId"])
+    def __init__(self, data, add_time: Optional[str]) -> None:
+        super().__init__(data["privateServerId"], add_time)
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryPrivateServer id={self.id}>"
@@ -722,12 +732,21 @@ class User(Creator):
             data_key="inventoryItems",
             cursor_key="pageToken",
             expected_status=[200],
+            max_yields=limit,
         ):
             if "assetDetails" in entry.keys():
-                yield InventoryAsset(entry["assetDetails"])
+                yield InventoryAsset(
+                    entry["assetDetails"], entry.get("addTime")
+                )
             elif "badgeDetails" in entry.keys():
-                yield InventoryBadge(entry["badgeDetails"])
+                yield InventoryBadge(
+                    entry["badgeDetails"], entry.get("addTime")
+                )
             elif "gamePassDetails" in entry.keys():
-                yield InventoryGamePass(entry["gamePassDetails"])
+                yield InventoryGamePass(
+                    entry["gamePassDetails"], entry.get("addTime")
+                )
             elif "privateServerDetails" in entry.keys():
-                yield InventoryPrivateServer(entry["privateServerDetails"])
+                yield InventoryPrivateServer(
+                    entry["privateServerDetails"], entry.get("addTime")
+                )

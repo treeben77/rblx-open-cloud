@@ -25,11 +25,12 @@ from datetime import datetime
 from enum import Enum
 import io
 from nacl import encoding, public
-from typing import Iterable, Optional, Union
-import urllib.parse
+from typing import Iterable, Literal, Optional, Union
+import urllib3
 
 from dateutil import parser
 
+from .creator import Asset, Creator
 from .datastore import DataStore, OrderedDataStore
 from .group import Group
 from .http import Operation, iterate_request, send_request
@@ -47,6 +48,8 @@ __all__ = (
     "Subscription",
     "SubscriptionExpirationReason",
     "SubscriptionState",
+    "DeveloperProduct",
+    "GamePass",
     "UserRestriction",
 )
 
@@ -313,19 +316,32 @@ product_id="{self.product_id}" state={self.state}>'
 
 class ExperienceAgeRating(Enum):
     """
-    Enum representing the an experience's age rating.
+    Enum representing an experience's age rating.
 
     Attributes:
         Unknown (0): The experience age rating is unknown or not implemented.
         Unspecified (1): The experience has not provided an age rating.
-        AllAges (2): The experience is marked as All Ages.
-        NinePlus (3): The experience is marked as 9+.
-        ThirteenPlus (4): The experience is marked as 13+.
-        SeventeenPlus (5): The experience is marked as 17+.
+        Minimal (2): The experience is marked as Minimal. Renders on the \
+        Roblox website as 5+.
+        Mild (3): The experience is marked as Mild. Renders on the Roblox \
+        website as 5+.
+        Moderate (4): The experience is marked as Moderate. Renders on the \
+        Roblox website as 13+.
+        Restricted (5): The experience is marked as Restricted. Renders on \
+        the Roblox website as 18+.
+        AllAges (2): Deprecated in favor of `Minimal`.
+        NinePlus (3): Deprecated in favor of `Mild`.
+        ThirteenPlus (4): Deprecated in favor of `Moderate`.
+        SeventeenPlus (5): Deprecated in favor of `Restricted`.
     """
 
     Unknown = 0
     Unspecified = 1
+    Minimal = 2
+    Mild = 3
+    Moderate = 4
+    Restricted = 5
+
     AllAges = 2
     NinePlus = 3
     ThirteenPlus = 4
@@ -355,10 +371,10 @@ class ExperienceSocialLink:
 
 EXPERIENCE_AGE_RATING_STRINGS = {
     "AGE_RATING_UNSPECIFIED": ExperienceAgeRating.Unspecified,
-    "AGE_RATING_ALL": ExperienceAgeRating.AllAges,
-    "AGE_RATING_9_PLUS": ExperienceAgeRating.NinePlus,
-    "AGE_RATING_13_PLUS": ExperienceAgeRating.ThirteenPlus,
-    "AGE_RATING_17_PLUS": ExperienceAgeRating.SeventeenPlus,
+    "AGE_RATING_ALL": ExperienceAgeRating.Minimal,
+    "AGE_RATING_9_PLUS": ExperienceAgeRating.Mild,
+    "AGE_RATING_13_PLUS": ExperienceAgeRating.Moderate,
+    "AGE_RATING_17_PLUS": ExperienceAgeRating.Restricted,
 }
 
 
@@ -443,6 +459,103 @@ class UserRestriction:
 user={repr(self.user)}>"
 
 
+class DeveloperProduct:
+    """
+    Represents a developer product within an experience on Roblox.
+
+    Attributes:
+        id: The developer product's ID.
+        experience: The experience this developer product belongs to.
+        name: The developer product's name.
+        description: The developer product's description.
+        icon_asset_id: The Roblox image asset ID of the developer product's \
+        icon.
+        is_for_sale: Whether the developer product is currently for sale.
+        store_page_enabled: Whether the developer product can be purchased \
+        on the experience's store page.
+        regional_pricing_enabled: Whether the developer product has regional \
+        pricing enabled.
+        price_in_robux: The price of the developer product in Robux.
+        created_at: The time the developer product was created.
+        updated_at: The time the developer product was last updated.
+    """
+
+    def __init__(self, data, experience, api_key) -> None:
+
+        self.id: int = data["productId"]
+        self.experience: Experience = experience
+        self.name: str = data["name"]
+        self.description: str = data["description"]
+        self.icon_asset_id: int = data["iconImageAssetId"]
+        self.is_for_sale: bool = data["isForSale"]
+        self.store_page_enabled: bool = data["storePageEnabled"]
+        self.regional_pricing_enabled: bool = (
+            "RegionalPricing"
+            in data["priceInformation"].get("enabledFeatures", [])
+            if data.get("priceInformation")
+            else False
+        )
+        self.price_in_robux: Optional[int] = (
+            data["priceInformation"].get("defaultPriceInRobux")
+            if data.get("priceInformation")
+            else None
+        )
+        self.created_at: datetime = parser.parse(data["createdTimestamp"])
+        self.updated_at: datetime = parser.parse(data["updatedTimestamp"])
+        self.__api_key = api_key
+
+    def __repr__(self) -> str:
+        return (
+            f'<rblxopencloud.DeveloperProduct id={self.id} name="{self.name}">'
+        )
+
+
+class GamePass:
+    """
+    Represents a game pass within an experience on Roblox.
+
+    Attributes:
+        id: The game pass's ID.
+        experience: The experience this game pass belongs to.
+        name: The game pass's name.
+        description: The game pass's description.
+        icon_asset_id: The Roblox image asset ID of the game pass's \
+        icon.
+        is_for_sale: Whether the game pass is currently for sale.
+        regional_pricing_enabled: Whether the game pass has regional \
+        pricing enabled.
+        price_in_robux: The price of the game pass in Robux.
+        created_at: The time the game pass was created.
+        updated_at: The time the game pass was last updated.
+    """
+
+    def __init__(self, data, experience, api_key) -> None:
+
+        self.id: int = data["gamePassId"]
+        self.experience: Experience = experience
+        self.name: str = data["name"]
+        self.description: str = data["description"]
+        self.icon_asset_id: int = data["iconAssetId"]
+        self.is_for_sale: bool = data["isForSale"]
+        self.regional_pricing_enabled: bool = (
+            "RegionalPricing"
+            in data["priceInformation"].get("enabledFeatures", [])
+            if data.get("priceInformation")
+            else False
+        )
+        self.price_in_robux: Optional[int] = (
+            data["priceInformation"].get("defaultPriceInRobux")
+            if data.get("priceInformation")
+            else None
+        )
+        self.created_at: datetime = parser.parse(data["createdTimestamp"])
+        self.updated_at: datetime = parser.parse(data["updatedTimestamp"])
+        self.__api_key = api_key
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.GamePass id={self.id} name="{self.name}">'
+
+
 class Place:
     """
     Represents a place within an experience on Roblox.
@@ -455,10 +568,18 @@ class Place:
         created_at: The time the place was created.
         updated_at: The time the place was last updated.
         server_size: The number of players the can be in a single server.
+        is_root_place: Whether this place is the primary place of its \
+        universe/experience.
+        is_universe_runtime_creation: Whether this place was created using \
+        `AssetService:CreatePlaceAsync()`.
     """
 
     def __init__(self, id, data, api_key, experience) -> None:
         self.id: int = id
+        self.is_root_place: bool = data.get("root") if data else None
+        self.is_universe_runtime_creation: bool = (
+            data.get("universeRuntimeCreation") if data else None
+        )
         self.experience: Experience = experience
         self.name: Optional[str] = data["displayName"] if data else None
         self.description: Optional[str] = data["description"] if data else None
@@ -482,6 +603,10 @@ experience={repr(self.experience)}>"
         self.created_at = parser.parse(data["createTime"])
         self.updated_at = parser.parse(data["updateTime"])
         self.server_size = data["serverSize"]
+        self.is_root_place = data.get("root")
+        self.is_universe_runtime_creation: bool = data.get(
+            "universeRuntimeCreation"
+        )
 
         return self
 
@@ -570,6 +695,65 @@ experience={repr(self.experience)}>"
         )
 
         return data["versionNumber"]
+
+    def get_asset(self) -> Asset:
+        """
+        Creates a partial [`Asset`][rblxopencloud.Asset] representing this \
+        place. This exposes endpoints related to assets, such as versioning \
+        and rollback.
+
+        Returns:
+            The asset representing the place, where `moderation_status`, \
+            `revision_id`, and `revision_time` are not populated. Further, \
+            `name` and `description` are only populated from the place if \
+            previously fetched.
+        
+        !!! warning
+            If the place's experience has not been fetched, the asset's creator
+            will be blank and not represent the actual creator of the place.
+            In this case, do not attempt to use the returned asset's creator \
+            to upload new assets.
+
+        !!! tip
+            Use [`Place.fetch_asset`][rblxopencloud.Place.fetch_asset] \
+            to ensure a fully populated asset is returned.
+        """
+        if self.experience and self.experience.owner:
+            creator = self.experience.owner
+        else:
+            creator = Creator(None, self.__api_key, None)
+
+        return Asset(
+            {
+                "assetId": self.id,
+                "assetType": "Place",
+                "displayName": self.name,
+                "description": self.description,
+            },
+            creator,
+            self.__api_key,
+        )
+
+    def fetch_asset(self) -> Asset:
+        """
+        Fetches a fully populated [`Asset`][rblxopencloud.Asset] representing \
+        this place. This exposes endpoints related to assets, such as \
+        versioning and rollback. If the place's experience's info has not \
+        been fetched, the library will automatically do that first.
+
+        Returns:
+            The asset representing the place.
+
+        !!! tip
+            Use [`Place.to_asset`][rblxopencloud.Place.to_asset] to get a \
+            partial asset without making additional requests. This is useful \
+            if you do not require the additional asset information.
+        """
+
+        if not self.experience.owner:
+            self.experience.fetch_info()
+
+        return self.experience.owner.fetch_asset(self.id)
 
     def fetch_user_restriction(self, user_id: int) -> UserRestriction:
         """
@@ -677,6 +861,7 @@ class Experience:
         description (Optional[str]): The experience's description. 
         created_at (Optional[datetime]): When the experience was created. 
         updated_at (Optional[datetime]): When the experience was last updated. 
+        root_place (Optional[Place]): The experience's root/primary place.
         public (Optional[bool]): Whether the game is public. 
         voice_chat_enabled (Optional[bool]): Whether voice chat is enabled. 
         age_rating (Optional[ExperienceAgeRating]: The experience's age rating.
@@ -705,7 +890,7 @@ class Experience:
         group_social_link (Optional[ExperienceSocialLink]): The Group social \
         link, if there is one. 
         guilded_social_link (Optional[ExperienceSocialLink]): The Guilded \
-        social link, if there is one. 
+        social link, if there is one.
     """
 
     def __init__(self, id: int, api_key: str):
@@ -727,6 +912,7 @@ class Experience:
         self.tablet_enabled: Optional[bool] = None
         self.console_enabled: Optional[bool] = None
         self.vr_enabled: Optional[bool] = None
+        self.root_place: Optional[Place] = None
 
         self.facebook_social_link: Optional[ExperienceSocialLink] = None
         self.twitter_social_link: Optional[ExperienceSocialLink] = None
@@ -838,6 +1024,8 @@ class Experience:
         self.tablet_enabled = data["tabletEnabled"]
         self.console_enabled = data["consoleEnabled"]
         self.vr_enabled = data["vrEnabled"]
+
+        self.root_place = self.get_place(int(data["rootPlace"].split("/")[-1]))
 
         return self
 
@@ -1590,6 +1778,478 @@ classes/MessagingService).
             f"/universes/{self.id}/secrets/{id}",
             authorization=self.__api_key,
             expected_status=[200],
+        )
+
+        return None
+
+    def generate_speech_asset(
+        self,
+        text: str,
+        voice_id: str = "1",
+        pitch: float = 0.0,
+        speed: float = 1.0,
+    ) -> Operation[Asset]:
+        """
+        Generates a text-to-speech asset. Supports English only.
+
+        Args:
+            text: The text to convert to speech.
+            voice_id: The voice ID to use. View voice IDs on the \
+            [Creator Documentation](https://create.roblox.com/docs/audio/objects#text-to-speech:~:text=List%20of%20artificial%20voices)
+            pitch: The pitch adjustment for the voice.
+            speed: The speed adjustment for the voice.
+
+        Returns:
+            Returns an [`Operation`][rblxopencloud.Operation] that can be \
+            resolved to an [`Asset`][rblxopencloud.Asset] for the generated \
+            text-to-speech.
+
+        Example:
+            ```python
+            operation = experience.generate_speech_asset(
+                "Hello World!", voice_id="1", pitch=0.0, speed=1.0
+            )
+
+            asset = operation.wait()
+
+            print(asset)
+            >>> <rblxopencloud.Asset id=113523671173037 type=AssetType.Audio>
+            ```
+        """
+
+        _, data, _ = send_request(
+            "POST",
+            f"/universes/{self.id}:generateSpeechAsset",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={
+                "text": text,
+                "speechStyle": {
+                    "voiceId": voice_id,
+                    "pitch": pitch,
+                    "speed": speed,
+                },
+            },
+        )
+
+        return Operation(
+            f"assets/v1/{data['path']}",
+            self.__api_key,
+            Asset,
+            creator=self,
+            api_key=self.__api_key,
+        )
+
+    def translate_text(
+        self,
+        text: str,
+        target_language_codes: list[str] = None,
+        source_language_code: Optional[str] = None,
+    ) -> tuple[str, dict[str, str]]:
+        """
+        Translates the provided text into the target language codes.
+
+        Supported language codes include: English (en-us), French (fr-fr), \
+        Vietnamese (vi-vn), Thai (th-th), Turkish (tr-tr), Russian (ru-ru), \
+        Spanish (es-es), Portuguese (pt-br), Korean (ko-kr), \
+        Japanese (ja-jp), Chinese Simplified (zh-cn), Chinese Traditional \
+        (zh-tw), German (de-de), Polish (pl-pl), Italian (it-it), Indonesian \
+        (id-id)
+        
+        Args:
+            text: The text to translate.
+            target_language_codes: The IETF BCP-47 language codes to \
+            translate the text into.
+            source_language_code: The source IETF BCP-47 language code of the \
+            text. If not provided, the source language will be auto-detected.
+        
+        Returns:
+            A tuple with the source language code as the first return and a \
+            dictionary mapping target language codes to the translated text.
+        """
+
+        payload = {
+            "text": text,
+            "targetLanguageCodes": target_language_codes,
+        }
+
+        if source_language_code:
+            payload["sourceLanguageCode"] = source_language_code
+
+        _, data, _ = send_request(
+            "POST",
+            f"/universes/{self.id}:translateText",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json=payload,
+        )
+
+        return data["sourceLanguageCode"], data["translations"]
+
+    def list_developer_products(
+        self, limit: int = None
+    ) -> Iterable[DeveloperProduct]:
+        """
+        Lists all developer products within the experience.
+
+        Args:
+            limit: The maximum number of developer products to return. \
+            Defaults to no limit.
+        
+        Yields:
+            The developer product information for each developer product.
+        """
+
+        for developer_product in iterate_request(
+            "GET",
+            f"developer-products/v2/universes/{self.id}/developer-products/creator",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
+                "pageSize": limit if limit and limit <= 50 else 50,
+            },
+            max_yields=limit,
+            data_key="developerProducts",
+            cursor_key="pageToken",
+        ):
+            yield DeveloperProduct(developer_product, self, self.__api_key)
+
+    def fetch_developer_product(self, product_id: int):
+        """
+        Fetches a specific developer product within the experience.
+
+        Args:
+            product_id: The developer product ID to fetch.
+
+        Returns:
+            The developer product information.
+        """
+
+        _, data, _ = send_request(
+            "GET",
+            f"developer-products/v2/universes/{self.id}/developer-products/{product_id}/creator",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return DeveloperProduct(data, self, self.__api_key)
+
+    def create_developer_product(
+        self,
+        name: str,
+        description: str = None,
+        price_in_robux: Optional[int] = None,
+        regional_pricing_enabled: bool = False,
+        icon_file: io.BytesIO = None,
+    ) -> DeveloperProduct:
+        """
+        Creates a developer product within the experience.
+
+        Args:
+            name: The name of the developer product. Must be unique within \
+            the experience.
+            description: The optional description of the developer product.
+            price_in_robux: The price in robux of the developer product. \
+            Provide `None` for it to be off sale.
+            regional_pricing_enabled: Whether regional pricing is enabled for \
+            the developer product. Must have a price set to enable.
+            icon_file: An optional icon file for the developer product as a \
+            file opened with `rb` mode. 
+
+        Returns:
+            The created developer product information.
+
+        Example:
+            ```python
+            with open("icon.png", "rb") as icon_file:
+                developer_product = experience.create_developer_product(
+                    name="My Developer Product",
+                    description="This is my developer product.",
+                    price_in_robux=670,
+                    regional_pricing_enabled=True,
+                    icon_file=icon_file,
+                )
+            print(developer_product)
+            >>> <rblxopencloud.DeveloperProduct id=0000000000 name='My Developer Product'>
+            ```
+        """
+
+        payload = {
+            "request.Name": (None, name),
+            "request.IsForSale": (None, "true" if price_in_robux else "false"),
+        }
+
+        if icon_file:
+            payload["request.ImageFile"] = (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            )
+
+        if description:
+            payload["request.Description"] = (None, description)
+
+        if price_in_robux is not None:
+            payload["request.Price"] = (None, str(price_in_robux))
+
+        if regional_pricing_enabled is not None:
+            payload["request.IsRegionalPricingEnabled"] = (
+                None,
+                "true" if regional_pricing_enabled else "false",
+            )
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        _, data, _ = send_request(
+            "POST",
+            f"developer-products/v2/universes/{self.id}/developer-products",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200],
+            data=body,
+        )
+
+        return DeveloperProduct(data, self, self.__api_key)
+
+    def update_developer_product(
+        self,
+        product_id: int,
+        name: str = None,
+        description: str = None,
+        price_in_robux: Union[int, Literal[False]] = None,
+        regional_pricing_enabled: bool = None,
+        store_page_enabled: bool = None,
+        icon_file: io.BytesIO = None,
+    ) -> None:
+        """
+        Updates an existing developer product within the experience.
+
+        Args:
+            product_id: The developer product ID to update.
+            name: The name of the developer product. Must be unique within \
+            the experience.
+            description: The optional description of the developer product. \
+            Set to `""` to clear any existing description.
+            price_in_robux: The price in robux of the developer product. \
+            Provide `None` for it to be off sale.
+            regional_pricing_enabled: Whether regional pricing is enabled for \
+            the developer product. Must have a price set to enable.
+            icon_file: An optional icon file for the developer product as a \
+            file opened with `rb` mode. 
+
+        Example:
+            ```python
+            with open("icon.png", "rb") as icon_file:
+                experience.update_developer_product(
+                    product_id=0000000000
+                    name="My Developer Product",
+                    description="This is my developer product.",
+                    price_in_robux=670,
+                    regional_pricing_enabled=True,
+                    icon_file=icon_file,
+                )
+            ```
+        """
+
+        payload = {}
+
+        if price_in_robux is False:
+            payload["request.IsForSale"] = (None, "false")
+        elif price_in_robux is not None:
+            payload["request.IsForSale"] = (None, "true")
+            payload["request.Price"] = (None, str(price_in_robux))
+
+        if icon_file:
+            payload["request.ImageFile"] = (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            )
+
+        if name:
+            payload["request.Name"] = (None, name)
+
+        if description is not None:
+            payload["request.Description"] = (None, description)
+
+        if regional_pricing_enabled is not None:
+            payload["request.IsRegionalPricingEnabled"] = (
+                None,
+                "true" if regional_pricing_enabled else "false",
+            )
+
+        if store_page_enabled is not None:
+            payload["request.StorePageEnabled"] = (
+                None,
+                "true" if store_page_enabled else "false",
+            )
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        send_request(
+            "PATCH",
+            f"developer-products/v2/universes/{self.id}/developer-products/{product_id}",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200, 204],
+            data=body,
+        )
+
+        return None
+
+    def list_game_passes(self, limit: int = None) -> Iterable[GamePass]:
+        """
+        Lists all game passes within the experience.
+
+        Args:
+            limit: The maximum number of game passes to return. \
+            Defaults to no limit.
+        
+        Yields:
+            The game pass information for each game pass.
+        """
+
+        for game_pass in iterate_request(
+            "GET",
+            f"game-passes/v1/universes/{self.id}/game-passes/creator",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
+                "pageSize": limit if limit and limit <= 50 else 50,
+            },
+            max_yields=limit,
+            data_key="gamePasses",
+            cursor_key="pageToken",
+        ):
+            yield GamePass(game_pass, self, self.__api_key)
+
+    def fetch_game_pass(self, pass_id: int):
+        """
+        Fetches a specific game pass within the experience.
+
+        Args:
+            pass_id: The game pass ID to fetch.
+
+        Returns:
+            The game pass information.
+        """
+
+        _, data, _ = send_request(
+            "GET",
+            f"game-passes/v1/universes/{self.id}/game-passes/{pass_id}/creator",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return GamePass(data, self, self.__api_key)
+
+    def create_game_pass(
+        self,
+        name: str,
+        description: str = None,
+        price_in_robux: Optional[int] = None,
+        regional_pricing_enabled: bool = False,
+        icon_file: io.BytesIO = None,
+    ):
+        """
+        Creates a game pass within the experience.
+
+        Args:
+            pass_id: The game pass ID to fetch.
+
+        Returns:
+            The created game pass information.
+        """
+
+        payload = {
+            "request.Name": (None, name),
+            "request.IsForSale": (None, "true" if price_in_robux else "false"),
+        }
+
+        if icon_file:
+            payload["request.ImageFile"] = (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            )
+
+        if description:
+            payload["request.Description"] = (None, description)
+
+        if price_in_robux is not None:
+            payload["request.Price"] = (None, str(price_in_robux))
+
+        if regional_pricing_enabled is not None:
+            payload["request.IsRegionalPricingEnabled"] = (
+                None,
+                "true" if regional_pricing_enabled else "false",
+            )
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        _, data, _ = send_request(
+            "POST",
+            f"game-passes/v1/universes/{self.id}/game-passes",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200],
+            data=body,
+        )
+
+        return GamePass(data, self, self.__api_key)
+
+    def update_game_pass(
+        self,
+        pass_id: int,
+        name: str = None,
+        description: str = None,
+        price_in_robux: Union[int, Literal[False]] = None,
+        regional_pricing_enabled: bool = False,
+        icon_file: io.BytesIO = None,
+    ) -> None:
+        """
+        Updates a game pass within the experience.
+
+        Args:
+            pass_id: The game pass ID to fetch.
+        """
+
+        payload = {}
+
+        if price_in_robux is False:
+            payload["request.IsForSale"] = (None, "false")
+        elif price_in_robux is not None:
+            payload["request.IsForSale"] = (None, "true")
+            payload["request.Price"] = (None, str(price_in_robux))
+
+        if icon_file:
+            payload["request.File"] = (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            )
+
+        if name:
+            payload["request.Name"] = (None, name)
+
+        if description is not None:
+            payload["request.Description"] = (None, description)
+
+        if regional_pricing_enabled is not None:
+            payload["request.IsRegionalPricingEnabled"] = (
+                None,
+                "true" if regional_pricing_enabled else "false",
+            )
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        send_request(
+            "PATCH",
+            f"game-passes/v1/universes/{self.id}/game-passes/{pass_id}",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200, 204],
+            data=body,
         )
 
         return None

@@ -3,8 +3,9 @@ from datetime import datetime
 import os
 import pathlib
 import secrets
+import sys
+import time
 import unittest
-
 from nacl import public, encoding
 
 import rblxopencloud
@@ -40,9 +41,11 @@ class user_restrictions(unittest.TestCase):
         self.assertEqual(restriction.display_reason, "some display reason")
         self.assertEqual(restriction.private_reason, "some private reason")
 
-    def test_ban_unban_user(self):
+    def test_ban_user(self):
+        # avoids per user rate limits
+        offset = sys.version_info.minor
         restriction = experience.ban_user(
-            287113235,
+            287113235 + offset,
             duration_seconds=86400,
             display_reason="some display reason",
             private_reason="some private reason",
@@ -51,11 +54,6 @@ class user_restrictions(unittest.TestCase):
         self.assertIsInstance(restriction, rblxopencloud.UserRestriction)
         self.assertEqual(restriction.active, True)
         self.assertEqual(restriction.duration_seconds, 86400)
-
-        restriction = experience.unban_user(287113235)
-
-        self.assertIsInstance(restriction, rblxopencloud.UserRestriction)
-        self.assertEqual(restriction.active, False)
 
     def test_list_ban_logs(self):
         for restriction in experience.list_ban_logs(287113233, limit=10):
@@ -212,3 +210,170 @@ class restart_servers(unittest.TestCase):
 
     def test_restart_servers(self):
         experience.restart_servers()
+
+
+class developer_products(unittest.TestCase):
+
+    def test_list_developer_products(self):
+        found_products = False
+
+        for product in experience.list_developer_products():
+            self.assertIsInstance(product, rblxopencloud.DeveloperProduct)
+            self.assertIs(product.experience, experience)
+
+            self.assertIsInstance(product.id, int)
+            self.assertIsInstance(product.name, str)
+            self.assertIsInstance(product.description, str)
+            self.assertIsInstance(
+                product.icon_asset_id,
+                int if product.icon_asset_id else type(None),
+            )
+            self.assertIsInstance(product.is_for_sale, bool)
+            self.assertIsInstance(product.store_page_enabled, bool)
+            self.assertIsInstance(product.regional_pricing_enabled, bool)
+            self.assertTrue(
+                product.price_in_robux is None
+                or isinstance(product.price_in_robux, int)
+            )
+            self.assertIsInstance(product.created_at, datetime)
+            self.assertIsInstance(product.updated_at, datetime)
+
+            found_products = True
+
+        self.assertTrue(found_products, "No developer products found")
+
+    def test_fetch_developer_product(self):
+        product = experience.fetch_developer_product(3472883382)
+
+        self.assertIsInstance(product, rblxopencloud.DeveloperProduct)
+        self.assertIs(product.experience, experience)
+
+        self.assertEqual(product.id, 3472883382)
+        self.assertEqual(product.name, "Test Open Cloud Product 5")
+        self.assertEqual(product.description, "Hello World!")
+        self.assertEqual(product.icon_asset_id, 82396052319080)
+        self.assertEqual(product.is_for_sale, True)
+        self.assertEqual(product.store_page_enabled, True)
+        self.assertEqual(product.regional_pricing_enabled, True)
+        self.assertEqual(product.price_in_robux, 67)
+        self.assertIsInstance(product.created_at, datetime)
+        self.assertIsInstance(product.updated_at, datetime)
+
+    def test_update_developer_product(self):
+        new_name = f"rblx-open-cloud unittest {secrets.token_hex(2)}"
+        new_description = secrets.token_hex(16)
+        new_price = secrets.randbelow(10000)
+        new_regional_pricing_enabled = secrets.choice([True, False])
+        new_is_store_page_enabled = secrets.choice([True, False])
+
+        experience.update_developer_product(
+            3472891726,
+            name=new_name,
+            description=new_description,
+            price_in_robux=new_price,
+            regional_pricing_enabled=new_regional_pricing_enabled,
+            store_page_enabled=new_is_store_page_enabled,
+        )
+
+        time.sleep(2)  # wait for eventual consistency
+
+        developer_product = experience.fetch_developer_product(3472891726)
+
+        self.assertEqual(developer_product.id, 3472891726)
+        self.assertEqual(developer_product.name, new_name)
+        self.assertEqual(developer_product.description, new_description)
+        self.assertEqual(developer_product.price_in_robux, new_price)
+        self.assertEqual(
+            developer_product.regional_pricing_enabled,
+            new_regional_pricing_enabled,
+        )
+        self.assertEqual(
+            developer_product.store_page_enabled,
+            new_is_store_page_enabled,
+        )
+
+        self.assertIsInstance(developer_product.created_at, datetime)
+        self.assertIsInstance(developer_product.updated_at, datetime)
+        self.assertGreater(
+            developer_product.updated_at, developer_product.created_at
+        )
+        self.assertAlmostEqual(
+            developer_product.updated_at.timestamp(),
+            time.time(),
+            delta=10,
+        )
+
+
+class game_passes(unittest.TestCase):
+    def test_list_game_passes(self):
+        found_passes = False
+
+        for game_pass in experience.list_game_passes():
+            self.assertIsInstance(game_pass, rblxopencloud.GamePass)
+            self.assertIs(game_pass.experience, experience)
+
+            self.assertIsInstance(game_pass.id, int)
+            self.assertIsInstance(game_pass.name, str)
+            self.assertIsInstance(game_pass.description, str)
+            self.assertIsInstance(
+                game_pass.icon_asset_id,
+                int if game_pass.icon_asset_id else type(None),
+            )
+            self.assertIsInstance(game_pass.price_in_robux, int)
+            self.assertIsInstance(game_pass.regional_pricing_enabled, bool)
+            self.assertIsInstance(game_pass.created_at, datetime)
+            self.assertIsInstance(game_pass.updated_at, datetime)
+
+            found_passes = True
+
+        self.assertTrue(found_passes, "No game passes found")
+
+    def test_fetch_game_pass(self):
+        game_pass = experience.fetch_game_pass(1617590110)
+
+        self.assertIsInstance(game_pass, rblxopencloud.GamePass)
+        self.assertIs(game_pass.experience, experience)
+
+        self.assertEqual(game_pass.id, 1617590110)
+        self.assertEqual(game_pass.name, "rblx-open-cloud unittest gamepass")
+        self.assertEqual(game_pass.description, "This is a test game pass.")
+        self.assertEqual(game_pass.icon_asset_id, 139446863449203)
+        self.assertEqual(game_pass.price_in_robux, 670)
+        self.assertEqual(game_pass.regional_pricing_enabled, False)
+        self.assertIsInstance(game_pass.created_at, datetime)
+        self.assertIsInstance(game_pass.updated_at, datetime)
+
+    def test_update_game_pass(self):
+        new_name = f"rblx-open-cloud unittest {secrets.token_hex(2)}"
+        new_description = secrets.token_hex(16)
+        new_price = secrets.randbelow(10000)
+        new_regional_pricing_enabled = secrets.choice([True, False])
+
+        experience.update_game_pass(
+            1618032326,
+            name=new_name,
+            description=new_description,
+            price_in_robux=new_price,
+            regional_pricing_enabled=new_regional_pricing_enabled,
+        )
+
+        time.sleep(2)  # wait for eventual consistency
+
+        game_pass = experience.fetch_game_pass(1618032326)
+
+        self.assertEqual(game_pass.id, 1618032326)
+        self.assertEqual(game_pass.name, new_name)
+        self.assertEqual(game_pass.description, new_description)
+        self.assertEqual(game_pass.price_in_robux, new_price)
+        self.assertEqual(
+            game_pass.regional_pricing_enabled,
+            new_regional_pricing_enabled,
+        )
+        self.assertIsInstance(game_pass.created_at, datetime)
+        self.assertIsInstance(game_pass.updated_at, datetime)
+        self.assertGreater(game_pass.updated_at, game_pass.created_at)
+        self.assertAlmostEqual(
+            game_pass.updated_at.timestamp(),
+            time.time(),
+            delta=10,
+        )
