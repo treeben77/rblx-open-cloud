@@ -2028,17 +2028,17 @@ classes/MessagingService).
             file opened with `rb` mode. 
 
         Example:
+            Example:
             ```python
             with open("icon.png", "rb") as icon_file:
-                developer_product = experience.create_developer_product(
+                experience.update_developer_product(
+                    product_id=0000000000
                     name="My Developer Product",
                     description="This is my developer product.",
                     price_in_robux=670,
                     regional_pricing_enabled=True,
                     icon_file=icon_file,
                 )
-            print(developer_product)
-            >>> <rblxopencloud.DeveloperProduct id=0000000000 name='My Developer Product'>
             ```
         """
 
