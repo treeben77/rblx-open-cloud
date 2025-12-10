@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import datetime
+from enum import Enum
 import json
 import urllib.parse
 from typing import TYPE_CHECKING, Iterable, Optional, Union
@@ -171,6 +172,28 @@ class ListedEntry:
 scope="{self.scope}">'
 
 
+class DataStoreState(Enum):
+    """
+    Represents the state of a datastore.
+
+    Attributes:
+        Unknown: The state is unknown, possibly due to an error.
+        Active: The datastore is active and can be used normally.
+        Deleted: The datastore is scheduled for deletion and cannot be used. \
+            It will be permanently deleted within 30 days.
+    """
+
+    Unknown = 0
+    Active = 1
+    Deleted = 2
+
+
+DATA_STORE_STATES = {
+    "ACTIVE": DataStoreState.Active,
+    "DELETED": DataStoreState.Deleted,
+}
+
+
 class DataStore:
     """
     Represents a regular data store in an experience.
@@ -180,21 +203,79 @@ class DataStore:
         scope: The datastore's scope. `scope/key` syntax is required for keys \
         when scope is `None`.
         experience: The experience this DataStore is a part of.
+        state: Whether the datastore is active or scheduled for deletion. \
+        Will always be `Unknown` if not returned by \
+        [`DataStore.list_datastores`][rblxopencloud.DataStore.list_datastores].
+        created_at: When the datastore was created.
+        expires_at: When the datastore is scheduled to be permanently deleted.
     """
 
-    def __init__(self, name, experience, api_key, created, scope):
+    def __init__(
+        self,
+        name,
+        experience,
+        api_key,
+        created,
+        scope,
+        state,
+        expire_time=None,
+    ):
         self.name: str = name
         self.__api_key: str = api_key
         self.scope: Optional[str] = scope
         self.experience: Experience = experience
-        if created:
-            self.created = parser.parse(created)
-        else:
-            self.created = None
+        self.state: DataStoreState = DATA_STORE_STATES.get(
+            state, DataStoreState.Unknown
+        )
+        self.created_at: Optional[datetime.datetime] = (
+            parser.parse(created) if created else None
+        )
+        self.expires_at: Optional[datetime.datetime] = (
+            parser.parse(expire_time) if expire_time else None
+        )
+
+        # backwards compatibility with v2.2.6
+        self.created = self.created_at
 
     def __repr__(self) -> str:
         return f'<rblxopencloud.DataStore name="{self.name}" \
 scope="{self.scope}" experience={repr(self.experience)}>'
+
+    def delete(self):
+        """
+        Schedules a datastore for deletion. To prevent accidental loss of \
+        data, Roblox delays deletion by 30 days. After this period, the \
+        datastore and all its contents are permanently deleted. All requests \
+        to access or edit the DataStore will fail while it is scheduled for \
+        deletion.
+        
+        The datastore can be restored within the 30-day period by calling \
+        [`DataStore.undelete`][rblxopencloud.DataStore.undelete].
+        
+        """
+
+        send_request(
+            "DELETE",
+            f"/universes/{self.experience.id}/data-stores/{urllib.parse.quote(self.name)}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        self.state = DataStoreState.Deleted
+
+    def undelete(self):
+        """
+        Cancels the scheduled deletion of the datastore.
+        """
+
+        _, response, _ = send_request(
+            "POST",
+            f"/universes/{self.experience.id}/data-stores/{urllib.parse.quote(self.name)}:undelete",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        self.state = DataStoreState.Active
 
     def list_keys(
         self, prefix: str = "", limit: int = None, show_deleted: bool = False
@@ -222,7 +303,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             },
             expected_status=[200],
             authorization=self.__api_key,
-            cursor_key="nextPageToken",
+            cursor_key="pageToken",
             data_key="dataStoreEntries",
             max_yields=limit,
         ):
@@ -701,7 +782,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
         ):
             yield SortedEntry(entry["id"], entry["value"], self.scope)
 
-    def get_entry(self, key: str) -> int:
+    def get_entry(self, key: str) -> Optional[int]:
         """
         Gets the value of a key.
         
@@ -726,7 +807,7 @@ scope="{self.scope}" experience={repr(self.experience)}>'
             expected_status=[200],
         )
 
-        return int(data["value"])
+        return int(data["value"]) if data.get("value") is not None else None
 
     def set_entry(
         self,

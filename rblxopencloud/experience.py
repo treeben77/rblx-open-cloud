@@ -1002,7 +1002,7 @@ class Experience:
             The created data store object with `DataStore.created` as `None`.
         """
 
-        return DataStore(name, self, self.__api_key, None, scope)
+        return DataStore(name, self, self.__api_key, None, scope, None, None)
 
     def get_ordered_datastore(
         self, name: str, scope: Optional[str] = "global"
@@ -1023,9 +1023,10 @@ class Experience:
 
     def list_datastores(
         self,
-        prefix: str = "",
+        prefix: str = None,
         limit: int = None,
         scope: Optional[str] = "global",
+        show_deleted: bool = True,
     ) -> Iterable[DataStore]:
         """
         Iterates all data stores in the experience.
@@ -1043,20 +1044,26 @@ class Experience:
 
         for entry in iterate_request(
             "GET",
-            f"datastores/v1/universes/{self.id}/standard-datastores",
+            f"/universes/{self.id}/data-stores",
             authorization=self.__api_key,
             expected_status=[200],
-            params={"prefix": prefix},
+            params={
+                "filter": f'id.startsWith("{prefix}")' if prefix else None,
+                "maxPageSize": limit if limit and limit <= 100 else 100,
+                "showDeleted": show_deleted,
+            },
             max_yields=limit,
-            data_key="datastores",
-            cursor_key="cursor",
+            data_key="dataStores",
+            cursor_key="pageToken",
         ):
             yield DataStore(
-                entry["name"],
+                entry["path"].split("/")[-1],
                 self,
                 self.__api_key,
-                entry["createdTime"],
+                entry.get("createTime"),
                 scope,
+                entry["state"],
+                entry.get("expireTime"),
             )
 
     def snapshot_datastores(self) -> tuple[bool, datetime]:
