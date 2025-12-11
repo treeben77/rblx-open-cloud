@@ -613,6 +613,9 @@ class CreatorStoreProduct:
 
     def __init__(self, data: dict, api_key) -> None:
 
+        self.asset_id: int = None
+        self.asset_type: AssetType = AssetType.Unknown
+
         for asset_id_key, type in {
             "modelAssetId": AssetType.Model,
             "pluginAssetId": AssetType.Plugin,
@@ -649,15 +652,24 @@ class CreatorStoreProduct:
 
         self.restrictions: list[ProductRestriction] = restrictions
 
-        self.base_price: Money = Money(
-            data["purchasePrice"]["currencyCode"],
-            data["basePrice"]["quantity"]["significand"]
-            * 10 ** data["basePrice"]["quantity"]["exponent"],
+        self.base_price: Money = (
+            Money(
+                data["purchasePrice"]["currencyCode"],
+                data["basePrice"]["quantity"]["significand"]
+                * 10 ** data["basePrice"]["quantity"]["exponent"],
+            )
+            if data.get("basePrice")
+            else None
         )
-        self.purchase_price: Money = Money(
-            data["purchasePrice"]["currencyCode"],
-            data["purchasePrice"]["quantity"]["significand"]
-            * 10 ** data["purchasePrice"]["quantity"]["exponent"],
+
+        self.purchase_price: Money = (
+            Money(
+                data["purchasePrice"]["currencyCode"],
+                data["purchasePrice"]["quantity"]["significand"]
+                * 10 ** data["purchasePrice"]["quantity"]["exponent"],
+            )
+            if data.get("purchasePrice")
+            else None
         )
 
     def __repr__(self) -> str:
