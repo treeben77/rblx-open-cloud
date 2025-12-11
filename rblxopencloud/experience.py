@@ -1975,25 +1975,25 @@ classes/MessagingService).
         """
 
         payload = {
-            "request.Name": (None, name),
-            "request.IsForSale": (None, "true" if price_in_robux else "false"),
+            "name": (None, name),
+            "isForSale": (None, "true" if price_in_robux else "false"),
         }
 
         if icon_file:
-            payload["request.ImageFile"] = (
+            payload["imageFile"] = (
                 icon_file.name,
                 icon_file.read(),
                 "application/octet-stream",
             )
 
         if description:
-            payload["request.Description"] = (None, description)
+            payload["description"] = (None, description)
 
         if price_in_robux is not None:
-            payload["request.Price"] = (None, str(price_in_robux))
+            payload["price"] = (None, str(price_in_robux))
 
         if regional_pricing_enabled is not None:
-            payload["request.IsRegionalPricingEnabled"] = (
+            payload["isRegionalPricingEnabled"] = (
                 None,
                 "true" if regional_pricing_enabled else "false",
             )
@@ -2054,32 +2054,32 @@ classes/MessagingService).
         payload = {}
 
         if price_in_robux is False:
-            payload["request.IsForSale"] = (None, "false")
+            payload["isForSale"] = (None, "false")
         elif price_in_robux is not None:
-            payload["request.IsForSale"] = (None, "true")
-            payload["request.Price"] = (None, str(price_in_robux))
+            payload["isForSale"] = (None, "true")
+            payload["price"] = (None, str(price_in_robux))
 
         if icon_file:
-            payload["request.ImageFile"] = (
+            payload["imageFile"] = (
                 icon_file.name,
                 icon_file.read(),
                 "application/octet-stream",
             )
 
         if name:
-            payload["request.Name"] = (None, name)
+            payload["name"] = (None, name)
 
         if description is not None:
-            payload["request.Description"] = (None, description)
+            payload["description"] = (None, description)
 
         if regional_pricing_enabled is not None:
-            payload["request.IsRegionalPricingEnabled"] = (
+            payload["isRegionalPricingEnabled"] = (
                 None,
                 "true" if regional_pricing_enabled else "false",
             )
 
         if store_page_enabled is not None:
-            payload["request.StorePageEnabled"] = (
+            payload["storePageEnabled"] = (
                 None,
                 "true" if store_page_enabled else "false",
             )
@@ -2162,25 +2162,25 @@ classes/MessagingService).
         """
 
         payload = {
-            "request.Name": (None, name),
-            "request.IsForSale": (None, "true" if price_in_robux else "false"),
+            "name": (None, name),
+            "isForSale": (None, "true" if price_in_robux else "false"),
         }
 
         if icon_file:
-            payload["request.ImageFile"] = (
+            payload["imageFile"] = (
                 icon_file.name,
                 icon_file.read(),
                 "application/octet-stream",
             )
 
         if description:
-            payload["request.Description"] = (None, description)
+            payload["description"] = (None, description)
 
         if price_in_robux is not None:
-            payload["request.Price"] = (None, str(price_in_robux))
+            payload["price"] = (None, str(price_in_robux))
 
         if regional_pricing_enabled is not None:
-            payload["request.IsRegionalPricingEnabled"] = (
+            payload["isRegionalPricingEnabled"] = (
                 None,
                 "true" if regional_pricing_enabled else "false",
             )
@@ -2217,26 +2217,26 @@ classes/MessagingService).
         payload = {}
 
         if price_in_robux is False:
-            payload["request.IsForSale"] = (None, "false")
+            payload["isForSale"] = (None, "false")
         elif price_in_robux is not None:
-            payload["request.IsForSale"] = (None, "true")
-            payload["request.Price"] = (None, str(price_in_robux))
+            payload["isForSale"] = (None, "true")
+            payload["price"] = (None, str(price_in_robux))
 
         if icon_file:
-            payload["request.File"] = (
+            payload["file"] = (
                 icon_file.name,
                 icon_file.read(),
                 "application/octet-stream",
             )
 
         if name:
-            payload["request.Name"] = (None, name)
+            payload["name"] = (None, name)
 
         if description is not None:
-            payload["request.Description"] = (None, description)
+            payload["description"] = (None, description)
 
         if regional_pricing_enabled is not None:
-            payload["request.IsRegionalPricingEnabled"] = (
+            payload["isRegionalPricingEnabled"] = (
                 None,
                 "true" if regional_pricing_enabled else "false",
             )
