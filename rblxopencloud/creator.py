@@ -324,9 +324,9 @@ class Asset:
     def __repr__(self) -> str:
         return f"<rblxopencloud.Asset id={self.id} type={self.type}>"
 
-    def fetch_creator_store_prodcut(self) -> "CreatorStoreProduct":
+    def fetch_creator_store_product(self) -> "CreatorStoreProduct":
         """
-        Fetches the creator store prodcut information for this asset, if it \
+        Fetches the creator store product information for this asset, if it \
             is on the creator store.
 
         Returns:
@@ -335,6 +335,10 @@ class Asset:
         """
 
         return self.creator.fetch_creator_store_product(self.type, self.id)
+
+    def fetch_creator_store_prodcut(self) -> "CreatorStoreProduct":
+        # Retained as misspelling of fetch_creator_store_product in prior version.
+        return self.fetch_creator_store_product()
 
     def fetch_version(self, version_number: int) -> "AssetVersion":
         """
@@ -630,7 +634,7 @@ asset_id={self.asset_id} asset_type={self.asset_type}>"
 
     def fetch_asset(self) -> Asset:
         """
-        Fetches the asset information for this prodcut.
+        Fetches the asset information for this product.
 
         Returns:
             An [`Asset`][rblxopencloud.Asset] representing the product's asset.
@@ -871,26 +875,6 @@ class Creator:
             creator=self,
             api_key=self.__api_key,
         )
-
-    def fetch_asset_version(
-        self, asset_id: int, version_number: int
-    ) -> AssetVersion:
-        """
-        Fetches the version for a specific version number of the asset.
-
-        Args:
-            asset_id: The ID of the asset to find the version for.
-            version_number: The version number to find.
-        """
-
-        _, data, _ = send_request(
-            "GET",
-            f"assets/v1/assets/{asset_id}/versions/{version_number}",
-            authorization=self.__api_key,
-            expected_status=[200],
-        )
-
-        return AssetVersion(data, self)
 
     def list_asset_versions(
         self, asset_id: int, limit: int = None
