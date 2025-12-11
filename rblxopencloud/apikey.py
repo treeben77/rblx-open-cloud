@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .creator import Asset, AssetType, CreatorStoreProduct
+from .creator import Asset, AssetType, Creator, CreatorStoreProduct
 from .experience import Experience
 from .group import Group
 from .http import send_request
@@ -80,9 +80,25 @@ class ApiKey:
             An [`Asset`][rblxopencloud.Asset] representing the asset.
         """
 
+        read_mask = [
+            "path",
+            "revisionId",
+            "revisionCreateTime",
+            "assetId",
+            "displayName",
+            "assetType",
+            "creationContext",
+            "moderationResult",
+            "state",
+            "description",
+            "icon",
+            "socialLink",
+        ]
+
         _, data, _ = send_request(
             "GET",
             f"assets/v1/assets/{asset_id}",
+            params={"readMask": ",".join(read_mask)},
             authorization=self.__api_key,
             expected_status=[200],
         )

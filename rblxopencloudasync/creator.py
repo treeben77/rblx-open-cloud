@@ -269,6 +269,7 @@ class Asset:
         revision_time: The time the current revision of the asset was \
         created. *Will be `None` if the asset type does not support updating.*
         is_archived: Whether the asset has been archived.
+        icon_asset_id: The image asset ID of the asset's icon.
     """
 
     def __init__(self, data: dict, creator, api_key) -> None:
@@ -311,6 +312,10 @@ class Asset:
         self.moderation_status: ModerationStatus = MODERATION_STATUS_ENUMS.get(
             data.get("moderationResult", {}).get("moderationState"),
             ModerationStatus.Unknown,
+        )
+
+        self.icon_asset_id: Optional[int] = (
+            int(data["icon"].split("/")[1]) if data.get("icon") else None
         )
 
         self.revision_id: Optional[int] = data.get("revisionId")

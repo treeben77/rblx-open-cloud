@@ -80,9 +80,25 @@ class ApiKey:
             An [`Asset`][rblxopencloud.Asset] representing the asset.
         """
 
+        read_mask = [
+            "path",
+            "revisionId",
+            "revisionCreateTime",
+            "assetId",
+            "displayName",
+            "assetType",
+            "creationContext",
+            "moderationResult",
+            "state",
+            "description",
+            "icon",
+            "socialLink",
+        ]
+
         _, data, _ = await send_request(
             "GET",
             f"assets/v1/assets/{asset_id}",
+            params={"readMask": ",".join(read_mask)},
             authorization=self.__api_key,
             expected_status=[200],
         )
