@@ -268,12 +268,17 @@ class Asset:
         `None` if the asset type does not support updating.*
         revision_time: The time the current revision of the asset was \
         created. *Will be `None` if the asset type does not support updating.*
+        is_archived: Whether the asset has been archived.
     """
 
     def __init__(self, data: dict, creator, api_key) -> None:
-        self.id: int = data.get("assetId")
+        self.id: int = int(data.get("assetId"))
         self.name: str = data.get("displayName")
         self.description: str = data.get("description")
+        self.is_archived: bool = (
+            data.get("state") and data["state"] != "Active"
+        )
+
         self.__api_key = api_key
 
         from .group import Group
@@ -382,6 +387,45 @@ class Asset:
         """
 
         return self.creator.rollback_asset(self.id, version_number)
+
+    def archive(self) -> "Asset":
+        """
+        Archives the asset so it cannot be seen on the website or used in \
+        experiences.
+
+        Returns:
+            The updated asset information.
+        """
+
+        _, data, _ = send_request(
+            "POST",
+            f"assets/v1/assets/{self.id}:archive",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        self.__init__(data, self, self.__api_key)
+
+        return self
+
+    def restore(self) -> "Asset":
+        """
+        Unarchives an archived asset.
+
+        Returns:
+            The updated asset information.
+        """
+
+        _, data, _ = send_request(
+            "POST",
+            f"assets/v1/assets/{self.id}:restore",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        self.__init__(data, self, self.__api_key)
+
+        return self
 
 
 class AssetVersion:
@@ -591,7 +635,7 @@ class CreatorStoreProduct:
             "fontFamilyAssetId": AssetType.FontFamily,
         }.items():
             if asset_id := data.get(asset_id_key):
-                self.asset_id: int = asset_id
+                self.asset_id: int = int(asset_id)
                 self.asset_type: AssetType = type
                 break
 
@@ -683,7 +727,15 @@ class Creator:
 
         from .apikey import ApiKey
 
-        return ApiKey(self.__api_key).fetch_asset(asset_id)
+        asset = ApiKey(self.__api_key).fetch_asset(asset_id)
+
+        if (
+            asset.creator.id == self.id
+            and asset.creator.__class__.__name__ == self.__creator_type
+        ):
+            asset.creator = self
+
+        return asset
 
     def upload_asset(
         self,
@@ -953,6 +1005,47 @@ class Creator:
 
         return AssetVersion(data, self)
 
+    def archive_asset(self, asset_id: int) -> Asset:
+        """
+        Archives the asset so it cannot be seen on the website or used in \
+        experiences.
+
+        Args:
+            asset_id: The ID of the asset to archive.
+
+        Returns:
+            The updated asset information.
+        """
+
+        _, data, _ = send_request(
+            "POST",
+            f"assets/v1/assets/{asset_id}:archive",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return Asset(data, self, self.__api_key)
+
+    def restore_asset(self, asset_id: int) -> Asset:
+        """
+        Unarchives an archived asset.
+
+        Args:
+            asset_id: The ID of the archived asset to unarchive.
+
+        Returns:
+            The updated asset information.
+        """
+
+        _, data, _ = send_request(
+            "POST",
+            f"assets/v1/assets/{asset_id}:restore",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return Asset(data, self, self.__api_key)
+
     def fetch_creator_store_product(
         self, asset_type: Union[AssetType, str], product_id: int
     ) -> CreatorStoreProduct:
@@ -975,6 +1068,14 @@ class Creator:
 
         from .apikey import ApiKey
 
-        return ApiKey(self.__api_key).fetch_creator_store_product(
+        product = ApiKey(self.__api_key).fetch_creator_store_product(
             asset_type, product_id
         )
+
+        if (
+            product.creator.id == self.id
+            and product.creator.__class__.__name__ == self.__creator_type
+        ):
+            product.creator = self
+
+        return product

@@ -33,4 +33,5 @@ jobs:
         env:
           TEST_UNIVERSE_ID: ${{ secrets.TEST_UNIVERSE_ID }}
           TEST_USER_CLOUD_KEY: ${{ secrets.TEST_USER_CLOUD_KEY }}
+          TEST_USER_ID: ${{ secrets.TEST_USER_ID }}
           PRIMARY_VERSION: '3.14'
