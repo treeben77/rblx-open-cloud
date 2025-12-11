@@ -448,11 +448,32 @@ class User(Creator):
     Represents a user on Roblox. It is used to provide information about a \
     user in OAuth2, and to upload assets to a user.
     
-    Attributes:
+    Args:
         id (int): The user's ID.
         api_key (str): Your API key created from \
         [Creator Dashboard](https://create.roblox.com/credentials) with \
         access to this user.
+    
+    Attributes:
+        id (int): The user's ID.
+        username (Optional[str]): The user's username
+        name (Optional[str]): An alias for `username`.
+        display_name (Optional[str]): The non-unqiue display name for the user.
+        profile_uri (Optional[str]): A URI to the user's rendered profile.
+        headshot_uri (Optional[str]): For [`AccessToken`][rblxopencloud.AccessToken],\
+            a URI to the user's Roblox avatar profile picture. For other \
+            purposes, see [`generate_headshot`][rblxopencloud.User.generate_headshot].
+        created_at (Optional[datetime.datetime]): The timestamp the user's \
+        account was created at.
+        about (Optional[str]): The user's about me description.
+        locale (Optional[str]): The user's currently selected IETF language \
+            code.
+        premium (Optional[bool]): Whether the user has Roblox premium.
+        id_verified (Optional[bool]): Whether the user has verified a \
+            non-VOIP phone number or governement ID. Requires the scope \
+            `user.advanced:read`.
+        social_links (Optional[UserSocialLinks]): The user's social links. \
+            Requires the scope `user.social:read`.
     """
 
     def __init__(self, id: int, api_key: str) -> None:
@@ -471,6 +492,10 @@ class User(Creator):
         self.__api_key = api_key
 
         super().__init__(id, api_key, "User")
+
+    @property
+    def name(self) -> Optional[str]:
+        return self.username
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.User id={self.id}>"
