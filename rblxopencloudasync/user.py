@@ -21,8 +21,9 @@
 # SOFTWARE.
 
 import datetime
+from collections.abc import AsyncGenerator
 from enum import Enum
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 
 from dateutil import parser
 
@@ -217,6 +218,8 @@ ASSET_TYPE_STRINGS = {
     "CREATED_PLACE": InventoryAssetType.CreatedPlace,
     "PURCHASED_PLACE": InventoryAssetType.PurchasedPlace,
 }
+
+ASSET_TYPE_STRINGS_REVERSE = {v: k for k, v in ASSET_TYPE_STRINGS.items()}
 
 
 class InventoryItemState(Enum):
@@ -610,33 +613,33 @@ class User(Creator):
 
     async def list_inventory(
         self,
-        limit: int = None,
+        limit: Optional[int] = None,
         only_collectibles: bool = False,
-        assets: Union[list[InventoryAssetType], list[int], bool] = None,
+        assets: Optional[Union[list[InventoryAssetType], list[int], bool]] = None,
         badges: Union[list[int], bool] = False,
         game_passes: Union[list[int], bool] = False,
         private_servers: Union[list[int], bool] = False,
     ) -> AsyncGenerator[
-        Any,
         Union[
             InventoryAsset,
             InventoryBadge,
             InventoryGamePass,
             InventoryPrivateServer,
         ],
+        None,
     ]:
         """
-        Interates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \
+        Iterates [`InventoryItem`][rblxopencloud.InventoryItem] for items in \
         the user's inventory. If `only_collectibles`, `assets`, `badges`, \
         `game_passes`, and `private_servers` are `False`, then all inventory \
         items are returned.
-        
+
         Args:
-            limit (bool): The maximum number of inventory items to iterate. \
+            limit (Optional[int]): The maximum number of inventory items to iterate. \
             This can be `None` to return all items.
-            only_collectibles (bool): Wether the only inventory assets \
+            only_collectibles (bool): Whether the only inventory assets \
             returned are collectibles (limited items).
-            assets (Union[list[InventoryAssetType], list[int], bool]): If \
+            assets (Optional[Union[list[InventoryAssetType], list[int], bool]]): If \
             `True`, then it will return all assets, if it is a list of IDs, \
             it will only return assets with the provided IDs, and if it is a \
             list of [`InventoryAssetType`][rblxopencloud.InventoryAssetType] \
@@ -661,35 +664,45 @@ class User(Creator):
 
         if assets is True:
             filter["inventoryItemAssetTypes"] = "*"
-        elif type(assets) == list and isinstance(
-            assets[0], InventoryAssetType
-        ):
+        elif isinstance(assets, list) and assets:  # Do nothing if the list is empty
+            filter_by_type = all(
+                isinstance(asset, InventoryAssetType) for asset in assets
+            )
+            filter_by_id = all(isinstance(asset, int) for asset in assets)
 
-            asset_types = []
-            for asset_type in assets:
-                asset_types.append(
-                    list(ASSET_TYPE_STRINGS.keys())[
-                        list(ASSET_TYPE_STRINGS.values()).index(asset_type)
-                    ]
+            if not filter_by_type and not filter_by_id:
+                raise ValueError(
+                    (
+                        "'assets' must be either a list of InventoryAssetType objects, a list of integers, a boolean, or None."
+                        "You cannot mix InventoryAssetType objects and integers."
+                    )
                 )
 
-            filter["inventoryItemAssetTypes"] = ",".join(asset_types)
-        elif type(assets) == list:
-            filter["assetIds"] = ",".join([str(id) for id in assets])
+            if filter_by_type:
+                asset_types: list[str] = []
+                # this is validated by the above code, but the typechecker doesn't know that, so we cast
+                assets = cast(list[InventoryAssetType], assets)
+                for asset_type in assets:
+                    asset_types.append(ASSET_TYPE_STRINGS_REVERSE[asset_type])
+                filter["inventoryItemAssetTypes"] = ",".join(asset_types)
+            elif filter_by_id:
+                # this is validated by the above code, but the typechecker doesn't know that, so we cast
+                assets = cast(list[int], assets)
+                filter["assetIds"] = ",".join([str(id) for id in assets])
 
         if badges is True:
             filter["badges"] = "true"
-        elif type(badges) == list:
+        elif isinstance(badges, list):
             filter["badgeIds"] = ",".join([str(id) for id in badges])
 
         if game_passes is True:
             filter["gamePasses"] = "true"
-        elif type(game_passes) == list:
+        elif isinstance(game_passes, list):
             filter["gamePassIds"] = ",".join([str(id) for id in game_passes])
 
         if private_servers is True:
             filter["privateServers"] = "true"
-        elif type(badges) == list:
+        elif isinstance(private_servers, list):
             filter["privateServerIds"] = ",".join(
                 [str(private_server) for private_server in private_servers]
             )
@@ -707,17 +720,11 @@ class User(Creator):
             expected_status=[200],
         ):
             if "assetDetails" in entry.keys():
-                yield InventoryAsset(
-                    entry["assetDetails"], entry.get("addTime")
-                )
+                yield InventoryAsset(entry["assetDetails"], entry.get("addTime"))
             elif "badgeDetails" in entry.keys():
-                yield InventoryBadge(
-                    entry["badgeDetails"], entry.get("addTime")
-                )
+                yield InventoryBadge(entry["badgeDetails"], entry.get("addTime"))
             elif "gamePassDetails" in entry.keys():
-                yield InventoryGamePass(
-                    entry["gamePassDetails"], entry.get("addTime")
-                )
+                yield InventoryGamePass(entry["gamePassDetails"], entry.get("addTime"))
             elif "privateServerDetails" in entry.keys():
                 yield InventoryPrivateServer(
                     entry["privateServerDetails"], entry.get("addTime")
