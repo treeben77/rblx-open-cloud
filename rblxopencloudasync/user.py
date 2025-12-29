@@ -363,7 +363,7 @@ class InventoryPrivateServer(InventoryItem):
     """
 
     def __init__(self, data, add_time: Optional[str]) -> None:
-        super().__init__(data["privateServerId"])
+        super().__init__(data["privateServerId"], add_time)
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.InventoryPrivateServer id={self.id}>"
