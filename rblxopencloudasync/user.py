@@ -664,7 +664,9 @@ class User(Creator):
 
         if assets is True:
             filter["inventoryItemAssetTypes"] = "*"
-        elif isinstance(assets, list) and assets:  # Do nothing if the list is empty
+        elif (
+            isinstance(assets, list) and assets
+        ):  # Do nothing if the list is empty
             filter_by_type = all(
                 isinstance(asset, InventoryAssetType) for asset in assets
             )
@@ -673,7 +675,7 @@ class User(Creator):
             if not filter_by_type and not filter_by_id:
                 raise ValueError(
                     (
-                        "'assets' must be either a list of InventoryAssetType objects, a list of integers, a boolean, or None."
+                        "'assets' must be either a list of InventoryAssetType objects, a list of integers, a boolean, or None. "
                         "You cannot mix InventoryAssetType objects and integers."
                     )
                 )
@@ -720,11 +722,17 @@ class User(Creator):
             expected_status=[200],
         ):
             if "assetDetails" in entry.keys():
-                yield InventoryAsset(entry["assetDetails"], entry.get("addTime"))
+                yield InventoryAsset(
+                    entry["assetDetails"], entry.get("addTime")
+                )
             elif "badgeDetails" in entry.keys():
-                yield InventoryBadge(entry["badgeDetails"], entry.get("addTime"))
+                yield InventoryBadge(
+                    entry["badgeDetails"], entry.get("addTime")
+                )
             elif "gamePassDetails" in entry.keys():
-                yield InventoryGamePass(entry["gamePassDetails"], entry.get("addTime"))
+                yield InventoryGamePass(
+                    entry["gamePassDetails"], entry.get("addTime")
+                )
             elif "privateServerDetails" in entry.keys():
                 yield InventoryPrivateServer(
                     entry["privateServerDetails"], entry.get("addTime")
