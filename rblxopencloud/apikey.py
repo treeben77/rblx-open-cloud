@@ -24,6 +24,7 @@ from .creator import Asset, AssetType, Creator, CreatorStoreProduct
 from .experience import Experience
 from .group import Group
 from .http import send_request
+from .toolbox import ToolboxAsset
 from .user import User
 
 from typing import Union
@@ -138,3 +139,13 @@ class ApiKey:
         )
 
         return CreatorStoreProduct(data, self.__api_key)
+
+    def fetch_toolbox_asset(self, asset_id: int):
+        _, data, _ = send_request(
+            "GET",
+            f"toolbox-service/v2/assets/{asset_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return ToolboxAsset(data, None, self.__api_key)

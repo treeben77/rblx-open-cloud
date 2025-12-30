@@ -537,7 +537,7 @@ quantity={self.quantity}>'
 
     def __eq__(self, value: object) -> bool:
         if type(value) not in (int, float, Money):
-            raise NotImplemented
+            return NotImplemented
 
         if type(value) == Money:
             return (
@@ -549,7 +549,7 @@ quantity={self.quantity}>'
 
     def __lt__(self, value: object) -> bool:
         if type(value) not in (int, float, Money):
-            raise NotImplemented
+            return NotImplemented
 
         if type(value) == Money:
             if self.currency != value.currency:
@@ -560,7 +560,7 @@ quantity={self.quantity}>'
 
     def __gt__(self, value: object) -> bool:
         if type(value) not in (int, float, Money):
-            raise NotImplemented
+            return NotImplemented
 
         if type(value) == Money:
             if self.currency != value.currency:
@@ -571,7 +571,7 @@ quantity={self.quantity}>'
 
     def __le__(self, value: object) -> bool:
         if type(value) not in (int, float, Money):
-            raise NotImplemented
+            return NotImplemented
 
         if type(value) == Money:
             if self.currency != value.currency:
@@ -582,7 +582,7 @@ quantity={self.quantity}>'
 
     def __gt__(self, value: object) -> bool:
         if type(value) not in (int, float, Money):
-            raise NotImplemented
+            return NotImplemented
 
         if type(value) == Money:
             if self.currency != value.currency:
