@@ -615,7 +615,9 @@ class User(Creator):
         self,
         limit: Optional[int] = None,
         only_collectibles: bool = False,
-        assets: Optional[Union[list[InventoryAssetType], list[int], bool]] = None,
+        assets: Optional[
+            Union[list[InventoryAssetType], list[int], bool]
+        ] = None,
         badges: Union[list[int], bool] = False,
         game_passes: Union[list[int], bool] = False,
         private_servers: Union[list[int], bool] = False,
