@@ -369,7 +369,7 @@ class AssetDeliveryLocation:
                 break
 
     def __repr__(self) -> str:
-        return f'<rblxopencloud.AssetLocation uri="{self.uri}">'
+        return f'<rblxopencloud.AssetDeliveryLocation uri="{self.uri}">'
 
     def download(self) -> io.BytesIO:
         """
@@ -482,7 +482,7 @@ class Asset:
                 location for. If not provided, the latest version will be used.
 
         Returns:
-            An [`AssetLocation`][rblxopencloud.AssetLocation] containing \
+            An [`AssetDeliveryLocation`][rblxopencloud.AssetDeliveryLocation] containing \
             information on downloading the asset.
         """
 
@@ -1241,7 +1241,7 @@ class Creator:
 
 
         Returns:
-            An [`AssetLocation`][rblxopencloud.AssetLocation] containing \
+            An [`AssetDeliveryLocation`][rblxopencloud.AssetDeliveryLocation] containing \
             information on downloading the asset.
         """
 
