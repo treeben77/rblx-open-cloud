@@ -66,7 +66,8 @@ def send_request(
     Args:
         method: The HTTP method to use in uppercase such as `GET` or `POST`.
         path: The HTTP path of the request, excluding the starting `/`, for \
-        example `assets/v1/assets`.
+        example `assets/v1/assets`. Accepts a full URL to request other \
+        domains, must start with `http://` or `https://`.
         authorization: The value for the `x-api-key` header. Automatically \
         uses `Authorization` header instead if the value begins with \
         `Bearer `.
@@ -134,7 +135,12 @@ def send_request(
 
     response = http_session.request(
         method,
-        f"https://apis.roblox.com/{path}",
+        (
+            f"https://apis.roblox.com/{path}"
+            if not path.startswith("http://")
+            and not path.startswith("https://")
+            else path
+        ),
         headers=headers,
         **kwargs,
     )
@@ -142,7 +148,7 @@ def send_request(
     if "application/json" in response.headers.get("Content-Type", ""):
         body = response.json()
     else:
-        body = response.text
+        body = response.content
 
     if VERSION_INFO == "alpha":
         print(f"[DEBUG] {method} /{path} - {response.status_code}\n{body}")

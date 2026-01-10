@@ -6,6 +6,8 @@
 
 ::: rblxopencloud.AssetVersion
 
+::: rblxopencloud.AssetDeliveryLocation
+
 ::: rblxopencloud.CreatorStoreProduct
     options:
         merge_init_into_class: true

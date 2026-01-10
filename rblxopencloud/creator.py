@@ -29,7 +29,13 @@ from typing import TYPE_CHECKING, Iterable, Optional, Union
 import urllib3
 from dateutil import parser
 
-from .exceptions import HttpException, InvalidFile, ModeratedText
+from .exceptions import (
+    HttpException,
+    InvalidFile,
+    ModeratedText,
+    NotFound,
+    Forbidden,
+)
 from .http import Operation, iterate_request, send_request
 
 if TYPE_CHECKING:
@@ -39,6 +45,7 @@ if TYPE_CHECKING:
 __all__ = (
     "AssetType",
     "ModerationStatus",
+    "AssetDeliveryLocation",
     "Asset",
     "AssetVersion",
     "Creator",
@@ -165,6 +172,16 @@ class AssetType(Enum):
     MoodAnimation = 142
     DynamicHead = 143
 
+    EarAccessory = 144
+    EyeAccessory = 145
+    FaceMakeup = 146
+    LipMakeup = 147
+    EyeMakeup = 148
+
+    Lua = 200
+    Badge = 201
+    GamePass = 202
+
 
 ASSET_TYPE_ENUMS = {
     "Decal": AssetType.Decal,
@@ -223,6 +240,77 @@ ASSET_TYPE_ENUMS = {
     "EyelashAccessory": AssetType.EyelashAccessory,
     "MoodAnimation": AssetType.MoodAnimation,
     "DynamicHead": AssetType.DynamicHead,
+    "EarAccessory": AssetType.EarAccessory,
+    "EyeAccessory": AssetType.EyeAccessory,
+    "FaceMakeup": AssetType.FaceMakeup,
+    "LipMakeup": AssetType.LipMakeup,
+    "EyeMakeup": AssetType.EyeMakeup,
+}
+
+
+LEGACY_ASSET_TYPE_ENUMS = {
+    1: AssetType.Image,
+    2: AssetType.ClassicTShirt,
+    3: AssetType.Audio,
+    4: AssetType.MeshPart,
+    5: AssetType.Lua,
+    8: AssetType.Hat,
+    9: AssetType.Place,
+    10: AssetType.Model,
+    11: AssetType.ClassicTShirt,
+    12: AssetType.ClassicPants,
+    13: AssetType.Decal,
+    17: AssetType.ClassicHead,
+    18: AssetType.Face,
+    19: AssetType.Gear,
+    21: AssetType.Badge,
+    24: AssetType.Animation,
+    27: AssetType.Torso,
+    28: AssetType.RightArm,
+    29: AssetType.LeftArm,
+    30: AssetType.LeftLeg,
+    31: AssetType.RightLeg,
+    32: AssetType.Package,
+    34: AssetType.GamePass,
+    38: AssetType.Plugin,
+    40: AssetType.MeshPart,
+    41: AssetType.HairAccessory,
+    42: AssetType.FaceAccessory,
+    43: AssetType.NeckAccessory,
+    44: AssetType.ShoulderAccessory,
+    45: AssetType.FrontAccessory,
+    46: AssetType.BackAccessory,
+    47: AssetType.WaistAccessory,
+    48: AssetType.ClimbAnimation,
+    49: AssetType.DeathAnimation,
+    50: AssetType.FallAnimation,
+    51: AssetType.IdleAnimation,
+    52: AssetType.JumpAnimation,
+    53: AssetType.RunAnimation,
+    54: AssetType.SwimAnimation,
+    55: AssetType.WalkAnimation,
+    56: AssetType.PoseAnimation,
+    57: AssetType.EarAccessory,
+    58: AssetType.EyeAccessory,
+    61: AssetType.EmoteAnimation,
+    62: AssetType.Video,
+    64: AssetType.TShirtAccessory,
+    65: AssetType.ShirtAccessory,
+    66: AssetType.PantsAccessory,
+    67: AssetType.JacketAccessory,
+    68: AssetType.SweaterAccessory,
+    69: AssetType.ShortsAccessory,
+    70: AssetType.LeftShoeAccessory,
+    71: AssetType.RightShoeAccessory,
+    72: AssetType.DressSkirtAccessory,
+    73: AssetType.FontFamily,
+    76: AssetType.EyebrowAccessory,
+    77: AssetType.EyelashAccessory,
+    78: AssetType.MoodAnimation,
+    79: AssetType.DynamicHead,
+    88: AssetType.FaceMakeup,
+    89: AssetType.LipMakeup,
+    90: AssetType.EyeMakeup,
 }
 
 
@@ -251,6 +339,53 @@ MODERATION_STATUS_ENUMS = {
     "MODERATION_STATE_REJECTED": ModerationStatus.Rejected,
     "MODERATION_STATE_APPROVED": ModerationStatus.Approved,
 }
+
+
+class AssetDeliveryLocation:
+    """
+    Represents a location to download an asset from Roblox.
+
+    Attributes:
+        uri: The URI to download the asset from.
+        is_archived: Whether the asset has been archived.
+        is_recordable: Whether the asset can be recorded in screen recordings.
+        size_bytes: The size of the asset in bytes.
+    """
+
+    def __init__(self, data: dict) -> None:
+        assert (
+            type(data.get("location")) is str
+        ), "Asset location data must contain a location."
+
+        self.uri: str = data["location"]
+
+        self.is_recordable: bool = data.get("isRecordable", False)
+        self.is_archived: bool = data.get("isArchived", False)
+        self.size_bytes: Optional[int] = None
+
+        for metadata in data.get("assetMetadatas", []):
+            if metadata.get("metadataType") == 1:
+                self.size_bytes = int(metadata.get("value"))
+                break
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.AssetLocation uri="{self.uri}">'
+
+    def download(self) -> io.BytesIO:
+        """
+        Downloads the asset.
+
+        Returns:
+            A stream containing the asset file.
+        """
+
+        _, response, _ = send_request(
+            method="GET",
+            path=self.uri,
+            expected_status=[200],
+        )
+
+        return io.BytesIO(response)
 
 
 class Asset:
@@ -333,6 +468,29 @@ class Asset:
 
     def __repr__(self) -> str:
         return f"<rblxopencloud.Asset id={self.id} type={self.type}>"
+
+    def fetch_delivery_location(
+        self, version_number: Optional[int] = None
+    ) -> AssetDeliveryLocation:
+        """
+        Fetches the download location for this asset using Asset Delivery.
+
+        Requires the `legacy-assets:manage` API key permission.
+
+        Args:
+            version_number: The version number of the asset to fetch the \
+                location for. If not provided, the latest version will be used.
+
+        Returns:
+            An [`AssetLocation`][rblxopencloud.AssetLocation] containing \
+            information on downloading the asset.
+        """
+
+        return self.creator.fetch_asset_delivery_location(
+            self.id,
+            version_number=version_number,
+            expected_asset_type=self.type,
+        )
 
     def fetch_creator_store_product(self) -> "CreatorStoreProduct":
         """
@@ -1062,6 +1220,63 @@ class Creator:
         )
 
         return Asset(data, self, self.__api_key)
+
+    def fetch_asset_delivery_location(
+        self,
+        asset_id: int,
+        version_number: Optional[int] = None,
+        expected_asset_type: Optional[Union[AssetType, str]] = None,
+    ) -> AssetDeliveryLocation:
+        """
+        Fetches the download location for this asset using Asset Delivery.
+
+        Requires the `legacy-assets:manage` API key permission.
+
+        Args:
+            asset_id: The ID of the asset to fetch the location for.
+            version_number: The specific version number of the asset to \
+            fetch the location for. Defaults to the latest version.
+            expected_asset_type: The expected type of the asset. If provided, \
+            the request will fail if the asset is not of the provided type.
+
+
+        Returns:
+            An [`AssetLocation`][rblxopencloud.AssetLocation] containing \
+            information on downloading the asset.
+        """
+
+        if isinstance(expected_asset_type, AssetType):
+            expected_asset_type = expected_asset_type.name
+
+        path_suffix = f"assetId/{asset_id}"
+
+        if version_number is not None:
+            path_suffix += f"/version/{version_number}"
+
+        _, data, _ = send_request(
+            "GET",
+            f"asset-delivery-api/v1/{path_suffix}",
+            authorization=self.__api_key,
+            expected_status=[200],
+            headers={
+                "AssetType": expected_asset_type,
+            },
+        )
+
+        assert isinstance(data, dict), "Received invalid response from Roblox."
+
+        if isinstance(data.get("errors"), list):
+            if any(error.get("code") == 404 for error in data["errors"]):
+                raise NotFound(status=404, body=data)
+            elif any(error.get("code") == 409 for error in data["errors"]):
+                raise Forbidden(status=409, body=data)
+            else:
+                raise HttpException(
+                    status=200,
+                    body=data,
+                )
+
+        return AssetDeliveryLocation(data)
 
     def fetch_creator_store_product(
         self, asset_type: Union[AssetType, str], product_id: int
