@@ -913,11 +913,27 @@ class AssetPermissionSubjectType(Enum):
     All = 1
     User = 2
     Group = 3
-    GroupRoleset = 4
+    GroupRole = 4
     Experience = 5
 
 
 class AssetPermissionSubject:
+    """
+    Data class representing a subject that can be granted permissions for an \
+    asset. For instance, a user, group, group role, experience, or everyone. \
+    When using `All`, the `id` field should be omitted; otherwise, it should \
+    be the ID of the user, group, group role, or experience.
+
+    Where this class is used, a [`User`][rblxopencloud.User],
+    [`Group`][rblxopencloud.Group], [`GroupRole`][rblxopencloud.GroupRole], or
+    [`Experience`][rblxopencloud.Experience] object can also be used in its \
+    place.
+
+    Args:
+        type (AssetPermissionSubjectType): The type of subject.
+        id (Optional[int]): The ID of the subject, if applicable.
+    """
+
     def __init__(
         self,
         type: AssetPermissionSubjectType,
@@ -941,7 +957,7 @@ class AssetPermissionAction(Enum):
         UpdateFromRcc (5): The subject can use `AssetService:UpdatePlaceAsync()` \
             with this asset.
     
-    ### Allowed Asset Actions
+    **Allowed Asset Actions**
 
     | Asset Type | Subject Type | Actions |
     | --- | --- | --- |
@@ -1535,11 +1551,11 @@ class Creator:
             which cannot be revoked; however, granting Download to All on a \
             place can be revoked on the Creator Dashboard.
         
-        !!! example
+        Examples:
             Setting the root place of an experience to be *uncopylocked.*
             ```python
             from rblxopencloud import Experience, AssetPermissionAction, \
-                AssetPermissionSubject, AssetPermissionSubjectType
+            AssetPermissionSubject, AssetPermissionSubjectType
             
             experience = Experience(00000000, "...") # initialise with ID and API key
             experience.fetch_info() # Fetch root place
@@ -1559,8 +1575,8 @@ granted_asset_ids=[00000000] failed_asset_ids={}>
             Setting an asset to be Open Use.
             ```python
             from rblxopencloud import User, AssetPermissionAction, \
-                AssetPermissionSubject, AssetPermissionSubjectType, \
-                AssetPermissionRequest
+            AssetPermissionSubject, AssetPermissionSubjectType, \
+            AssetPermissionRequest
 
             creator = User(00000000, "...") # initialise with user ID and API key
 
@@ -1583,8 +1599,8 @@ granted_asset_ids=[00000000] failed_asset_ids={}>
             Granting a specific user permission to use an asset.
             ```python
             from rblxopencloud import User, AssetPermissionAction, \
-                AssetPermissionSubject, AssetPermissionSubjectType, \
-                AssetPermissionRequest
+            AssetPermissionSubject, AssetPermissionSubjectType, \
+            AssetPermissionRequest
 
             creator = User(00000000, "...") # initialise with user ID and API key
 
@@ -1619,9 +1635,14 @@ granted_asset_ids=[00000000] failed_asset_ids={}>
         elif isinstance(subject, Group):
             subject_type = AssetPermissionSubjectType.Group.name
         elif isinstance(subject, GroupRole):
-            subject_type = AssetPermissionSubjectType.GroupRoleset.name
+            subject_type = AssetPermissionSubjectType.GroupRole.name
         else:
             raise ValueError("Invalid subject type provided.")
+
+        if subject_type == AssetPermissionSubjectType.Experience.name:
+            subject_type = "Universe"
+        elif subject_type == AssetPermissionSubjectType.GroupRole.name:
+            subject_type = "GroupRoleset"
 
         requests = []
 
