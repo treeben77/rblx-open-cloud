@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 __all__ = (
     "AssetType",
     "ModerationStatus",
+    "AssetPrivacy",
     "AssetDeliveryLocation",
     "Asset",
     "AssetVersion",
@@ -338,6 +339,31 @@ MODERATION_STATUS_ENUMS = {
     "MODERATION_STATE_REVIEWING": ModerationStatus.Reviewing,
     "MODERATION_STATE_REJECTED": ModerationStatus.Rejected,
     "MODERATION_STATE_APPROVED": ModerationStatus.Approved,
+}
+
+
+class AssetPrivacy(Enum):
+    """
+    Enum denoting the privacy setting of an asset.
+
+    Attributes:
+        Unknown (0): An unknown privacy setting.
+        Default (1): The default privacy setting for the asset set by Roblox.
+        Restricted (2): The asset can only be used by the creator and those \
+        with permission.
+        OpenUse (3): Anyone on Roblox can use the asset.
+    """
+
+    Unknown = 0
+    Default = 1
+    Restricted = 2
+    OpenUse = 3
+
+
+ASSET_PRIVACY_ENUMS = {
+    AssetPrivacy.Default: "default",
+    AssetPrivacy.Restricted: "restricted",
+    AssetPrivacy.OpenUse: "openUse",
 }
 
 
@@ -865,11 +891,19 @@ asset_id={self.asset_id} asset_type={self.asset_type}>"
 ASSET_MIME_TYPES = {
     "mp3": "audio/mpeg",
     "ogg": "audio/ogg",
+    "wav": "audio/wav",
+    "flac": "audio/flac",
     "png": "image/png",
     "jpeg": "image/jpeg",
     "bmp": "image/bmp",
     "tga": "image/tga",
     "fbx": "model/fbx",
+    "gltf": "model/gltf+json",
+    "glb": "model/gltf-binary",
+    "rbxm": "model/x-rbxm",
+    "rbxmx": "model/x-rbxm",
+    "mp4": "video/mp4",
+    "mov": "video/mov",
 }
 
 
@@ -919,6 +953,7 @@ class Creator:
         name: str,
         description: str,
         expected_robux_price: int = 0,
+        asset_privacy: AssetPrivacy = AssetPrivacy.Default,
     ) -> Operation[Asset]:
         """
         Uploads the file to Roblox as an asset and returns an \
@@ -928,8 +963,14 @@ class Creator:
         | Asset Type | File Formats |
         | --- | --- |
         | Decal | `.png`, `.jpeg`, `.bmp`, `.tga` |
-        | Audio | `.mp3`, `.ogg` |
-        | Model | `.fbx` |
+        | Audio | `.mp3`, `.ogg`, `.wav`, `.flac` |
+        | Model | `.fbx`, `.gltf`, `.glb`, `.rbxm`, `.rbxmx` |
+        | Video | `.mp4`, `.mov` |
+        | Animation | `.rbxm`, `.rbxmx` |
+
+        According to Roblox staff [in this DevForum \
+        post](https://devforum.roblox.com/t/3308172/11), the maximum file \
+        size using the API is 30MB.
 
         Args:
             file: The file opened in bytes to be uploaded.
@@ -939,6 +980,7 @@ class Creator:
             description: The description of your asset.
             expected_robux_price: The amount of robux expected to upload this \
             asset. Will fail if lower than the actual price.
+            asset_privacy: Whether the asset is restricted or open use.
 
         Returns:
             Returns a [`Operation`][rblxopencloud.Operation] for the asset \
@@ -964,6 +1006,9 @@ class Creator:
                 else asset_type
             ),
             "creationContext": {
+                "assetPrivacy": ASSET_PRIVACY_ENUMS.get(
+                    asset_privacy, "default"
+                ),
                 "creator": (
                     {
                         "userId": str(self.id),
@@ -1094,6 +1139,8 @@ class Creator:
 
             if data["message"] == "AssetDescription is moderated.":
                 raise ModeratedText(status, body)
+
+            raise HttpException(status, data)
 
         return Operation(
             f"assets/v1/{data['path']}",
