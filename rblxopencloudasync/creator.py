@@ -58,7 +58,7 @@ __all__ = (
     "AssetPermissionSubject",
     "AssetPermissionAction",
     "AssetPermissionRequest",
-    "AssetPermissionsResult",
+    "AssetPermissionResult",
     "AssetPermissionResultError",
 )
 
@@ -372,6 +372,7 @@ ASSET_PRIVACY_ENUMS = {
     AssetPrivacy.Restricted: "restricted",
     AssetPrivacy.OpenUse: "openUse",
 }
+
 
 class AssetDeliveryLocation:
     """
@@ -1019,7 +1020,7 @@ class AssetPermissionResultError(Enum):
     DependenciesLimitReached = 9
 
 
-class AssetPermissionsResult:
+class AssetPermissionResult:
     """
     Represents the result of an asset permission grant request.
 
@@ -1043,7 +1044,7 @@ class AssetPermissionsResult:
             )
 
     def __repr__(self) -> str:
-        return f"<rblxopencloud.AssetPermissionsResult \
+        return f"<rblxopencloud.AssetPermissionResult \
 granted_asset_ids={self.granted_asset_ids} \
 failed_asset_ids={self.failed_asset_ids}>"
 
@@ -1507,7 +1508,7 @@ class Creator:
             AssetPermissionSubject, "Experience", "User", "Group", "GroupRole"
         ],
         assets: list[Union[int, Asset, AssetPermissionRequest]],
-    ) -> AssetPermissionsResult:
+    ) -> AssetPermissionResult:
         """
         Grants permission to the subject to perform the specified action \
         on the provided assets. See the table in \
@@ -1551,7 +1552,7 @@ class Creator:
                 ),
                 assets=[experience.root_place.get_asset()]
             )
-            >>> <rblxopencloud.AssetPermissionsResult \
+            >>> <rblxopencloud.AssetPermissionResult \
 granted_asset_ids=[00000000] failed_asset_ids={}>
             ```
 
@@ -1575,7 +1576,7 @@ granted_asset_ids=[00000000] failed_asset_ids={}>
                     )
                 ]
             )
-            >>> <rblxopencloud.AssetPermissionsResult \
+            >>> <rblxopencloud.AssetPermissionResult \
 granted_asset_ids=[00000000] failed_asset_ids={}>
             ```
 
@@ -1600,7 +1601,7 @@ granted_asset_ids=[00000000] failed_asset_ids={}>
                     )
                 ]
             )
-            >>> <rblxopencloud.AssetPermissionsResult \
+            >>> <rblxopencloud.AssetPermissionResult \
 granted_asset_ids=[00000000] failed_asset_ids={}>
             ```
         """
@@ -1653,4 +1654,4 @@ granted_asset_ids=[00000000] failed_asset_ids={}>
             },
         )
 
-        return AssetPermissionsResult(data)
+        return AssetPermissionResult(data)

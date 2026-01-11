@@ -22,15 +22,15 @@
 
 ::: rblxopencloud.ProductRestriction
 
-::: AssetPermissionsResult
+::: rblxopencloud.AssetPermissionResult
 
-::: AssetPermissionResultError
+::: rblxopencloud.AssetPermissionResultError
 
-::: AssetPermissionRequest
+::: rblxopencloud.AssetPermissionRequest
 
-::: AssetPermissionAction
+::: rblxopencloud.AssetPermissionAction
 
-::: AssetPermissionSubject
+::: rblxopencloud.AssetPermissionSubject
 
-::: AssetPermissionSubjectType
+::: rblxopencloud.AssetPermissionSubjectType
 
