@@ -21,3 +21,16 @@
 ::: rblxopencloud.ModerationStatus
 
 ::: rblxopencloud.ProductRestriction
+
+::: AssetPermissionsResult
+
+::: AssetPermissionResultError
+
+::: AssetPermissionRequest
+
+::: AssetPermissionAction
+
+::: AssetPermissionSubject
+
+::: AssetPermissionSubjectType
+

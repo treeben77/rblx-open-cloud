@@ -39,7 +39,8 @@ from .exceptions import (
 from .http import Operation, iterate_request, send_request
 
 if TYPE_CHECKING:
-    from .group import Group
+    from .experience import Experience
+    from .group import Group, GroupRole
     from .user import User
 
 __all__ = (
@@ -53,6 +54,12 @@ __all__ = (
     "CreatorStoreProduct",
     "Money",
     "ProductRestriction",
+    "AssetPermissionSubjectType",
+    "AssetPermissionSubject",
+    "AssetPermissionAction",
+    "AssetPermissionRequest",
+    "AssetPermissionsResult",
+    "AssetPermissionResultError",
 )
 
 
@@ -889,6 +896,158 @@ ASSET_MIME_TYPES = {
 }
 
 
+class AssetPermissionSubjectType(Enum):
+    """
+    Enum denoting a permission subject type for an asset.
+
+    Attributes:
+        Unknown (0): An unknown or invalid asset permission subject type.
+        All (1): Everyone on Roblox.
+        User (2): A specific user on Roblox.
+        Group (3): A specific group on Roblox.
+        Experience (4): A specific experience on Roblox.
+    """
+
+    Unknown = 0
+    All = 1
+    User = 2
+    Group = 3
+    GroupRoleset = 4
+    Experience = 5
+
+
+class AssetPermissionSubject:
+    def __init__(
+        self,
+        type: AssetPermissionSubjectType,
+        id: Optional[int] = None,
+    ):
+        self.type: AssetPermissionSubjectType = type
+        self.id: Optional[int] = id
+
+
+class AssetPermissionAction(Enum):
+    """
+    Enum denoting a permission access action for an asset subject.
+
+    Attributes:
+        Unknown (0): An unknown or invalid asset permission action.
+        Edit (1): The subject can edit the asset.
+        Use (2): The subject can use the asset.
+        Download (3): The subject can download the asset.
+        CopyFromRcc (4): The subject use `AssetService:CreatePlaceAsync()` \
+            with this asset.
+        UpdateFromRcc (5): The subject can use `AssetService:UpdatePlaceAsync()` \
+            with this asset.
+    
+    ### Allowed Asset Actions
+
+    | Asset Type | Subject Type | Actions |
+    | --- | --- | --- |
+    | Animation, Audio, Mesh Part, Video | Group, Use, Experience | Use |
+    | Decal, Image, Mesh | All, Group, Use, Experience | Use |
+    | Model | Use | Use, Edit |
+    | Model | Group, Experience | Use |
+    | Place | All | Download |
+    | Place | Experience | CopyFromRcc, UpdateFromRcc |
+
+    - Enabling Download for All on a Place *uncopylooks* the place.
+    - Allowing All on a Decal, Image, or Mesh means the asset is Open Use.
+    """
+
+    Unknown = 0
+    Edit = 1
+    Use = 2
+    Download = 3
+    CopyFromRcc = 4
+    UpdateFromRcc = 5
+
+
+class AssetPermissionRequest:
+    """
+    Data class representing an asset in a permission grant request.
+
+    Args:
+        asset_id (int): The ID of the asset being granted permissions.
+        grant_dependencies (bool): Whether to also grant permissions for \
+            the asset's dependencies.
+        version_number (Optional[int]): The version number of the asset to \
+            use when granting permission to dependencies.
+    """
+
+    def __init__(
+        self,
+        asset_id: int,
+        grant_dependencies: bool = False,
+        version_number: Optional[int] = None,
+    ) -> None:
+        self.asset_id = asset_id
+        self.grant_dependencies = grant_dependencies
+        self.version_number = version_number
+
+    def __repr__(self):
+        return f"<rblxopencloud.AssetPermissionRequest asset_id={self.asset_id} \
+grant_dependencies={self.grant_dependencies} version_number={self.version_number}>"
+
+
+class AssetPermissionResultError(Enum):
+    """
+    Enum denoting a failure reason for an asset permission grant request.
+
+    Attributes:
+        Unknown (0): An unknown or invalid asset permission action.
+        InvalidRequest (1): The request was invalid.
+        AssetNotFound (2): The specified asset could not be found.
+        CannotManageAsset (3): The asset cannot be managed.
+        PublicAssetCannotBeGrantedTo (4): The asset is already Open Use.
+        CannotManageSubject (5): The subject cannot be managed.
+        SubjectNotFound (6): The specified subject could not be found.
+        AssetTypeNotEnabled (7): The asset type is not enabled for permissions.
+        PermissionLimitReached (8): The permission limit has been reached.
+        DependenciesLimitReached (9): The dependencies limit has been reached.
+    """
+
+    Unknown = 0
+    InvalidRequest = 1
+    AssetNotFound = 2
+    CannotManageAsset = 3
+    PublicAssetCannotBeGrantedTo = 4
+    CannotManageSubject = 5
+    SubjectNotFound = 6
+    AssetTypeNotEnabled = 7
+    PermissionLimitReached = 8
+    DependenciesLimitReached = 9
+
+
+class AssetPermissionsResult:
+    """
+    Represents the result of an asset permission grant request.
+
+    Attributes:
+        granted_asset_ids (list[int]): A list of asset IDs for which \
+            permissions were successfully granted.
+        failed_asset_ids (dict[int, AssetPermissionResultError]): A mapping \
+            of asset IDs to their corresponding failure reasons for assets \
+            that failed to have permissions granted.
+    """
+
+    def __init__(self, data: dict) -> None:
+        self.granted_asset_ids: list[int] = data.get("successAssetIds", [])
+        self.failed_asset_ids: dict[int, AssetPermissionResultError] = {}
+
+        for error in data.get("errors", []):
+            self.failed_asset_ids[error["assetId"]] = (
+                AssetPermissionResultError.__members__.get(
+                    error["code"], AssetPermissionResultError.Unknown
+                )
+            )
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.AssetPermissionsResult \
+granted_asset_ids={self.granted_asset_ids} \
+failed_asset_ids={self.failed_asset_ids}>"
+
+
 class Creator:
     """
     Represents an object that can upload assets, such as a user or a group.
@@ -1340,3 +1499,158 @@ class Creator:
             product.creator = self
 
         return product
+
+    async def grant_assets_permission(
+        self,
+        action: AssetPermissionAction,
+        subject: Union[
+            AssetPermissionSubject, "Experience", "User", "Group", "GroupRole"
+        ],
+        assets: list[Union[int, Asset, AssetPermissionRequest]],
+    ) -> AssetPermissionsResult:
+        """
+        Grants permission to the subject to perform the specified action \
+        on the provided assets. See the table in \
+        [`AssetPermissionAction`][rblxopencloud.AssetPermissionAction] for \
+        allowed actions per asset and subject type.
+
+        Args:
+            action: The action to grant permission for.
+            subject: The subject to grant the permission to.
+            assets: The asset IDs or assets to grant permission for. Use \
+                [`AssetPermissionRequest`][rblxopencloud.AssetPermissionRequest] \
+                to specify additional options per asset.
+        
+        Returns:
+            The results of each asset permission grant request. Do not expect \
+            the function to raise an exceptions for errors, instead check the \
+            `failed_asset_ids` attribute.
+        
+        !!! warning
+            Once permission is granted to a subject, it cannot be revoked \
+            using the API. It may also not be able to be revoked using the \
+            website, depending on the asset type and subject type. For \
+            instance, granting Open Use to All on a decal sets it as Open Use \
+            which cannot be revoked; however, granting Download to All on a \
+            place can be revoked on the Creator Dashboard.
+        
+        !!! example
+            Setting the root place of an experience to be *uncopylocked.*
+            ```python
+            from rblxopencloud import Experience, AssetPermissionAction, \
+                AssetPermissionSubject, AssetPermissionSubjectType
+            
+            experience = Experience(00000000, "...") # initialise with ID and API key
+            experience.fetch_info() # Fetch root place
+
+            # grant download permission to everyone on Roblox
+            experience.creator.grant_assets_permission(
+                action=AssetPermissionAction.Download,
+                subject=AssetPermissionSubject(
+                    type=AssetPermissionSubjectType.All
+                ),
+                assets=[experience.root_place.get_asset()]
+            )
+            >>> <rblxopencloud.AssetPermissionsResult \
+granted_asset_ids=[00000000] failed_asset_ids={}>
+            ```
+
+            Setting an asset to be Open Use.
+            ```python
+            from rblxopencloud import User, AssetPermissionAction, \
+                AssetPermissionSubject, AssetPermissionSubjectType, \
+                AssetPermissionRequest
+
+            creator = User(00000000, "...") # initialise with user ID and API key
+
+            creator.grant_assets_permission(
+                action=AssetPermissionAction.Use,
+                subject=AssetPermissionSubject(
+                    type=AssetPermissionSubjectType.All
+                ),
+                assets=[
+                    AssetPermissionRequest(
+                        asset_id=00000000, # ID of the asset to grant permission for
+                        grant_dependencies=True
+                    )
+                ]
+            )
+            >>> <rblxopencloud.AssetPermissionsResult \
+granted_asset_ids=[00000000] failed_asset_ids={}>
+            ```
+
+            Granting a specific user permission to use an asset.
+            ```python
+            from rblxopencloud import User, AssetPermissionAction, \
+                AssetPermissionSubject, AssetPermissionSubjectType, \
+                AssetPermissionRequest
+
+            creator = User(00000000, "...") # initialise with user ID and API key
+
+            creator.grant_assets_permission(
+                action=AssetPermissionAction.Use,
+                subject=AssetPermissionSubject( # subject can also be a User or Group object
+                    type=AssetPermissionSubjectType.User,
+                    id=00000000 # ID of the user to grant permission to
+                ),
+                assets=[
+                    AssetPermissionRequest(
+                        asset_id=00000000, # ID of the asset to grant permission for
+                        grant_dependencies=True
+                    )
+                ]
+            )
+            >>> <rblxopencloud.AssetPermissionsResult \
+granted_asset_ids=[00000000] failed_asset_ids={}>
+            ```
+        """
+
+        from .experience import Experience
+        from .group import Group, GroupRole
+        from .user import User
+
+        if isinstance(subject, AssetPermissionSubject):
+            subject_type = subject.type.name
+        elif isinstance(subject, Experience):
+            subject_type = AssetPermissionSubjectType.Experience.name
+        elif isinstance(subject, User):
+            subject_type = AssetPermissionSubjectType.User.name
+        elif isinstance(subject, Group):
+            subject_type = AssetPermissionSubjectType.Group.name
+        elif isinstance(subject, GroupRole):
+            subject_type = AssetPermissionSubjectType.GroupRoleset.name
+        else:
+            raise ValueError("Invalid subject type provided.")
+
+        requests = []
+
+        for asset in assets:
+            if isinstance(asset, int):
+                requests.append({"assetId": asset})
+            elif isinstance(asset, Asset):
+                requests.append({"assetId": asset.id})
+            elif isinstance(asset, AssetPermissionRequest):
+                requests.append(
+                    {
+                        "assetId": asset.asset_id,
+                        "grantDependencies": asset.grant_dependencies,
+                        "versionNumber": asset.version_number,
+                    }
+                )
+            else:
+                raise ValueError("Invalid asset type provided.")
+
+        _, data, _ = await send_request(
+            "PATCH",
+            "asset-permissions-api/v1/assets/permissions",
+            expected_status=[200],
+            authorization=self.__api_key,
+            json={
+                "subjectType": subject_type,
+                "subjectId": subject.id,
+                "action": action.name,
+                "requests": requests,
+            },
+        )
+
+        return AssetPermissionsResult(data)
