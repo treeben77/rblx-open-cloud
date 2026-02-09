@@ -23,7 +23,7 @@
 from datetime import datetime
 from typing import Optional, Union, Self
 
-from .creator import Asset, AssetType, Creator, CreatorStoreProduct
+from .creator import Asset, AssetType, CreatorStoreProduct
 from .datastore import DataStore
 from .experience import Experience
 from .group import Group
@@ -31,10 +31,10 @@ from .http import send_request
 from .toolbox import ToolboxAsset
 from .user import User
 
-__all__ = ("ApiKey",)
+__all__ = ("ApiKey", "ApiKeyScope")
 
 
-class Scope:
+class ApiKeyScope:
     """
     Represents an API key scope used for the introspect endpoint. `name` \
     and `operations` are always available, while the other attributes depend \
@@ -42,7 +42,7 @@ class Scope:
 
     Attributes:
         name: The name of the scope; for instance, `universe-datastores.objects`.
-        operations: The allowed operations for the scope such as `read` and write`.
+        operations: The allowed operations for the scope such as `read` and `write`.
         experiences: A list of experiences the scope applies to, if any. \
         Will be `None` if not applicable. `True` indicates all experiences.
         users: A list of users the scope applies to, if any. Will be `None` \
@@ -173,7 +173,7 @@ class ApiKey:
         self.expired: Optional[bool] = None
         self.expires_at: Optional[datetime] = None
         self.authorized_user: Optional[User] = None
-        self.scopes: Optional[list[Scope]] = None
+        self.scopes: Optional[list[ApiKeyScope]] = None
 
     def fetch_info(self) -> Self:
         """
@@ -202,7 +202,8 @@ class ApiKey:
         self.authorized_user = User(data["authorizedUserId"], self.__api_key)
 
         self.scopes = [
-            Scope(scope, self.__api_key) for scope in data.get("scopes", [])
+            ApiKeyScope(scope, self.__api_key)
+            for scope in data.get("scopes", [])
         ]
 
         return self
