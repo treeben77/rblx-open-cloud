@@ -1348,7 +1348,7 @@ class Creator:
         roblox_social_link: Optional[Union[AssetSocialLink, None]] = None,
         guilded_social_link: Optional[Union[AssetSocialLink, None]] = None,
         devforum_social_link: Optional[Union[AssetSocialLink, None]] = None,
-        try_place_id: Optional[Union[int, False]] = None,
+        try_place_id: Optional[Union[int, bool]] = None,
     ) -> Operation[Asset]:
         """
         Updates an asset on Roblox with the provided file. The following \
