@@ -22,7 +22,14 @@
 
 from base64 import urlsafe_b64encode
 import datetime
-from typing import Any, AsyncGenerator, Optional
+from enum import Enum
+import sys
+from typing import Any, AsyncGenerator, Optional, TypedDict
+
+if sys.version_info >= (3, 11):
+    from typing import NotRequired
+else:
+    from typing_extensions import NotRequired
 
 from dateutil import parser
 
@@ -37,6 +44,9 @@ __all__ = (
     "GroupRolePermissions",
     "GroupShout",
     "GroupJoinRequest",
+    "GroupAuditLogEntry",
+    "GroupAuditLogEntryDescription",
+    "GroupAuditLogEntryActionType",
 )
 
 
@@ -165,8 +175,8 @@ class GroupMember(User):
         id (int): The user ID of the group member.
         role_id (int): The role ID assigned to the group member.
         group (Group): The group this group member is associated with.
-        joined_at (datetime.datetime): The time the user joined the group.
-        updated_at (datetime.datetime): The time the user was last update in \
+        joined_at (Optional[datetime.datetime]): The time the user joined the group.
+        updated_at (Optional[datetime.datetime]): The time the user was last update in \
         the group (Such as rank change).
     """
 
@@ -178,8 +188,16 @@ class GroupMember(User):
             if group
             else Group(int(member["role"].split("/")[1]), api_key)
         )
-        self.joined_at: datetime.datetime = parser.parse(member["createTime"])
-        self.updated_at: datetime.datetime = parser.parse(member["updateTime"])
+        self.joined_at: datetime.datetime = (
+            parser.parse(member["createTime"])
+            if member.get("createTime")
+            else None
+        )
+        self.updated_at: datetime.datetime = (
+            parser.parse(member["updateTime"])
+            if member.get("updateTime")
+            else None
+        )
         super().__init__(self.id, api_key)
 
     def __repr__(self) -> str:
@@ -267,6 +285,305 @@ group={self.group}>"
         ][rblxopencloud.Group.decline_join_request].
         """
         return self.group.decline_join_request(self.id)
+
+
+class GroupAuditLogEntryActionType(Enum):
+    """
+    Enum denoting the action type of a group audit log entry.
+
+    Attributes:
+        Unknown (0): An unknown action type.
+        DeletePost (1):
+        RemoveMember (2):
+        AcceptJoinRequest (3):
+        DeclineJoinRequest (4):
+        PostStatus (5):
+        ChangeRank (6):
+        BuyAd (7):
+        SendAllyRequest (8):
+        CreateEnemy (9):
+        AcceptAllyRequest (10):
+        DeclineAllyRequest (11):
+        DeleteAlly (12):
+        DeleteEnemy (13):
+        AddGroupPlace (14):
+        RemoveGroupPlace (15):
+        CreateItems (16):
+        ConfigureItems (17):
+        SpendGroupFunds (18):
+        ChangeOwner (19):
+        Delete (20):
+        AdjustCurrencyAmounts (21):
+        Abandon (22):
+        Claim (23):
+        Rename (24):
+        ChangeDescription (25):
+        InviteToClan (26):
+        KickFromClan (27):
+        CancelClanInvite (28):
+        BuyClan (29):
+        CreateGroupAsset (30):
+        UpdateGroupAsset (31):
+        ConfigureGroupAsset (32):
+        RevertGroupAsset (33):
+        CreateGroupDeveloperProduct (34):
+        ConfigureGroupGame (35):
+        CreateGroupDeveloperSubscriptionProduct (36):
+        Lock (37):
+        Unlock (38):
+        CreateGamePass (39):
+        CreateBadge (40):
+        ConfigureBadge (41):
+        SavePlace (42):
+        PublishPlace (43):
+        UpdateRolesetRank (44):
+        UpdateRolesetData (45):
+        BanMember (46):
+        UnbanMember (47):
+        CreateForumCategory (48):
+        UpdateForumCategory (49):
+        ArchiveForumCategory (50):
+        DeleteForumCategory (51):
+        DeleteForumPost (52):
+        DeleteForumComment (53):
+        PinForumPost (54):
+        UnpinForumPost (55):
+        LockForumPost (56):
+        UnlockForumPost (57):
+        CreateRoleset (58):
+        DeleteRoleset (59):
+        CreateCommerceProduct (60):
+        SetCommerceProductActive (61):
+        ArchiveCommerceProduct (62):
+        AcceptCommerceProductBundlingFee (63):
+        SetCommerceProductInactive (64):
+        ConnectMerchant (65):
+        DisconnectMerchant (66):
+        JoinGroup (67):
+        LeaveGroup (68):
+        UpdateGroupIcon (69):
+        UpdateGroupCoverPhoto (70):
+
+    """
+
+    Unknown = 0
+    DeletePost = 1
+    RemoveMember = 2
+    AcceptJoinRequest = 3
+    DeclineJoinRequest = 4
+    PostStatus = 5
+    ChangeRank = 6
+    BuyAd = 7
+    SendAllyRequest = 8
+    CreateEnemy = 9
+    AcceptAllyRequest = 10
+    DeclineAllyRequest = 11
+    DeleteAlly = 12
+    DeleteEnemy = 13
+    AddGroupPlace = 14
+    RemoveGroupPlace = 15
+    CreateItems = 16
+    ConfigureItems = 17
+    SpendGroupFunds = 18
+    ChangeOwner = 19
+    Delete = 20
+    AdjustCurrencyAmounts = 21
+    Abandon = 22
+    Claim = 23
+    Rename = 24
+    ChangeDescription = 25
+    InviteToClan = 26
+    KickFromClan = 27
+    CancelClanInvite = 28
+    BuyClan = 29
+    CreateGroupAsset = 30
+    UpdateGroupAsset = 31
+    ConfigureGroupAsset = 32
+    RevertGroupAsset = 33
+    CreateGroupDeveloperProduct = 34
+    ConfigureGroupGame = 35
+    CreateGroupDeveloperSubscriptionProduct = 36
+    Lock = 37
+    Unlock = 38
+    CreateGamePass = 39
+    CreateBadge = 40
+    ConfigureBadge = 41
+    SavePlace = 42
+    PublishPlace = 43
+    UpdateRolesetRank = 44
+    UpdateRolesetData = 45
+    BanMember = 46
+    UnbanMember = 47
+    CreateForumCategory = 48
+    UpdateForumCategory = 49
+    ArchiveForumCategory = 50
+    DeleteForumCategory = 51
+    DeleteForumPost = 52
+    DeleteForumComment = 53
+    PinForumPost = 54
+    UnpinForumPost = 55
+    LockForumPost = 56
+    UnlockForumPost = 57
+    CreateRoleset = 58
+    DeleteRoleset = 59
+    CreateCommerceProduct = 60
+    SetCommerceProductActive = 61
+    ArchiveCommerceProduct = 62
+    AcceptCommerceProductBundlingFee = 63
+    SetCommerceProductInactive = 64
+    ConnectMerchant = 65
+    DisconnectMerchant = 66
+    JoinGroup = 67
+    LeaveGroup = 68
+    UpdateGroupIcon = 69
+    UpdateGroupCoverPhoto = 70
+
+
+class GroupAuditLogEntryDescription(TypedDict):
+    """
+    Represents the description of a group audit log entry returned by \
+    Roblox. It contains information regarding the change that was made.
+    
+    !!! note:
+        This is a TypedDict, meaning the returned type is a dictionary. The \
+        attributed documented below are keys, not class attributes.Note that \
+        not all fields are present for every entry and that some fields \
+        may not be documented here. The following is a best effort based on \
+        available documentation.
+
+    Attributes:
+        AssetType (NotRequired[str]):
+        AssetId (NotRequired[int]):
+        AssetName (NotRequired[str]):
+        VersionNumber (NotRequired[int]):
+        RevertVersionNumber (NotRequired[Optional[int]]):
+        TargetId (NotRequired[int]):
+        TargetName (NotRequired[str]):
+        TargetDisplayName (NotRequired[str]):
+        NewRoleSetId (NotRequired[int]):
+        OldRoleSetId (NotRequired[int]):
+        NewRoleSetName (NotRequired[str]):
+        OldRoleSetName (NotRequired[str]):
+        Actions (NotRequired[Optional[list[int]]]):
+        Type (NotRequired[Optional[int]]):
+        UniverseId (NotRequired[Optional[int]]):
+        UniverseName (NotRequired[str]):
+        NewDescription (NotRequired[str]):
+        NewName (NotRequired[str]):
+        OldDescription (NotRequired[str]):
+        OldName (NotRequired[str]):
+        RoleSetId (NotRequired[int]):
+        RoleSetName (NotRequired[str]):
+        PostDesc (NotRequired[str]):
+        BadgeId (NotRequired[int]):
+        BadgeName (NotRequired[str]):
+        Amount (NotRequired[int]):
+        CurrencyTypeId (NotRequired[int]):
+        ItemDescription (NotRequired[str]):
+        CurrencyTypeName (NotRequired[str]):
+        NewRank (NotRequired[int]):
+        OldRank (NotRequired[int]):
+        Text (NotRequired[str]):
+        GamePassId (NotRequired[int]):
+        PlaceId (NotRequired[int]):
+        GamePassName (NotRequired[str]):
+        PlaceName (NotRequired[str]):
+        TargetGroupId (NotRequired[int]):
+        TargetGroupName (NotRequired[str]):
+    """
+
+    AssetType: NotRequired[str]
+    AssetId: NotRequired[int]
+    AssetName: NotRequired[str]
+    VersionNumber: NotRequired[int]
+    RevertVersionNumber: NotRequired[Optional[int]]
+    TargetId: NotRequired[int]
+    TargetName: NotRequired[str]
+    TargetDisplayName: NotRequired[str]
+    NewRoleSetId: NotRequired[int]
+    OldRoleSetId: NotRequired[int]
+    NewRoleSetName: NotRequired[str]
+    OldRoleSetName: NotRequired[str]
+    Actions: NotRequired[Optional[list[int]]]
+    Type: NotRequired[Optional[int]]
+    UniverseId: NotRequired[Optional[int]]
+    UniverseName: NotRequired[str]
+    NewDescription: NotRequired[str]
+    NewName: NotRequired[str]
+    OldDescription: NotRequired[str]
+    OldName: NotRequired[str]
+    RoleSetId: NotRequired[int]
+    RoleSetName: NotRequired[str]
+    PostDesc: NotRequired[str]
+    BadgeId: NotRequired[int]
+    BadgeName: NotRequired[str]
+    Amount: NotRequired[int]
+    CurrencyTypeId: NotRequired[int]
+    ItemDescription: NotRequired[str]
+    CurrencyTypeName: NotRequired[str]
+    NewRank: NotRequired[int]
+    OldRank: NotRequired[int]
+    Text: NotRequired[str]
+    GamePassId: NotRequired[int]
+    PlaceId: NotRequired[int]
+    GamePassName: NotRequired[str]
+    PlaceName: NotRequired[str]
+    TargetGroupId: NotRequired[int]
+    TargetGroupName: NotRequired[str]
+
+
+class GroupAuditLogEntry:
+    """
+    Represents an entry in a group's audit log.
+
+    Attributes:
+        member: The member who performed the action logged in this entry. The \
+        `username`, `display_name`, `role_id` and `verified` attributes are \
+        resolved.
+        action_type: The type of action performed in this entry.
+        description: A dictionary containing raw information regarding the \
+        action, such as the target user, experience, asset, rank, text, etc.
+        created_at: The time when the action logged was performed.
+    """
+
+    def __init__(self, entry, group: "Group", api_key) -> None:
+
+        self.member: GroupMember = GroupMember(
+            {
+                "user": f"users/{entry['actor']['user']['userId']}",
+                "role": f"groups/{entry['actor']['role']['id']}",
+            },
+            api_key,
+            group,
+        )
+        self.member.username = entry["actor"]["user"].get("username")
+        self.member.display_name = entry["actor"]["user"].get("displayName")
+        self.member.verified = entry["actor"]["user"].get("hasVerifiedBadge")
+
+        if not group._Group__role_cache.get(int(entry["actor"]["role"]["id"])):
+            group._Group__role_cache[int(entry["actor"]["role"]["id"])] = {
+                "id": entry["actor"]["role"]["id"],
+                "displayName": entry["actor"]["role"].get("name"),
+                "rank": entry["actor"]["role"].get("rank"),
+            }
+
+        self.action_type: GroupAuditLogEntryActionType = (
+            GroupAuditLogEntryActionType._member_map_.get(
+                entry.get("actionType", "Unknown").replace(" ", ""),
+                GroupAuditLogEntryActionType.Unknown,
+            )
+        )
+
+        self.description: GroupAuditLogEntryDescription = entry.get(
+            "description", {}
+        )
+
+        self.created_at: Optional[datetime.datetime] = (
+            parser.parse(entry["created"]) if entry.get("created") else None
+        )
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.GroupAuditLogEntry action_type={self.action_type} created_at={self.created_at}>"
 
 
 class Group(Creator):
@@ -592,3 +909,91 @@ class Group(Creator):
             expected_status=[200],
             json={},
         )
+
+    async def list_audit_logs(
+        self,
+        limit: int = None,
+        action_type: "GroupAuditLogEntryActionType" = None,
+        user_id: int = None,
+        descending: bool = True,
+    ) -> AsyncGenerator[Any, "GroupAuditLogEntry"]:
+        """
+        Lists the audit log entries for the group, optionally filtered by \
+        action type and user ID.
+
+        Requires `legacy-group:manage` on an API Key or OAuth2 authorization.
+
+        Args:
+            limit: The maximum number of audit log entries to iterate. \
+            Defaults to `None`, meaning no limit.
+            action_type: Filters audit log entries to only return those of \
+            the specified action type.
+            user_id: Filters audit log entries to only return those performed \
+            by the specified user ID.
+            descending: Whether to sort the audit log entries in descending \
+            order by creation time meaning the most recent entries are \
+            returned first.
+
+        Yields:
+            The audit log entries for each audit log entry found.
+
+        ???+ warning "Edge case with role caching"
+            This endpoint caches some basic rank info (e.g. role ID, name, \
+            and rank number) for any role found in the audit log. This means \
+            that calls to [`GroupMember.fetch_role`][rblxopencloud.GroupMember.fetch_role] \
+            will use the cached role information. While this means that \
+            additional requests aren't used for these members, it means that \
+            information such as permissions, member counts and descriptions \
+            are unavailable for these cached roles.
+
+            Furthermore, it means future requests to [`GroupMember.fetch_role`][rblxopencloud.GroupMember.fetch_role] \
+            and [`Group.fetch_role`][rblxopencloud.Group.fetch_role] \
+            for roles not found in the audit log will not be cached, so \
+            `None` will be returned instead.
+
+            If you want to ensure all role information is available and all \
+            roles are available, you should either call [`Group.list_roles`][rblxopencloud.Group.list_roles] \
+            before calling this method or set `skip_cache=True` for the next \
+            call to [`GroupMember.fetch_role`][rblxopencloud.GroupMember.fetch_role] \
+            or [`Group.fetch_role`][rblxopencloud.Group.fetch_role] afterwards.
+        
+        ??? example
+            Prints the 50 most recent audit log entries for saving a place to \
+            the console, along with the username of the member who performed \
+            the action, their role name in the group and the place name and \
+            version ID.
+            ```python
+            async for entry in group.list_audit_logs(limit=50, action_type=GroupAuditLogEntryActionType.SavePlace):
+                # Fetch role will not make an additional request because the role info is cached from the audit log entry request
+                role = await entry.member.fetch_role()
+                print(
+                    f"{entry.member.username} ({role.name}) saved {entry.description.get('AssetName')}, version ID: {entry.description.get('VersionNumber')}"
+                )
+            ```
+        """
+
+        if limit and limit <= 10:
+            passed_limit = 10
+        elif limit and limit <= 25:
+            passed_limit = 25
+        elif limit and limit <= 50:
+            passed_limit = 50
+        else:
+            passed_limit = 100
+
+        async for entry in iterate_request(
+            "GET",
+            f"legacy-groups/v1/groups/{self.id}/audit-log",
+            authorization=self.__api_key,
+            params={
+                "limit": passed_limit,
+                "userId": user_id,
+                "sortOrder": "Desc" if descending else "Asc",
+                "actionType": action_type.name if action_type else None,
+            },
+            data_key="data",
+            cursor_key="cursor",
+            max_yields=limit,
+            expected_status=[200],
+        ):
+            yield GroupAuditLogEntry(entry, self, self.__api_key)

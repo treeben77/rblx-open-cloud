@@ -70,7 +70,7 @@ class ToolboxAsset:
         if creatorid := data.get("creator", {}).get("userId"):
             data_creator = User(creatorid, self.__api_key)
             data_creator.username = data.get("creator", {}).get("name")
-            data_creator.id_verified = data.get("creator", {}).get("verified")
+            data_creator.verified = data.get("creator", {}).get("verified")
         elif creatorid := data.get("creator", {}).get("groupId"):
             data_creator = Group(
                 creatorid,

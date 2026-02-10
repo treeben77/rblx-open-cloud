@@ -17,3 +17,9 @@
 ::: rblxopencloud.GroupJoinRequest
     options:
         inherited_members: false
+
+::: rblxopencloud.GroupAuditLogEntry
+
+::: rblxopencloud.GroupAuditLogEntryActionType
+
+::: rblxopencloud.GroupAuditLogEntryDescription

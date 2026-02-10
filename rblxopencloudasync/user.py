@@ -477,6 +477,9 @@ class User(Creator):
             `user.advanced:read`.
         social_links (Optional[UserSocialLinks]): The user's social links. \
             Requires the scope `user.social:read`.
+        verified (Optional[bool]): Whether the user has a verified badge. \
+            This is not populated by `fetch_info()`, but is populated for \
+            users returned by the group audit logs and toolbox endpoints.
     """
 
     def __init__(self, id: int, api_key: str) -> None:
@@ -491,6 +494,7 @@ class User(Creator):
         self.premium: Optional[bool] = None
         self.id_verified: Optional[bool] = None
         self.social_links: Optional[UserSocialLinks] = None
+        self.verified: Optional[bool] = None
 
         self.__api_key = api_key
 
