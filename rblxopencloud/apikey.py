@@ -271,6 +271,7 @@ class ApiKey:
             "robloxSocialLink",
             "guildedSocialLink",
             "devForumSocialLink",
+            "tryAssetSocialLink",
         ]
 
         _, data, _ = send_request(

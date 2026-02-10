@@ -469,6 +469,7 @@ class Asset:
         roblox_social_link: The asset's Roblox social link.
         guilded_social_link: The asset's Guilded social link.
         devforum_social_link: The asset's DevForum social link.
+        try_place_id: The place ID set for the asset's 'Try in Roblox' button.
     """
 
     def __init__(self, data: dict, creator, api_key) -> None:
@@ -595,6 +596,12 @@ class Asset:
                 data["devForumSocialLink"].get("uri"),
             )
             if data.get("devForumSocialLink")
+            else None
+        )
+
+        self.try_place_id: Optional[int] = (
+            int(data["tryAssetSocialLink"]["uri"])
+            if data.get("tryAssetSocialLink", {}).get("uri")
             else None
         )
 
@@ -1341,6 +1348,7 @@ class Creator:
         roblox_social_link: Optional[Union[AssetSocialLink, None]] = None,
         guilded_social_link: Optional[Union[AssetSocialLink, None]] = None,
         devforum_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        try_place_id: Optional[Union[int, False]] = None,
     ) -> Operation[Asset]:
         """
         Updates an asset on Roblox with the provided file. The following \
@@ -1376,6 +1384,8 @@ class Creator:
             or `False` to remove the social link.
             devforum_social_link: The new DevForum social link for the asset, \
             or `False` to remove the social link.
+            try_place_id: A place ID to set for the asset's 'Try in Roblox' \
+            button. Set to `False` to remove the Try in Roblox button.
 
         Returns:
             Returns a [`Operation`][rblxopencloud.Operation] for the asset \
@@ -1425,6 +1435,11 @@ class Creator:
                 else:
                     # any social link is being removed
                     field_mask.append(f"{platform}SocialLink")
+
+        if try_place_id is not None:
+            if try_place_id is not False:
+                payload["tryAssetSocialLink"] = {"uri": str(try_place_id)}
+            field_mask.append("tryAssetSocialLink")
 
         if file:
             body, contentType = urllib3.encode_multipart_formdata(
