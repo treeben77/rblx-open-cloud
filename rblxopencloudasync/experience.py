@@ -1418,35 +1418,35 @@ classes/MessagingService).
             ```
         """
 
-        if place_ids is not None:
-            resolved_place_ids = []
+        payload = {
+            "placeIds": [],
+            "closeAllVersions": not exclude_latest_version,
+            "bleedOffServers": bleed_servers_minutes is not None,
+        }
 
+        if bleed_servers_minutes is not None:
+            payload["bleedOffDurationMinutes"] = bleed_servers_minutes
+
+        if place_ids is not None:
             for place in place_ids:
                 if type(place) == Place:
-                    resolved_place_ids.append(place.id)
+                    payload["placeIds"].append(place.id)
                 elif type(place) == int:
-                    resolved_place_ids.append(place)
+                    payload["placeIds"].append(place)
                 elif type(place) == str and place.isdigit():
-                    resolved_place_ids.append(int(place))
+                    payload["placeIds"].append(int(place))
                 else:
                     raise ValueError(
                         "place_ids must be a list of Place objects, \
                         integers, or strings representing integers."
                     )
-        else:
-            resolved_place_ids = None
 
         await send_request(
             "POST",
             f"/universes/{self.id}:restartServers",
             authorization=self.__api_key,
             expected_status=[200],
-            json={
-                "placeIds": resolved_place_ids,
-                "closeAllVersions": not exclude_latest_version,
-                "bleedOffServers": bleed_servers_minutes is not None,
-                "bleedServersMinutes": bleed_servers_minutes,
-            },
+            json=payload,
         )
 
     async def flush_memory_store(self) -> Operation[bool]:

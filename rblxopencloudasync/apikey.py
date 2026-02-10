@@ -21,7 +21,14 @@
 # SOFTWARE.
 
 from datetime import datetime
-from typing import Optional, Union, Self
+import sys
+from typing import Optional, Union
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
+
 
 from .creator import Asset, AssetType, CreatorStoreProduct
 from .datastore import DataStore
