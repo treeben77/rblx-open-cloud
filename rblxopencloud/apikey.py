@@ -262,7 +262,15 @@ class ApiKey:
             "state",
             "description",
             "icon",
-            "socialLink",
+            "facebookSocialLink",
+            "twitterSocialLink",
+            "youtubeSocialLink",
+            "twitchSocialLink",
+            "discordSocialLink",
+            "githubSocialLink",
+            "robloxSocialLink",
+            "guildedSocialLink",
+            "devForumSocialLink",
         ]
 
         _, data, _ = send_request(

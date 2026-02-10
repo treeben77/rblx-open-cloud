@@ -21,24 +21,21 @@
 # SOFTWARE.
 
 from datetime import datetime
+from enum import Enum
 from typing import Optional, Union
 
 from dateutil import parser
 
-from .creator import Asset, AssetType, Creator, CreatorStoreProduct
+from .creator import (
+    Asset,
+    AssetType,
+    Creator,
+    CreatorStoreProduct,
+    LEGACY_ASSET_TYPE_ENUMS,
+)
 from .group import Group
 from .user import User
 
-ASSET_TYPE_IDS = {
-    3: AssetType.Audio,
-    10: AssetType.Model,
-    13: AssetType.Decal,
-    24: AssetType.Animation,
-    38: AssetType.Plugin,
-    40: AssetType.MeshPart,
-    62: AssetType.Video,
-    73: AssetType.FontFamily,
-}
 
 CREATOR_STORE_ASSET_ID_KEYS = {
     AssetType.Unknown: "assetId",
@@ -49,6 +46,20 @@ CREATOR_STORE_ASSET_ID_KEYS = {
     AssetType.MeshPart: "meshPartAssetId",
     AssetType.Video: "videoAssetId",
     AssetType.FontFamily: "fontFamilyAssetId",
+}
+
+
+class ModelSubtypeEnum(Enum):
+    Unknown = 0
+    Ad = 1
+    MaterialPack = 2
+    Package = 3
+
+
+MODEL_SUBTYPE_ENUMS = {
+    "Ad": ModelSubtypeEnum.Ad,
+    "MaterialPack": ModelSubtypeEnum.MaterialPack,
+    "Package": ModelSubtypeEnum.Package,
 }
 
 
@@ -84,7 +95,27 @@ class ToolboxAsset:
         if (not data_creator and creator) or (
             type(creator) in (Creator, User, Group)
             and data_creator.id == creator.id
+            and type(data_creator) == type(creator)
         ):
+            if (
+                data_creator
+                and isinstance(creator, (User, Group))
+                and not creator.verified
+            ):
+                creator.verified = data_creator.verified
+            if (
+                data_creator
+                and isinstance(creator, Group)
+                and not creator.name
+            ):
+                creator.name = data_creator.name
+            if (
+                data_creator
+                and isinstance(creator, User)
+                and not creator.username
+            ):
+                creator.username = data_creator.username
+
             self.creator: Union[Creator, User, Group] = creator
         else:
             self.creator: Union[Creator, User, Group] = data_creator
@@ -94,7 +125,7 @@ class ToolboxAsset:
             if data.get("asset", {}).get("id")
             else None
         )
-        self.asset_type: AssetType = ASSET_TYPE_IDS.get(
+        self.asset_type: AssetType = LEGACY_ASSET_TYPE_ENUMS.get(
             data.get("asset", {}).get("assetTypeId"), AssetType.Unknown
         )
 
@@ -135,53 +166,103 @@ class ToolboxAsset:
 
         self.creator_store_product.creator = self.creator
 
+        self.model_subtypes: list[ModelSubtypeEnum] = []
+
+        for subtype in data.get("asset", {}).get("subTypes", []):
+            self.model_subtypes.append(
+                MODEL_SUBTYPE_ENUMS.get(subtype, ModelSubtypeEnum.Unknown)
+            )
+
+        self.has_scripts: bool = data.get("asset", {}).get("hasScripts")
+        self.script_count: int = data.get("asset", {}).get("scriptCount")
+        self.triangle_count: int = (
+            data.get("asset", {}).get("objectMeshSummary", {}).get("triangles")
+        )
+        self.vertex_count: int = (
+            data.get("asset", {}).get("objectMeshSummary", {}).get("vertices")
+        )
+        self.mesh_part_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("meshPart")
+        )
+        self.animation_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("animation")
+        )
+        self.decal_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("decal")
+        )
+        self.audio_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("audio")
+        )
+        self.tool_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("tool")
+        )
+
+        self.duration_seconds: Optional[int] = data.get("asset", {}).get(
+            "durationSeconds"
+        )
+
+        self.artist: Optional[str] = data.get("asset", {}).get("artist")
+        self.album: Optional[str] = data.get("asset", {}).get("album")
+        self.title: Optional[str] = data.get("asset", {}).get("title")
+        self.genre: Optional[str] = data.get("asset", {}).get("genre")
+
+        self.category: Optional[str] = data.get("asset", {}).get("category")
+        self.subcategory: Optional[str] = data.get("asset", {}).get(
+            "subcategory"
+        )
+
+        self.mesh_asset_id: Optional[int] = data.get("asset", {}).get("meshId")
+        self.texture_asset_id: Optional[int] = data.get("asset", {}).get(
+            "textureId"
+        )
+
         {
-            "voting": {
-                "showVotes": True,
-                "upVotes": 0,
-                "downVotes": 0,
-                "canVote": True,
-                "hasVoted": False,
-                "voteCount": 0,
-                "upVotePercent": 0,
-            },
-            "creator": {
-                "creator": "user/287113233",
-                "userId": 287113233,
-                "name": "TreeBen77",
-                "verified": True,
-            },
-            "creatorStoreProduct": {
-                "purchasePrice": {
-                    "currencyCode": "USD",
-                    "quantity": {"significand": 0, "exponent": 0},
-                },
-                "purchasable": True,
-            },
+            # "voting": {
+            #     "showVotes": True,
+            #     "upVotes": 0,
+            #     "downVotes": 0,
+            #     "canVote": True,
+            #     "hasVoted": False,
+            #     "voteCount": 0,
+            #     "upVotePercent": 0,
+            # },
+            # "creator": {
+            #     "creator": "user/287113233",
+            #     "userId": 287113233,
+            #     "name": "TreeBen77",
+            #     "verified": True,
+            # },
+            # "creatorStoreProduct": {
+            #     "purchasePrice": {
+            #         "currencyCode": "USD",
+            #         "quantity": {"significand": 0, "exponent": 0},
+            #     },
+            #     "purchasable": True,
+            # },
             "asset": {
                 "subTypes": [],
-                "hasScripts": False,
-                "scriptCount": 0,
-                "objectMeshSummary": {"triangles": 552, "vertices": 912},
-                "instanceCounts": {
-                    "script": 0,
-                    "meshPart": 1,
-                    "animation": 0,
-                    "decal": 0,
-                    "audio": 0,
-                    "tool": 0,
-                },
-                "id": 14903722621,
-                "name": "firehydrant",
-                "description": "A simple fire hydrant to keep the flames away!",
-                "assetTypeId": 10,
+                # "hasScripts": False,
+                # "scriptCount": 0,
+                # "objectMeshSummary": {"triangles": 552, "vertices": 912},
+                # "instanceCounts": {
+                #     "script": 0,
+                #     "meshPart": 1,
+                #     "animation": 0,
+                #     "decal": 0,
+                #     "audio": 0,
+                #     "tool": 0,
+                # },
+                # "id": 14903722621,
+                # "name": "firehydrant",
+                # "description": "A simple fire hydrant to keep the flames away!",
+                # "assetTypeId": 10,
                 "socialLinks": [],
                 "previewAssets": {
                     "imagePreviewAssets": [],
                     "videoPreviewAssets": [],
                 },
-                "createTime": "2023-09-28T08:23:05.447Z",
-                "updateTime": "2025-12-11T11:41:07.2773289Z",
+                # "createTime": "2023-09-28T08:23:05.447Z",
+                # "updateTime": "2025-12-11T11:41:07.2773289Z",
             },
         }
 

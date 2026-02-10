@@ -34,3 +34,4 @@
 
 ::: rblxopencloud.AssetPermissionSubjectType
 
+::: rblxopencloud.AssetSocialLink

@@ -47,6 +47,7 @@ __all__ = (
     "AssetType",
     "ModerationStatus",
     "AssetPrivacy",
+    "AssetSocialLink",
     "AssetDeliveryLocation",
     "Asset",
     "AssetVersion",
@@ -374,6 +375,27 @@ ASSET_PRIVACY_ENUMS = {
 }
 
 
+class AssetSocialLink:
+    """
+    Represents a social link on an asset.
+
+    Args:
+        title: The text displayed for the social link.
+        uri: The URI of the social link.
+
+    Attributes:
+        title: The text displayed for the social link.
+        uri: The URI of the social link.
+    """
+
+    def __init__(self, uri: str, title: Optional[str] = None) -> None:
+        self.title: Optional[str] = title
+        self.uri: str = uri
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.AssetSocialLink uri="{self.uri}">'
+
+
 class AssetDeliveryLocation:
     """
     Represents a location to download an asset from Roblox.
@@ -438,6 +460,15 @@ class Asset:
         created. *Will be `None` if the asset type does not support updating.*
         is_archived: Whether the asset has been archived.
         icon_asset_id: The image asset ID of the asset's icon.
+        facebook_social_link: The asset's Facebook social link.
+        twitter_social_link: The asset's Twitter social link.
+        youtube_social_link: The asset's YouTube social link.
+        twitch_social_link: The asset's Twitch social link.
+        discord_social_link: The asset's Discord social link.
+        github_social_link: The asset's GitHub social link.
+        roblox_social_link: The asset's Roblox social link.
+        guilded_social_link: The asset's Guilded social link.
+        devforum_social_link: The asset's DevForum social link.
     """
 
     def __init__(self, data: dict, creator, api_key) -> None:
@@ -490,6 +521,80 @@ class Asset:
         self.revision_time: Optional[datetime] = (
             parser.parse(data["revisionCreateTime"])
             if data.get("revisionCreateTime")
+            else None
+        )
+
+        self.facebook_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["facebookSocialLink"].get("title"),
+                data["facebookSocialLink"].get("uri"),
+            )
+            if data.get("facebookSocialLink")
+            else None
+        )
+
+        self.twitter_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["twitterSocialLink"].get("title"),
+                data["twitterSocialLink"].get("uri"),
+            )
+            if data.get("twitterSocialLink")
+            else None
+        )
+        self.youtube_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["youtubeSocialLink"].get("title"),
+                data["youtubeSocialLink"].get("uri"),
+            )
+            if data.get("youtubeSocialLink")
+            else None
+        )
+        self.twitch_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["twitchSocialLink"].get("title"),
+                data["twitchSocialLink"].get("uri"),
+            )
+            if data.get("twitchSocialLink")
+            else None
+        )
+        self.discord_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["discordSocialLink"].get("title"),
+                data["discordSocialLink"].get("uri"),
+            )
+            if data.get("discordSocialLink")
+            else None
+        )
+        self.github_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["githubSocialLink"].get("title"),
+                data["githubSocialLink"].get("uri"),
+            )
+            if data.get("githubSocialLink")
+            else None
+        )
+        self.roblox_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["robloxSocialLink"].get("title"),
+                data["robloxSocialLink"].get("uri"),
+            )
+            if data.get("robloxSocialLink")
+            else None
+        )
+        self.guilded_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["guildedSocialLink"].get("title"),
+                data["guildedSocialLink"].get("uri"),
+            )
+            if data.get("guildedSocialLink")
+            else None
+        )
+        self.devforum_social_link: AssetSocialLink = (
+            AssetSocialLink(
+                data["devForumSocialLink"].get("title"),
+                data["devForumSocialLink"].get("uri"),
+            )
+            if data.get("devForumSocialLink")
             else None
         )
 
@@ -1227,6 +1332,15 @@ class Creator:
         name: str = None,
         description: str = None,
         expected_robux_price: int = 0,
+        facebook_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        twitter_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        youtube_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        twitch_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        discord_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        github_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        roblox_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        guilded_social_link: Optional[Union[AssetSocialLink, None]] = None,
+        devforum_social_link: Optional[Union[AssetSocialLink, None]] = None,
     ) -> Operation[Asset]:
         """
         Updates an asset on Roblox with the provided file. The following \
@@ -1244,6 +1358,24 @@ class Creator:
             description: The new description for the asset.
             expected_robux_price: The amount of robux expected to update this \
             asset. Will fail if lower than the actual price.
+            facebook_social_link: The new Facebook social link for the asset, \
+            or `False` to remove the social link.
+            twitter_social_link: The new Twitter social link for the asset, \
+            or `False` to remove the social link.
+            youtube_social_link: The new YouTube social link for the asset, \
+            or `False` to remove the social link.
+            twitch_social_link: The new Twitch social link for the asset, \
+            or `False` to remove the social link.
+            discord_social_link: The new Discord social link for the asset, \
+            or `False` to remove the social link.
+            github_social_link: The new GitHub social link for the asset, \
+            or `False` to remove the social link.
+            roblox_social_link: The new Roblox social link for the asset, \
+            or `False` to remove the social link.
+            guilded_social_link: The new Guilded social link for the asset, \
+            or `False` to remove the social link.
+            devforum_social_link: The new DevForum social link for the asset, \
+            or `False` to remove the social link.
 
         Returns:
             Returns a [`Operation`][rblxopencloud.Operation] for the asset \
@@ -1261,6 +1393,38 @@ class Creator:
             field_mask.append("displayName")
         if description:
             field_mask.append("description")
+
+        for platform, value in {
+            "facebook": facebook_social_link,
+            "twitter": twitter_social_link,
+            "youtube": youtube_social_link,
+            "twitch": twitch_social_link,
+            "discord": discord_social_link,
+            "guilded": guilded_social_link,
+            "github": github_social_link,
+            "roblox": roblox_social_link,
+            "devforum": devforum_social_link,
+        }.items():
+            # ignore parameters with a value of None
+            if value is not None:
+                if value is True:
+                    raise ValueError(
+                        f"{platform}_social_link should be either \
+                    AssetSocialLink or False."
+                    )
+
+                if platform == "devforum":
+                    platform = "devForum"
+
+                if type(value) == AssetSocialLink:
+                    payload[f"{platform}SocialLink"] = {
+                        "title": value.title,
+                        "uri": value.uri,
+                    }
+                    field_mask.append(f"{platform}SocialLink")
+                else:
+                    # any social link is being removed
+                    field_mask.append(f"{platform}SocialLink")
 
         if file:
             body, contentType = urllib3.encode_multipart_formdata(
