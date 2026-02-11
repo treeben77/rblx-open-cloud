@@ -44,6 +44,7 @@ __all__ = (
     "InventoryPrivateServer",
     "UserSocialLinks",
     "UserVisibility",
+    "UserExperienceFollowing",
 )
 
 
@@ -446,6 +447,60 @@ class UserSocialLinks:
         )
 
 
+class UserExperienceFollowing:
+    """
+    Data class storing information about an experience followed by a user.
+
+    Attributes:
+        is_following (bool): Whether the experience is followed.
+        experience (Experience): The experience that has been followed.
+        followed_at (Optional[datetime]): The time that the user followed the \
+        experience. Only present for when returned by \
+        [`fetch_experience_followings()`\
+        ][rblxopencloud.User.fetch_experience_followings]
+        can_follow (Optional[bool]): Whether the user can follow this \
+        experience. Only present for when returned by \
+        [`fetch_experience_following_status()`\
+        ][rblxopencloud.User.fetch_experience_following_status]
+        following_count (Optional[int]): The number of experiences the user \
+        is following [`fetch_experience_following_status()`\
+        ][rblxopencloud.User.fetch_experience_following_status]
+        following_limit (Optional[int]): The maximum number of experiences \
+        the user can follow. Only present for when returned by \
+        [`fetch_experience_following_status()`\
+        ][rblxopencloud.User.fetch_experience_following_status]
+
+    """
+
+    def __init__(self, api_key, universe_id, timestamp, status_payload):
+        from .experience import Experience
+
+        self.experience: Experience = Experience(int(universe_id), api_key)
+        self.followed_at: Optional[datetime.datetime] = (
+            parser.parse(timestamp) if timestamp else None
+        )
+        self.is_following: bool = (
+            True if not status_payload else status_payload["IsFollowing"]
+        )
+        self.can_follow: Optional[bool] = (
+            True if not status_payload else status_payload["CanFollow"]
+        )
+        self.following_count: Optional[int] = (
+            None
+            if not status_payload
+            else status_payload["FollowingCountByType"]
+        )
+        self.following_limit: Optional[int] = (
+            None
+            if not status_payload
+            else status_payload["FollowingLimitByType"]
+        )
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.UserExperienceFollowing \
+experience={self.experience}>"
+
+
 class User(Creator):
     """
     Represents a user on Roblox. It is used to provide information about a \
@@ -743,3 +798,164 @@ class User(Creator):
                 yield InventoryPrivateServer(
                     entry["privateServerDetails"], entry.get("addTime")
                 )
+
+    async def fetch_experience_followings(
+        self,
+    ) -> list["UserExperienceFollowing"]:
+        """
+        Fetches the list of experiences the user is following.
+
+        Requires `legacy-universe.following:read` on an API Key or OAuth2 \
+        authorization. The requested user must be the authenticated user \
+        to fetch this information.
+
+        ??? example
+            Fetches the experiences the user is following and finds the \
+            oldest one. The year they followed it is then printed along with \
+            the experience name.
+            ```python
+            followings = await user.fetch_experience_followings()
+            for following in followings:
+                if not oldest_follow or following.followed_at < oldest_follow.followed_at:
+                    oldest_follow = following
+
+            oldest_follow.experience.fetch_info()
+            print(f"The user's oldest experience follow is {oldest_follow.experience.name} since {oldest_follow.followed_at.year}")
+            >>> "The user's oldest experience follow is Natural Disaster Survival since 2018"
+            ```
+        
+        Returns:
+            A list of experiences the user is following, and the time they \
+            followed at. `can_follow`, `following_count`, and \
+            `following_limit` will all be `None`.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Followings API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"legacy-followings/v2/users/{self.id}/universes",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        followings = []
+
+        for k, v in data["followedSources"].items():
+            followings.append(
+                UserExperienceFollowing(self.__api_key, k, v, None)
+            )
+
+        return followings
+
+    async def fetch_experience_following_status(
+        self, experience_id: int
+    ) -> UserExperienceFollowing:
+        """
+        Fetches the following status of the requested experience for the user.
+
+        Requires `legacy-universe.following:read` on an API Key or OAuth2 \
+        authorization. The requested user must be the authenticated user \
+        to fetch this information.
+
+        Args:
+            experience_id: The ID of the experience to fetch status for; not \
+            to be confused with a place ID.
+        
+        Returns:
+           The following status object with `followed_at` being `None`.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Followings API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}/status",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return UserExperienceFollowing(
+            self.__api_key, experience_id, None, data
+        )
+
+    async def follow_experience(self, experience_id: int):
+        """
+        Follows the requested experience for the user. This means the user \
+        will recieve updates and notifications for the experience.
+
+        Requires `legacy-universe.following:write` on an API Key or OAuth2 \
+        authorization. The requested user must be the authenticated user \
+        to use this endpoint.
+
+        Args:
+            experience_id: The ID of the experience to follow; not to be \
+            confused with a place ID.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Followings API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        await send_request(
+            "POST",
+            f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+    async def unfollow_experience(self, experience_id: int):
+        """
+        Unfollows the requested experience for the user. This means the user \
+        will no longer recieve updates and notifications for the experience.
+
+        Requires `legacy-universe.following:write` on an API Key or OAuth2 \
+        authorization. The requested user must be the authenticated user \
+        to use this endpoint.
+
+        Args:
+            experience_id: The ID of the experience to unfollow; not to be \
+            confused with a place ID.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Followings API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        await send_request(
+            "DELETE",
+            f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )

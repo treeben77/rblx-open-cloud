@@ -796,3 +796,162 @@ class User(Creator):
                 yield InventoryPrivateServer(
                     entry["privateServerDetails"], entry.get("addTime")
                 )
+
+    def fetch_experience_followings(self) -> list["UserExperienceFollowing"]:
+        """
+        Fetches the list of experiences the user is following.
+
+        Requires `legacy-universe.following:read` on an API Key or OAuth2 \
+        authorization. The requested user must be the authenticated user \
+        to fetch this information.
+
+        ??? example
+            Fetches the experiences the user is following and finds the \
+            oldest one. The year they followed it is then printed along with \
+            the experience name.
+            ```python
+            followings = user.fetch_experience_followings()
+            for following in followings:
+                if not oldest_follow or following.followed_at < oldest_follow.followed_at:
+                    oldest_follow = following
+
+            oldest_follow.experience.fetch_info()
+            print(f"The user's oldest experience follow is {oldest_follow.experience.name} since {oldest_follow.followed_at.year}")
+            >>> "The user's oldest experience follow is Natural Disaster Survival since 2018"
+            ```
+        
+        Returns:
+            A list of experiences the user is following, and the time they \
+            followed at. `can_follow`, `following_count`, and \
+            `following_limit` will all be `None`.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Followings API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        _, data, _ = send_request(
+            "GET",
+            f"legacy-followings/v2/users/{self.id}/universes",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        followings = []
+
+        for k, v in data["followedSources"].items():
+            followings.append(
+                UserExperienceFollowing(self.__api_key, k, v, None)
+            )
+
+        return followings
+
+    def fetch_experience_following_status(
+        self, experience_id: int
+    ) -> UserExperienceFollowing:
+        """
+        Fetches the following status of the requested experience for the user.
+
+        Requires `legacy-universe.following:read` on an API Key or OAuth2 \
+        authorization. The requested user must be the authenticated user \
+        to fetch this information.
+
+        Args:
+            experience_id: The ID of the experience to fetch status for; not \
+            to be confused with a place ID.
+        
+        Returns:
+           The following status object with `followed_at` being `None`.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Followings API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        _, data, _ = send_request(
+            "GET",
+            f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}/status",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return UserExperienceFollowing(
+            self.__api_key, experience_id, None, data
+        )
+
+    def follow_experience(self, experience_id: int):
+        """
+        Follows the requested experience for the user. This means the user \
+        will recieve updates and notifications for the experience.
+
+        Requires `legacy-universe.following:write` on an API Key or OAuth2 \
+        authorization. The requested user must be the authenticated user \
+        to use this endpoint.
+
+        Args:
+            experience_id: The ID of the experience to follow; not to be \
+            confused with a place ID.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Followings API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        send_request(
+            "POST",
+            f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+    def unfollow_experience(self, experience_id: int):
+        """
+        Unfollows the requested experience for the user. This means the user \
+        will no longer recieve updates and notifications for the experience.
+
+        Requires `legacy-universe.following:write` on an API Key or OAuth2 \
+        authorization. The requested user must be the authenticated user \
+        to use this endpoint.
+
+        Args:
+            experience_id: The ID of the experience to unfollow; not to be \
+            confused with a place ID.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Followings API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        send_request(
+            "DELETE",
+            f"legacy-followings/v1/users/{self.id}/universes/\
+{experience_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )

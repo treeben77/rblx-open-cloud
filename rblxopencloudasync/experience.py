@@ -2300,3 +2300,42 @@ classes/MessagingService).
         )
 
         return None
+
+    async def update_badge(
+        self,
+        badge_id: int,
+        enabled: bool = None,
+        name: str = None,
+        description: str = None,
+    ):
+        """
+        Updates the badge with the requested badge ID.
+
+        Args:
+            enabled: Whether the badge can be awarded and appears on the game \
+            page.
+            name: The new name for the badge.
+            description: The new description for the badge.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Badges API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        await send_request(
+            "PATCH",
+            f"legacy-badges/v1/badges/{badge_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+            json={
+                "name": name,
+                "description": description,
+                "enabled": enabled,
+            },
+        )

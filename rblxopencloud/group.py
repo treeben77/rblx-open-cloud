@@ -922,6 +922,20 @@ class Group(Creator):
 
         Requires `legacy-group:manage` on an API Key or OAuth2 authorization.
 
+        ??? example
+            Prints the 50 most recent audit log entries for saving a place to \
+            the console, along with the username of the member who performed \
+            the action, their role name in the group and the place name and \
+            version ID.
+            ```python
+            for entry in group.list_audit_logs(limit=50, action_type=GroupAuditLogEntryActionType.SavePlace):
+                # Fetch role will not make an additional request because the role info is cached from the audit log entry request
+                role = entry.member.fetch_role()
+                print(
+                    f"{entry.member.username} ({role.name}) saved {entry.description.get('AssetName')}, version ID: {entry.description.get('VersionNumber')}"
+                )
+            ```
+
         Args:
             limit: The maximum number of audit log entries to iterate. \
             Defaults to `None`, meaning no limit.
@@ -935,6 +949,16 @@ class Group(Creator):
 
         Yields:
             The audit log entries for each audit log entry found.
+        
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Groups API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
 
         ???+ warning "Edge case with role caching"
             This endpoint caches some basic rank info (e.g. role ID, name, \
@@ -955,20 +979,6 @@ class Group(Creator):
             before calling this method or set `skip_cache=True` for the next \
             call to [`GroupMember.fetch_role`][rblxopencloud.GroupMember.fetch_role] \
             or [`Group.fetch_role`][rblxopencloud.Group.fetch_role] afterwards.
-        
-        ??? example
-            Prints the 50 most recent audit log entries for saving a place to \
-            the console, along with the username of the member who performed \
-            the action, their role name in the group and the place name and \
-            version ID.
-            ```python
-            for entry in group.list_audit_logs(limit=50, action_type=GroupAuditLogEntryActionType.SavePlace):
-                # Fetch role will not make an additional request because the role info is cached from the audit log entry request
-                role = entry.member.fetch_role()
-                print(
-                    f"{entry.member.username} ({role.name}) saved {entry.description.get('AssetName')}, version ID: {entry.description.get('VersionNumber')}"
-                )
-            ```
         """
 
         if limit and limit <= 10:
