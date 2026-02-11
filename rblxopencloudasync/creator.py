@@ -61,6 +61,8 @@ __all__ = (
     "AssetPermissionRequest",
     "AssetPermissionResult",
     "AssetPermissionResultError",
+    "ToolboxAssetSubtypeEnum",
+    "ToolboxAsset",
 )
 
 
@@ -896,6 +898,17 @@ quantity={self.quantity}>'
         }
 
 
+CREATOR_STORE_ASSET_ID_KEYS = {
+    AssetType.Unknown: "assetId",
+    AssetType.Model: "modelAssetId",
+    AssetType.Plugin: "pluginAssetId",
+    AssetType.Audio: "audioAssetId",
+    AssetType.Decal: "decalAssetId",
+    AssetType.MeshPart: "meshPartAssetId",
+    AssetType.Video: "videoAssetId",
+    AssetType.FontFamily: "fontFamilyAssetId",
+}
+
 class CreatorStoreProduct:
     """
     Represents an asset as a product on the creator store.
@@ -919,15 +932,7 @@ class CreatorStoreProduct:
         self.asset_id: int = None
         self.asset_type: AssetType = AssetType.Unknown
 
-        for asset_id_key, type in {
-            "modelAssetId": AssetType.Model,
-            "pluginAssetId": AssetType.Plugin,
-            "audioAssetId": AssetType.Audio,
-            "decalAssetId": AssetType.Decal,
-            "meshPartAssetId": AssetType.MeshPart,
-            "videoAssetId": AssetType.Video,
-            "fontFamilyAssetId": AssetType.FontFamily,
-        }.items():
+        for asset_id_key, type in CREATOR_STORE_ASSET_ID_KEYS.items():
             if asset_id := data.get(asset_id_key):
                 self.asset_id: int = int(asset_id)
                 self.asset_type: AssetType = type
@@ -1855,3 +1860,301 @@ granted_asset_ids=[00000000] failed_asset_ids={}>
         )
 
         return AssetPermissionResult(data)
+
+
+class ToolboxAssetSubtypeEnum(Enum):
+    """
+    Enum denoting the subtype of a model in the toolbox.
+
+    Attributes:
+        Unknown (0): An unknown or invalid model subtype.
+        Ad (1): A model is an ad subtype relating to immersive advertising.
+        MaterialPack (2): A model is a material pack subtype.
+        Package (3): A model is a package meaning it supports dynamic \
+        auto updating in experiences.
+    """
+
+    Unknown = 0
+    Ad = 1
+    MaterialPack = 2
+    Package = 3
+
+
+MODEL_SUBTYPE_ENUMS = {
+    "Ad": ToolboxAssetSubtypeEnum.Ad,
+    "MaterialPack": ToolboxAssetSubtypeEnum.MaterialPack,
+    "Package": ToolboxAssetSubtypeEnum.Package,
+}
+
+TOOLBOX_SOCIAL_LINK_TYPE = {
+    "facebook": 1,
+    "twitter": 2,
+    "youtube": 3,
+    "twitch": 4,
+    "discord": 5,
+    "github": 6,
+    "guilded": 7,
+    "roblox": 8,
+    "devForum": 9,
+    "tryAsset": 10,
+}
+
+
+class ToolboxAsset:
+    """
+    Represents an asset in the toolbox.
+
+    Attributes:
+        creator (Union[Creator, User, Group]): The creator of the asset.
+        asset_id (int): The ID of the asset.
+        asset_type (AssetType): The type of the asset.
+        name (str): The name of the asset.
+        description (str): The description of the asset.
+        category_path (Optional[str]): The category path of the asset as \
+        returned by Roblox. For instance, `3d__props-and-decor`.
+        created_at (datetime): When the asset was created.
+        updated_at (datetime): When the asset was last updated.
+        creator_store_product (CreatorStoreProduct): The creator store product \
+        associated with this asset. Contains pricing information. `published`, \
+        `restrictions`, `base_price` are not present in the toolbox response.
+        try_place_id (Optional[int]): The place ID set for the asset's 'Try in Roblox' button.
+        votes_shown (bool): Whether votes are shown for the asset.
+        up_votes (int): The number of up votes for the asset.
+        down_votes (int): The number of down votes for the asset.
+        can_vote (bool): Whether the authenticated user can vote for the asset.
+        has_voted (bool): Whether the authenticated user has voted for the asset.
+        total_vote_count (int): The total number of votes for the asset.
+        up_vote_percentage (int): The percentage of up votes for the asset between 0 and 100.
+        model_subtypes (list[ModelSubtypeEnum]): For models, the subtypes of the model.
+        has_scripts (bool): Whether the asset contains scripts.
+        script_count (int): The number of scripts in the model.
+        triangle_count (int): For models, the number of triangles in the model.
+        vertex_count (int): For models, the number of vertices in the model.
+        mesh_part_count (int): For models, the number of mesh parts in the model.
+        animation_count (int): For models, the number of animations in the model.
+        decal_count (int): For models, the number of decals in the model.
+        audio_count (int): For models, the number of audios in the model.
+        tool_count (int): For models, the number of tools in the model.
+        duration_seconds (Optional[int]): For audio assets, the duration of \
+        the audio in seconds.
+        artist (Optional[str]): For audio assets, the artist of the audio.
+        album (Optional[str]): For audio assets, the album of the audio.
+        title (Optional[str]): For audio assets, the title of the audio.
+        genre (Optional[str]): For audio assets, the genre of the audio.
+        category (Optional[str]): For sound effects, the category of the sound effect.
+        subcategory (Optional[str]): For sound effects, the subcategory of the sound effect.
+        mesh_asset_id (Optional[int]): For mesh parts, the asset ID of the mesh.
+        texture_asset_id (Optional[int]): For mesh parts, the asset ID of the texture.
+        facebook_social_link (Optional[AssetSocialLink]): The Facebook social link of the asset.
+        twitter_social_link (Optional[AssetSocialLink]): The Twitter social link of the asset.
+        youtube_social_link (Optional[AssetSocialLink]): The YouTube social link of the asset.
+        twitch_social_link (Optional[AssetSocialLink]): The Twitch social link of the asset.
+        discord_social_link (Optional[AssetSocialLink]): The Discord social link of the asset.
+        github_social_link (Optional[AssetSocialLink]): The GitHub social link of the asset.
+        guilded_social_link (Optional[AssetSocialLink]): The Guilded social link of the asset.
+        roblox_social_link (Optional[AssetSocialLink]): The Roblox social link of the asset.
+        devforum_social_link (Optional[AssetSocialLink]): The DevForum social link of the asset.
+    """
+
+    def __init__(self, data, creator, api_key):
+        self.__api_key = api_key
+
+        self.votes_shown: bool = data.get("voting", {}).get("showVotes")
+        self.up_votes: int = data.get("voting", {}).get("upVotes")
+        self.down_votes: int = data.get("voting", {}).get("downVotes")
+        self.can_vote: bool = data.get("voting", {}).get("canVote")
+        self.has_voted: bool = data.get("voting", {}).get("hasVoted")
+        self.total_vote_count: int = data.get("voting", {}).get("voteCount")
+        self.up_vote_percentage: int = data.get("voting", {}).get(
+            "upVotePercent"
+        )
+
+        if creatorid := data.get("creator", {}).get("userId"):
+            data_creator = User(creatorid, self.__api_key)
+            data_creator.username = data.get("creator", {}).get("name")
+            data_creator.verified = data.get("creator", {}).get("verified")
+        elif creatorid := data.get("creator", {}).get("groupId"):
+            data_creator = Group(
+                creatorid,
+                self.__api_key,
+            )
+            data_creator.name = data.get("creator", {}).get("name")
+            data_creator.verified = data.get("creator", {}).get("verified")
+        else:
+            data_creator = None
+
+        if (not data_creator and creator) or (
+            type(creator) in (Creator, User, Group)
+            and data_creator.id == creator.id
+            and type(data_creator) == type(creator)
+        ):
+            if (
+                data_creator
+                and isinstance(creator, (User, Group))
+                and not creator.verified
+            ):
+                creator.verified = data_creator.verified
+            if (
+                data_creator
+                and isinstance(creator, Group)
+                and not creator.name
+            ):
+                creator.name = data_creator.name
+            if (
+                data_creator
+                and isinstance(creator, User)
+                and not creator.username
+            ):
+                creator.username = data_creator.username
+
+            self.creator: Union[Creator, User, Group] = creator
+        else:
+            self.creator: Union[Creator, User, Group] = data_creator
+
+        self.asset_id: int = (
+            int(data["asset"]["id"])
+            if data.get("asset", {}).get("id")
+            else None
+        )
+        self.asset_type: AssetType = LEGACY_ASSET_TYPE_ENUMS.get(
+            data.get("asset", {}).get("assetTypeId"), AssetType.Unknown
+        )
+
+        self.name: str = data.get("asset", {}).get("name")
+        self.description: str = data.get("asset", {}).get("description")
+        self.category_path: Optional[str] = data.get("asset", {}).get(
+            "categoryPath"
+        )
+
+        self.created_at: datetime = (
+            parser.parse(data["asset"]["createTime"])
+            if data.get("asset", {}).get("createTime")
+            else None
+        )
+        self.updated_at: datetime = (
+            parser.parse(data["asset"]["updateTime"])
+            if data.get("asset", {}).get("updateTime")
+            else None
+        )
+
+        # TODO: socialLinks, previewAssets
+
+        creator_store_product = data.get("creatorStoreProduct", {})
+
+        if type(self.creator) == User:
+            creator_store_product["userSeller"] = self.creator.id
+        elif type(self.creator) == Group:
+            creator_store_product["groupSeller"] = self.creator.id
+
+        creator_store_key = CREATOR_STORE_ASSET_ID_KEYS.get(
+            self.asset_type, "assetId"
+        )
+        creator_store_product[creator_store_key] = self.asset_id
+
+        self.creator_store_product: CreatorStoreProduct = CreatorStoreProduct(
+            creator_store_product, self.__api_key
+        )
+
+        self.creator_store_product.creator = self.creator
+
+        self.model_subtypes: list[ToolboxAssetSubtypeEnum] = []
+
+        for subtype in data.get("asset", {}).get("subTypes", []):
+            self.model_subtypes.append(
+                MODEL_SUBTYPE_ENUMS.get(
+                    subtype, ToolboxAssetSubtypeEnum.Unknown
+                )
+            )
+
+        self.has_scripts: bool = data.get("asset", {}).get("hasScripts")
+        self.script_count: int = data.get("asset", {}).get("scriptCount")
+        self.triangle_count: int = (
+            data.get("asset", {}).get("objectMeshSummary", {}).get("triangles")
+        )
+        self.vertex_count: int = (
+            data.get("asset", {}).get("objectMeshSummary", {}).get("vertices")
+        )
+        self.mesh_part_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("meshPart")
+        )
+        self.animation_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("animation")
+        )
+        self.decal_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("decal")
+        )
+        self.audio_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("audio")
+        )
+        self.tool_count: int = (
+            data.get("asset", {}).get("instanceCounts", {}).get("tool")
+        )
+
+        self.duration_seconds: Optional[int] = data.get("asset", {}).get(
+            "durationSeconds"
+        )
+
+        self.artist: Optional[str] = data.get("asset", {}).get("artist")
+        self.album: Optional[str] = data.get("asset", {}).get("album")
+        self.title: Optional[str] = data.get("asset", {}).get("title")
+        self.genre: Optional[str] = data.get("asset", {}).get("genre")
+
+        self.category: Optional[str] = data.get("asset", {}).get("category")
+        self.subcategory: Optional[str] = data.get("asset", {}).get(
+            "subcategory"
+        )
+
+        self.mesh_asset_id: Optional[int] = data.get("asset", {}).get("meshId")
+        self.texture_asset_id: Optional[int] = data.get("asset", {}).get(
+            "textureId"
+        )
+
+        social_links = {}
+
+        for social_link in data.get("asset", {}).get("socialLinks", []):
+            link_type = TOOLBOX_SOCIAL_LINK_TYPE.get(social_link.get("type"))
+            social_links[link_type] = AssetSocialLink(
+                title=social_link.get("title"),
+                uri=social_link.get("uri"),
+            )
+
+        self.facebook_social_link: Optional[AssetSocialLink] = (
+            social_links.get(TOOLBOX_SOCIAL_LINK_TYPE.get("facebook"))
+        )
+        self.twitter_social_link: Optional[AssetSocialLink] = social_links.get(
+            TOOLBOX_SOCIAL_LINK_TYPE.get("twitter")
+        )
+        self.youtube_social_link: Optional[AssetSocialLink] = social_links.get(
+            TOOLBOX_SOCIAL_LINK_TYPE.get("youtube")
+        )
+        self.twitch_social_link: Optional[AssetSocialLink] = social_links.get(
+            TOOLBOX_SOCIAL_LINK_TYPE.get("twitch")
+        )
+        self.discord_social_link: Optional[AssetSocialLink] = social_links.get(
+            TOOLBOX_SOCIAL_LINK_TYPE.get("discord")
+        )
+        self.github_social_link: Optional[AssetSocialLink] = social_links.get(
+            TOOLBOX_SOCIAL_LINK_TYPE.get("github")
+        )
+        self.roblox_social_link: Optional[AssetSocialLink] = social_links.get(
+            TOOLBOX_SOCIAL_LINK_TYPE.get("roblox")
+        )
+        self.guilded_social_link: Optional[AssetSocialLink] = social_links.get(
+            TOOLBOX_SOCIAL_LINK_TYPE.get("guilded")
+        )
+        self.devforum_social_link: Optional[AssetSocialLink] = (
+            social_links.get(TOOLBOX_SOCIAL_LINK_TYPE.get("devForum"))
+        )
+
+        self.try_place_id: Optional[int] = None
+
+        if try_place_id := social_links.get(
+            TOOLBOX_SOCIAL_LINK_TYPE.get("tryAsset")
+        ):
+            try:
+                self.try_place_id = int(try_place_id)
+            except (ValueError, IndexError):
+                pass
+
+    def __repr__(self):
+        return f"<rblxopencloud.ToolboxAsset asset_id={self.asset_id}>"

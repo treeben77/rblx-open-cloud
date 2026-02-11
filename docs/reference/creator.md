@@ -12,6 +12,8 @@
     options:
         merge_init_into_class: true
 
+::: rblxopencloud.ToolboxAsset
+
 ::: rblxopencloud.Creator
 
 ::: rblxopencloud.Money
@@ -35,3 +37,5 @@
 ::: rblxopencloud.AssetPermissionSubjectType
 
 ::: rblxopencloud.AssetSocialLink
+
+::: rblxopencloud.ToolboxAssetSubtypeEnum
