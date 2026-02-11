@@ -192,6 +192,7 @@ def iterate_request(
     cursor_key: str,
     max_yields: int = None,
     post_request_hook: Callable = None,
+    include_raw_response: bool = False,
     **kwargs,
 ):
 
@@ -211,7 +212,10 @@ def iterate_request(
             break
 
         for entry in data[data_key]:
-            yield entry
+            if not include_raw_response:
+                yield entry
+            else:
+                yield entry, data
 
             yields += 1
             if max_yields is not None and yields >= max_yields:

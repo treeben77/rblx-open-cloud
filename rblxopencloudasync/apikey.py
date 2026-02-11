@@ -22,7 +22,7 @@
 
 from datetime import datetime
 import sys
-from typing import Optional, Union
+from typing import Any, AsyncGenerator, Iterable, Optional, Sequence, Union
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -30,11 +30,22 @@ else:
     from typing_extensions import Self
 
 
-from .creator import Asset, AssetType, CreatorStoreProduct
+from .creator import (
+    Asset,
+    AssetType,
+    CreatorStoreProduct,
+    InstanceType,
+    Money,
+    MusicChartType,
+    ToolboxAsset,
+    ToolboxAssetSubtype,
+    ToolboxSearchSortCategory,
+    ToolboxSearchContext,
+)
 from .datastore import DataStore
 from .experience import Experience
 from .group import Group
-from .http import send_request
+from .http import send_request, iterate_request
 from .user import User
 
 from typing import Union
@@ -263,6 +274,7 @@ class ApiKey:
             "state",
             "description",
             "icon",
+            "previews",
             "facebookSocialLink",
             "twitterSocialLink",
             "youtubeSocialLink",
@@ -318,3 +330,199 @@ class ApiKey:
         )
 
         return CreatorStoreProduct(data, self.__api_key)
+
+    async def fetch_toolbox_asset(self, asset_id: int) -> ToolboxAsset:
+        """
+        Fetches information about an asset in the toolbox.
+
+        Requires `creator-store-product:read` on an API key. OAuth2 authorization \
+        is not supported. No authorization is supported (i.e. `api_key` is `None`).
+
+        Args:
+            asset_id: The ID of the asset to fetch.
+
+        Returns:
+            The asset information for the toolbox asset.
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"toolbox-service/v2/assets/{asset_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return ToolboxAsset(data, None, self.__api_key)
+
+    async def search_toolbox(
+        self,
+        asset_type: AssetType,
+        query: Optional[str] = None,
+        model_subtype: Optional[Sequence[ToolboxAssetSubtype]] = None,
+        excluded_model_subtype: Optional[Sequence[ToolboxAssetSubtype]] = None,
+        creator: Optional[Union[Group, User]] = None,
+        verified_creators_only: Optional[bool] = None,
+        descending: Optional[bool] = None,
+        limit: Optional[int] = None,
+        sort_by: Optional[ToolboxSearchSortCategory] = None,
+        min_duration_seconds: Optional[int] = None,
+        max_duration_seconds: Optional[int] = None,
+        artist: Optional[str] = None,
+        album: Optional[str] = None,
+        include_top_charts: Optional[bool] = False,
+        included_instance_types: Optional[Sequence[InstanceType]] = None,
+        min_price: Optional[Money] = None,
+        max_price: Optional[Money] = None,
+        category_path: Optional[str] = None,
+        music_chart_type: Optional[MusicChartType] = None,
+        facets: Optional[Sequence[str]] = None,
+    ) -> AsyncGenerator[Any, tuple[ToolboxAsset, ToolboxSearchContext], None]:
+        """
+        Searches for assets in the toolbox (or, the creator store) with various \
+        filters and sorting options.
+
+        Requires `creator-store-product:read` on an API key. OAuth2 authorization \
+        is not supported. No authorization is supported (i.e. `api_key` is `None`).
+
+        ??? example
+            Searchs for audio assets in the toolbox with the query *"Menu Theme"*, \
+            uploaded by @DistrokidOffical. The results are filtered to only \
+            include assets that are free and are between 45 and 60 seconds long. \
+            The first result is printed to the console along with how many more \
+            results there are.
+            ```python
+            user = apikey.get_user(7135127272)
+
+            async for asset, context in apikey.search_toolbox(
+                asset_type=rblxopencloud.AssetType.Audio,
+                query="Menu Theme",
+                creator=user,
+                max_price=Money("USD", 0),
+                max_duration_seconds=60,
+                min_duration_seconds=45,
+                limit=1
+            ):
+                print(asset, "and", context.total_results - 1, "more...")
+            >>> "<rblxopencloud.ToolboxAsset asset_id=114376757380093> and 4 more..."
+            ```
+
+        Args:
+            asset_type: The category of the toolbox assets to search. Only \
+            `Audio`, `Model`, `Decal`, `Plugin`, `MeshPart`, `Video`, and \
+            `FontFamily` are accepted.
+            query: The search query.
+            model_subtype: Any model subtypes to filter by. Only applicable if \
+            `asset_type` is `Model`.
+            excluded_model_subtype: Any model subtypes to exclude. Only \
+            applicable if `asset_type` is `Model`.
+            creator: The creator object (either a group or user) to filter by.
+            verified_creators_only: Whether to include only verified creators.
+            descending: Whether to sort the results in descending order.
+            sort_by: The category to sort by. Defaults to relevance.
+            min_duration_seconds: For audio, the minimum duration of the audio in seconds.
+            max_duration_seconds: For audio, the maximum duration of the audio in seconds.
+            artist: For audio, the artist of the audio.
+            album: For audio, the album of the audio.
+            facets: Additional keywords to query by. \
+            [`ToolboxSearchContext.available_facets`][rblxopencloud.ToolboxSearchContext] \
+            contains available facets for the search results.
+            include_top_charts: For audio, whether to include top charts results.
+            included_instance_types: For plugins, the instance types to include.
+            min_price: The minimum price of the asset in USD.
+            max_price: The maximum price of the asset in USD.
+            category_path: The category path to filter by. For instance, `3d__props-and-decor`.
+            music_chart_type: For audio, the type of music chart duration to include.
+        
+        Yields:
+            A tuple containing the asset information for each toolbox asset \
+            found and the context for the search results page such as total \
+            results, facets, and filtered keywords.
+        """
+
+        sort_by = sort_by.name if sort_by else None
+
+        if sort_by == "UpdateTime":
+            sort_by = "UpdatedTime"
+
+        min_price_cents = None
+        max_price_cents = None
+
+        if min_price is not None:
+            if min_price.currency.lower() != "usd":
+                raise ValueError("min_price must be in USD")
+
+            min_price_cents = int(min_price.quantity * 100)
+
+        if max_price is not None:
+            if max_price.currency.lower() != "usd":
+                raise ValueError("max_price must be in USD")
+
+            max_price_cents = int(max_price.quantity * 100)
+
+        payload = {
+            "searchCategoryType": asset_type.name,
+            "maxPageSize": limit if limit and limit < 100 else 100,
+            "query": query,
+            "modelSubtypes": (
+                ",".join(st.name for st in model_subtype)
+                if model_subtype
+                else None
+            ),
+            "excludedModelSubtypes": (
+                ",".join(st.name for st in excluded_model_subtype)
+                if excluded_model_subtype
+                else None
+            ),
+            "creatorId": creator.id if creator else None,
+            "creatorType": (
+                "User"
+                if isinstance(creator, User)
+                else "Group" if isinstance(creator, Group) else None
+            ),
+            "sortOrder": (
+                "Descending"
+                if descending
+                else "Ascending" if descending is not None else None
+            ),
+            "sortBy": sort_by,
+            "audioMinDurationSeconds": min_duration_seconds,
+            "audioMaxDurationSeconds": max_duration_seconds,
+            "audioArtist": artist,
+            "audioAlbum": album,
+            "includeTopCharts": include_top_charts,
+            "includedInstanceTypes": (
+                ",".join(it.name for it in included_instance_types)
+                if included_instance_types
+                else None
+            ),
+            "includeOnlyVerifiedCreators": verified_creators_only,
+            "minPriceCents": min_price_cents,
+            "maxPriceCents": max_price_cents,
+            "categoryPath": category_path,
+            "searchView": "Full",
+            "musicChartType": (
+                music_chart_type.name if music_chart_type else None
+            ),
+            "facets": ",".join(facets) if facets else None,
+        }
+
+        if creator is not None:
+            if isinstance(creator, User):
+                payload["userId"] = creator.id
+            elif isinstance(creator, Group):
+                payload["groupId"] = creator.id
+
+        async for entry, response in iterate_request(
+            "GET",
+            f"toolbox-service/v2/assets:search",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params=payload,
+            data_key="creatorStoreAssets",
+            cursor_key="pageToken",
+            max_yields=limit,
+            include_raw_response=True,
+        ):
+            yield ToolboxAsset(
+                entry, creator, self.__api_key
+            ), ToolboxSearchContext(response)

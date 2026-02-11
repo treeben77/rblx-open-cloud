@@ -13,6 +13,8 @@
         merge_init_into_class: true
 
 ::: rblxopencloud.ToolboxAsset
+    options:
+        merge_init_into_class: true
 
 ::: rblxopencloud.Creator
 
@@ -38,4 +40,12 @@
 
 ::: rblxopencloud.AssetSocialLink
 
-::: rblxopencloud.ToolboxAssetSubtypeEnum
+::: rblxopencloud.ToolboxAssetSubtype
+
+::: rblxopencloud.ToolboxSearchSortCategory
+
+::: rblxopencloud.InstanceType
+
+::: rblxopencloud.MusicChartType
+
+::: rblxopencloud.ToolboxSearchContext

@@ -61,8 +61,12 @@ __all__ = (
     "AssetPermissionRequest",
     "AssetPermissionResult",
     "AssetPermissionResultError",
-    "ToolboxAssetSubtypeEnum",
+    "ToolboxAssetSubtype",
     "ToolboxAsset",
+    "ToolboxSearchSortCategory",
+    "InstanceType",
+    "MusicChartType",
+    "ToolboxSearchContext",
 )
 
 
@@ -82,6 +86,8 @@ class AssetType(Enum):
         Animation (8): Only for fetching assets; does not support uploading.
         Image (9): Only for fetching assets; does not support uploading.
         Place (10): Only for fetching assets; does not support uploading.
+        StorePreviewVideo (11): A special type of video for store preview \
+        videos. Only for fetching assets; does not support uploading.
         ClassicTShirt (100): Only for fetching assets; does not support uploading.
         Hat (101): Only for fetching assets; does not support uploading.
         ClassicShirt (102): Only for fetching assets; does not support uploading.
@@ -138,6 +144,8 @@ class AssetType(Enum):
     Animation = 8
     Image = 9
     Place = 10
+
+    StorePreviewVideo = 11
 
     ClassicTShirt = 100
     Hat = 101
@@ -256,6 +264,7 @@ ASSET_TYPE_ENUMS = {
     "FaceMakeup": AssetType.FaceMakeup,
     "LipMakeup": AssetType.LipMakeup,
     "EyeMakeup": AssetType.EyeMakeup,
+    "StorePreviewVideo": AssetType.StorePreviewVideo,
 }
 
 
@@ -462,6 +471,8 @@ class Asset:
         created. *Will be `None` if the asset type does not support updating.*
         is_archived: Whether the asset has been archived.
         icon_asset_id: The image asset ID of the asset's icon.
+        preview_asset_ids: A list of asset IDs for the asset's preview images \
+        and videos.
         facebook_social_link: The asset's Facebook social link.
         twitter_social_link: The asset's Twitter social link.
         youtube_social_link: The asset's YouTube social link.
@@ -481,6 +492,16 @@ class Asset:
         self.is_archived: bool = (
             data.get("state") and data["state"] != "Active"
         )
+
+        self.preview_asset_ids: Optional[list[int]] = None
+
+        if data.get("previews"):
+            self.preview_asset_ids = []
+            for preview in data["previews"]:
+                if preview.get("asset"):
+                    self.preview_asset_ids.append(
+                        int(preview["asset"].split("/")[1])
+                    )
 
         self.__api_key = api_key
 
@@ -650,6 +671,62 @@ class Asset:
     async def fetch_creator_store_prodcut(self) -> "CreatorStoreProduct":
         # Retained as misspelling of fetch_creator_store_product in prior version.
         return await self.fetch_creator_store_product()
+
+    async def fetch_toolbox_asset(self) -> "ToolboxAsset":
+        """
+        Fetches the toolbox information about the asset. This will also update \
+        the current asset object with any information fetched, such as name, \
+        description, type, social links, and try place ID.
+
+        Requires `creator-store-product:read` on an API key. OAuth2 authorization \
+        is not supported. No authorization is supported (i.e. `api_key` is `None`).
+
+        Returns:
+            The asset information for the toolbox asset.
+        """
+
+        toolbox_asset = await self.creator.fetch_toolbox_asset(self.id)
+
+        self.name = toolbox_asset.name or self.name
+        self.description = toolbox_asset.description or self.description
+        self.type = toolbox_asset.asset_type or self.type
+
+        self.facebook_social_link = (
+            toolbox_asset.facebook_social_link or self.facebook_social_link
+        )
+        self.twitter_social_link = (
+            toolbox_asset.twitter_social_link or self.twitter_social_link
+        )
+        self.youtube_social_link = (
+            toolbox_asset.youtube_social_link or self.youtube_social_link
+        )
+        self.twitch_social_link = (
+            toolbox_asset.twitch_social_link or self.twitch_social_link
+        )
+        self.discord_social_link = (
+            toolbox_asset.discord_social_link or self.discord_social_link
+        )
+        self.github_social_link = (
+            toolbox_asset.github_social_link or self.github_social_link
+        )
+        self.guilded_social_link = (
+            toolbox_asset.guilded_social_link or self.guilded_social_link
+        )
+        self.roblox_social_link = (
+            toolbox_asset.roblox_social_link or self.roblox_social_link
+        )
+        self.devforum_social_link = (
+            toolbox_asset.devforum_social_link or self.devforum_social_link
+        )
+        self.try_place_id = toolbox_asset.try_place_id or self.try_place_id
+        self.preview_asset_ids = (
+            (toolbox_asset.preview_image_asset_ids or [])
+            + (toolbox_asset.preview_video_asset_ids or [])
+        ) or self.preview_asset_ids
+
+        toolbox_asset.asset = self
+
+        return toolbox_asset
 
     async def fetch_version(self, version_number: int) -> "AssetVersion":
         """
@@ -1701,6 +1778,35 @@ class Creator:
 
         return product
 
+    async def fetch_toolbox_asset(self, asset_id: int) -> "ToolboxAsset":
+        """
+        Fetches information about an asset in the toolbox.
+
+        Requires `creator-store-product:read` on an API key. OAuth2 authorization \
+        is not supported. No authorization is supported (i.e. `api_key` is `None`).
+
+        Args:
+            asset_id: The ID of the asset to fetch.
+
+        Returns:
+            The asset information for the toolbox asset. The current creator \
+            object (e.g. user or group) will also be updated with resolved \
+            information such as name and verified status.
+        
+        !!! tip
+            To search for assets in the toolbox, use \
+            [`ApiKey.search_toolbox`][rblxopencloud.ApiKey.search_toolbox].
+        """
+
+        _, data, _ = await send_request(
+            "GET",
+            f"toolbox-service/v2/assets/{asset_id}",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return ToolboxAsset(data, self, self.__api_key)
+
     async def grant_assets_permission(
         self,
         action: AssetPermissionAction,
@@ -1862,7 +1968,7 @@ granted_asset_ids=[00000000] failed_asset_ids={}>
         return AssetPermissionResult(data)
 
 
-class ToolboxAssetSubtypeEnum(Enum):
+class ToolboxAssetSubtype(Enum):
     """
     Enum denoting the subtype of a model in the toolbox.
 
@@ -1881,9 +1987,9 @@ class ToolboxAssetSubtypeEnum(Enum):
 
 
 MODEL_SUBTYPE_ENUMS = {
-    "Ad": ToolboxAssetSubtypeEnum.Ad,
-    "MaterialPack": ToolboxAssetSubtypeEnum.MaterialPack,
-    "Package": ToolboxAssetSubtypeEnum.Package,
+    "Ad": ToolboxAssetSubtype.Ad,
+    "MaterialPack": ToolboxAssetSubtype.MaterialPack,
+    "Package": ToolboxAssetSubtype.Package,
 }
 
 TOOLBOX_SOCIAL_LINK_TYPE = {
@@ -1912,8 +2018,15 @@ class ToolboxAsset:
         description (str): The description of the asset.
         category_path (Optional[str]): The category path of the asset as \
         returned by Roblox. For instance, `3d__props-and-decor`.
+        preview_image_asset_ids (Optional[list[int]]): A list of asset IDs for \
+        the preview images of the asset.
+        preview_video_asset_ids (Optional[list[int]]): A list of asset IDs for \
+        the preview videos of the asset.
         created_at (datetime): When the asset was created.
         updated_at (datetime): When the asset was last updated.
+        asset (Asset): The asset object. `moderation_result`, `is_archived`, \
+        `icon_asset_id`, and revision information is not present. Allows \
+        using asset APIs such as asset delivery.
         creator_store_product (CreatorStoreProduct): The creator store product \
         associated with this asset. Contains pricing information. `published`, \
         `restrictions`, `base_price` are not present in the toolbox response.
@@ -1925,7 +2038,7 @@ class ToolboxAsset:
         has_voted (bool): Whether the authenticated user has voted for the asset.
         total_vote_count (int): The total number of votes for the asset.
         up_vote_percentage (int): The percentage of up votes for the asset between 0 and 100.
-        model_subtypes (list[ModelSubtypeEnum]): For models, the subtypes of the model.
+        subtypes (list[ToolboxAssetSubtype]): For models, the subtypes of the model.
         has_scripts (bool): Whether the asset contains scripts.
         script_count (int): The number of scripts in the model.
         triangle_count (int): For models, the number of triangles in the model.
@@ -1983,6 +2096,9 @@ class ToolboxAsset:
         else:
             data_creator = None
 
+        from .group import Group
+        from .user import User
+
         if (not data_creator and creator) or (
             type(creator) in (Creator, User, Group)
             and data_creator.id == creator.id
@@ -2026,6 +2142,17 @@ class ToolboxAsset:
             "categoryPath"
         )
 
+        self.preview_image_asset_ids: list[int] = (
+            data.get("asset", {})
+            .get("previewAssets", {})
+            .get("imagePreviewAssets", [])
+        )
+        self.preview_video_asset_ids: list[int] = (
+            data.get("asset", {})
+            .get("previewAssets", {})
+            .get("videoPreviewAssets", [])
+        )
+
         self.created_at: datetime = (
             parser.parse(data["asset"]["createTime"])
             if data.get("asset", {}).get("createTime")
@@ -2036,8 +2163,6 @@ class ToolboxAsset:
             if data.get("asset", {}).get("updateTime")
             else None
         )
-
-        # TODO: socialLinks, previewAssets
 
         creator_store_product = data.get("creatorStoreProduct", {})
 
@@ -2057,13 +2182,11 @@ class ToolboxAsset:
 
         self.creator_store_product.creator = self.creator
 
-        self.model_subtypes: list[ToolboxAssetSubtypeEnum] = []
+        self.subtypes: list[ToolboxAssetSubtype] = []
 
         for subtype in data.get("asset", {}).get("subTypes", []):
-            self.model_subtypes.append(
-                MODEL_SUBTYPE_ENUMS.get(
-                    subtype, ToolboxAssetSubtypeEnum.Unknown
-                )
+            self.subtypes.append(
+                MODEL_SUBTYPE_ENUMS.get(subtype, ToolboxAssetSubtype.Unknown)
             )
 
         self.has_scripts: bool = data.get("asset", {}).get("hasScripts")
@@ -2156,5 +2279,135 @@ class ToolboxAsset:
             except (ValueError, IndexError):
                 pass
 
+        estimated_asset_data = {
+            "assetId": self.asset_id,
+            "displayName": self.name,
+            "description": self.description,
+            "creationContext": {
+                "creator": {
+                    (
+                        "userId"
+                        if isinstance(self.creator, User)
+                        else (
+                            "groupId"
+                            if isinstance(self.creator, Group)
+                            else "creatorId"
+                        )
+                    ): self.creator.id,
+                }
+            },
+            "assetType": self.asset_type.name,
+        }
+
+        self.asset: Asset = Asset(
+            estimated_asset_data, creator=self.creator, api_key=self.__api_key
+        )
+
+        self.asset.facebook_social_link = self.facebook_social_link
+        self.asset.twitter_social_link = self.twitter_social_link
+        self.asset.youtube_social_link = self.youtube_social_link
+        self.asset.twitch_social_link = self.twitch_social_link
+        self.asset.discord_social_link = self.discord_social_link
+        self.asset.github_social_link = self.github_social_link
+        self.asset.guilded_social_link = self.guilded_social_link
+        self.asset.roblox_social_link = self.roblox_social_link
+        self.asset.devforum_social_link = self.devforum_social_link
+        self.asset.try_place_id = self.try_place_id
+
+        self.asset.preview_asset_ids = (self.preview_image_asset_ids or []) + (
+            self.preview_video_asset_ids or []
+        )
+
     def __repr__(self):
         return f"<rblxopencloud.ToolboxAsset asset_id={self.asset_id}>"
+
+
+class ToolboxSearchSortCategory(Enum):
+    """
+    Enum denoting the category to sort by when searching the toolbox.
+
+    Attributes:
+        Unknown (0): An unknown or invalid sort category. Not used.
+        Relevance (1): Sort by relevance to the search query. This is the default sort category.
+        Trending (2): Sort by how trending the asset is on Roblox.
+        Top (3): Sort by the top rated assets on Roblox.
+        AudioDuration (4): For audio assets, sort by the duration of the audio.
+        CreateTime (5): Sort by when the asset was created.
+        UpdateTime (6): Sort by when the asset was last updated.
+    """
+
+    Unknown = 0
+    Relevance = 1
+    Trending = 2
+    Top = 3
+    AudioDuration = 4
+    CreateTime = 5
+    UpdateTime = 6
+
+
+class InstanceType(Enum):
+    """
+    Enum denoting instance type. Used for filtering in the toolbox search.
+
+    Attributes:
+        Unknown (0): An unknown or invalid instance type. Not used.
+        Script (1): Represents a script instance type.
+        MeshPart (2): Represents a mesh part instance type.
+        Decal (3): Represents a decal instance type.
+        Animation (4): Represents an animation instance type.
+        Audio (5): Represents an audio instance type.
+        Tool (6): Represents a tool instance type.
+    """
+
+    Unknown = 0
+    Script = 1
+    MeshPart = 2
+    Decal = 3
+    Animation = 4
+    Audio = 5
+    Tool = 6
+
+
+class MusicChartType(Enum):
+    """
+    Enum denoting music chart type. Used for filtering in the toolbox search.
+
+    Attributes:
+        Unknown (0): An unknown or invalid music chart type. Not used.
+        Current (1): Represents the current music chart on Roblox.
+        Week (2): Represents the music chart for the past week on Roblox.
+        Month (3): Represents the music chart for the past month on Roblox.
+        Year (4): Represents the music chart for the past year on Roblox.
+    """
+
+    Unknown = 0
+    Current = 1
+    Week = 2
+    Month = 3
+    Year = 4
+
+
+class ToolboxSearchContext:
+    """
+    Data class containing meta information about search results in the toolbox.
+
+    Attributes:
+        total_results (int): The total number of results for the search query.
+        filtered_keyword (str): The keyword that was used for the search after \
+        filtering by Roblox.
+        applied_facets (list[str]): The list of facet filters that were applied to the search.
+        available_facets (list[str]): The available facet filters that can be applied to the search.
+    """
+
+    def __init__(self, data):
+        self.total_results: int = data.get("totalResults")
+        self.filtered_keyword: str = data.get("filteredKeyword")
+        self.applied_facets: list[str] = data.get("queryFacets", {}).get(
+            "appliedFacets", []
+        )
+        self.available_facets: list[str] = data.get("queryFacets", {}).get(
+            "availableFacets", []
+        )
+
+    def __repr__(self):
+        return f"<rblxopencloud.ToolboxSearchContext total_results={self.total_results} filtered_keyword={self.filtered_keyword}>"
