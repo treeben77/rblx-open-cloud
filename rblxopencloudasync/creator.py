@@ -986,6 +986,7 @@ CREATOR_STORE_ASSET_ID_KEYS = {
     AssetType.FontFamily: "fontFamilyAssetId",
 }
 
+
 class CreatorStoreProduct:
     """
     Represents an asset as a product on the creator store.
