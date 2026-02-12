@@ -843,6 +843,30 @@ experience={repr(self.experience)}>"
 
         return self.experience.owner.fetch_asset(self.id)
 
+    def list_user_restrictions(
+        self, limit: Optional[int] = None
+    ) -> Iterable[UserRestriction]:
+        """
+        Lists all user restrictions for users who have ever been banned within \
+        the place.
+
+        Requires `universe.user-restriction:read` on an API Key or OAuth2 \
+        authorization.
+
+        Args:
+            place_id: Only include user restrictions for this specific place ID.
+            limit: The maximum number of user restrictions to return. \
+            Defaults to no limit.
+        
+        Yields:
+            Restriction information for each user restriction found.
+        """
+
+        for entry in self.experience.list_user_restrictions(
+            limit=limit, place_id=self.id
+        ):
+            yield entry
+
     def fetch_user_restriction(self, user_id: int) -> UserRestriction:
         """
         Fetches the current restriction information for the specific place.
@@ -1630,6 +1654,41 @@ classes/MessagingService).
             },
             max_yields=limit,
             data_key="logs",
+            cursor_key="pageToken",
+        ):
+            yield UserRestriction(entry, self.__api_key)
+
+    def list_user_restrictions(
+        self, place_id: int = None, limit: int = None
+    ) -> Iterable[UserRestriction]:
+        """
+        Lists all user restrictions for users who have ever been banned within \
+        the universe, optionally filtered to a specific place. The difference \
+        between this and [`list_ban_logs()`][rblxopencloud.Experience.list_ban_logs] \
+        is that this only returns the latest user restriction for each user, \
+        while `list_ban_logs` returns a log of all ban and unban events.
+
+        Requires `universe.user-restriction:read` on an API Key or OAuth2 \
+        authorization.
+
+        Args:
+            place_id: Only include user restrictions for this specific place ID.
+            limit: The maximum number of user restrictions to return. \
+            Defaults to no limit.
+        
+        Yields:
+            Restriction information for each user restriction found.
+        """
+
+        for entry in iterate_request(
+            "GET",
+            f"/universes/{self.id}/user-restrictions"
+            + (f"/places/{place_id}" if place_id else ""),
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={"maxPageSize": limit if limit and limit <= 100 else 100},
+            max_yields=limit,
+            data_key="userRestrictions",
             cursor_key="pageToken",
         ):
             yield UserRestriction(entry, self.__api_key)
