@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 
 from dateutil import parser
 
-from .creator import Creator
+from .creator import Creator, ASSET_TYPE_ENUMS, AssetType
 from .http import Operation, iterate_request, send_request
 
 if TYPE_CHECKING:
@@ -45,6 +45,9 @@ __all__ = (
     "UserSocialLinks",
     "UserVisibility",
     "UserExperienceFollowing",
+    "AssetQuota",
+    "AssetQuotaType",
+    "AssetQuotaPeriod",
 )
 
 
@@ -499,6 +502,107 @@ class UserExperienceFollowing:
     def __repr__(self) -> str:
         return f"<rblxopencloud.UserExperienceFollowing \
 experience={self.experience}>"
+
+
+class AssetQuotaType(Enum):
+    """
+    Enum denoting the type of an asset quota.
+
+    Attributes:
+        Unknown (0): An unknown, unspecified, or unspecified quota type.
+        Upload (1): The quota is a ratelimit for uploading assets.
+        CreatorStoreDistribution (2): The quota is a ratelimit for \
+        distributing assets on the creator store.
+    """
+
+    Unknown = 0
+    Upload = 1
+    CreatorStoreDistribution = 2
+
+
+ASSET_QUOTA_TYPE_ENUMS = {
+    "ASSET_QUOTA_TYPE_UNSPECIFIED": AssetQuotaType.Unknown,
+    "RATE_LIMIT_UPLOAD": AssetQuotaType.Upload,
+    "RATE_LIMIT_CREATOR_STORE_DISTRIBUTE": AssetQuotaType.CreatorStoreDistribution,
+}
+
+QUOTA_TYPE_STRINGS = {
+    AssetQuotaType.Unknown: "ASSET_QUOTA_TYPE_UNSPECIFIED",
+    AssetQuotaType.Upload: "RateLimitUpload",
+    AssetQuotaType.CreatorStoreDistribution: "RateLimitCreatorStoreDistribute",
+}
+
+
+class AssetQuotaPeriod(Enum):
+    """
+    Enum denoting the period of an asset quota.
+
+    Attributes:
+        Unknown (0): An unknown, unspecified, or unspecified quota period.
+        Day (1): The quota resets daily.
+        Month (2): The quota resets monthly.
+    """
+
+    Unknown = 0
+    Day = 1
+    Month = 2
+
+
+ASSET_QUOTA_PERIOD_ENUMS = {
+    "PERIOD_UNSPECIFIED": AssetQuotaPeriod.Unknown,
+    "DAY": AssetQuotaPeriod.Day,
+    "MONTH": AssetQuotaPeriod.Month,
+}
+
+
+class AssetQuota:
+    """
+    Represents the quota of an asset type for a user indicating how many \
+    assets can be uploaded or distributed on the creator store.
+
+    Attributes:
+        asset_type (AssetType): The type of asset this quota applies to.
+        quota_type (AssetQuotaType): Whether the quota is for uploading or \
+        distributing on the creator store.
+        capacity (int): The maximum number of assets that can be uploaded or \
+        distributed on the creator store in the given period.
+        usage (int): The number of assets that have been uploaded or \
+        distributed on the creator store in the given period.
+        remaining (int): The number of assets that can still be uploaded or \
+        distributed on the creator store in the given period. This is \
+        equivalent to `capacity - usage`.
+        period (AssetQuotaPeriod): The period for which this quota applies.
+        resets_at (Optional[datetime]): The time at which this quota will \
+        reset. This may be `None` if none of the limit has been used yet.
+    """
+
+    def __init__(self, data, user, api_key):
+        self.__api_key = api_key
+
+        self.asset_type: AssetType = ASSET_TYPE_ENUMS.get(
+            data.get("assetType"), AssetType.Unknown
+        )
+        self.quota_type: AssetQuotaType = ASSET_QUOTA_TYPE_ENUMS.get(
+            data.get("quotaType"), AssetQuotaType.Unknown
+        )
+        self.capacity: int = int(data.get("capacity", 0))
+        self.usage: int = int(data.get("usage", 0))
+        self.remaining: int = self.capacity - self.usage
+        self.period: AssetQuotaPeriod = ASSET_QUOTA_PERIOD_ENUMS.get(
+            data.get("period"), AssetQuotaPeriod.Unknown
+        )
+        self.resets_at: Optional[datetime.datetime] = (
+            parser.parse(data["usageResetAt"])
+            if data.get("usageResetAt")
+            else None
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"<rblxopencloud.AssetQuota asset_type={self.asset_type} \
+quota_type={self.quota_type} remaining={self.remaining} period={self.period}"
+            + (f" resets_at={self.resets_at}>" if self.resets_at else ">")
+        )
 
 
 class User(Creator):
@@ -959,3 +1063,70 @@ server](https://discord.gg/zW36pJGFnh).
             authorization=self.__api_key,
             expected_status=[200],
         )
+
+    async def list_asset_quotas(
+        self,
+        limit: Optional[int] = None,
+        quota_type: Optional[AssetQuotaType] = None,
+        asset_type: Optional[AssetType] = None,
+    ) -> AsyncGenerator[AssetQuota, None]:
+        """
+        Iterates the user's asset quotas, indicating how many assets can be \
+        uploaded or distributed on the creator store for each type over a \
+        given time period.
+
+        Requires `assets:read` on an API Key or OAuth2 authorization.
+
+        ??? example
+            Fetches the asset quota for uploading audio assets. It uses a \
+            limit of 1 since there should only be one quota for this type. \
+            Due to the API, however, it is still returned as an iterable so \
+            it is condensed into a list and the first item is accessed to get \
+            the quota information.
+            ```python
+            quotas = list(
+                user.list_asset_quotas(
+                    quota_type=AssetQuotaType.Upload,
+                    asset_type=AssetType.Audio,
+                    limit=1,
+                )
+            )
+
+            if quotas and quotas[0].remaining > 0:
+                print("You can upload more audio assets!")
+            elif quotas and quotas[0].resets_at:
+                print(f"You cannot upload more audio assets until {quotas[0].resets_at}.")
+            ```
+
+        Args:
+            limit (Optional[int]): The maximum number of asset quotas to \
+            iterate. This can be `None` to return all asset quotas.
+        
+        Yields:
+            Asset quota information for each type of asset.
+        """
+
+        filter = {}
+
+        if asset_type:
+            filter["assetType"] = asset_type.name
+
+        if quota_type:
+            filter["quotaType"] = QUOTA_TYPE_STRINGS.get(quota_type)
+
+        async for entry in iterate_request(
+            "GET",
+            f"/users/{self.id}/asset-quotas",
+            params={
+                "maxPageSize": limit if limit and limit <= 100 else 100,
+                "filter": " && ".join(
+                    [f"{k} == {v}" for k, v in filter.items()]
+                ),
+            },
+            authorization=self.__api_key,
+            data_key="assetQuotas",
+            cursor_key="pageToken",
+            expected_status=[200],
+            max_yields=limit,
+        ):
+            yield AssetQuota(entry, self, self.__api_key)

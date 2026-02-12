@@ -25,3 +25,9 @@
 ::: rblxopencloud.UserExperienceFollowing
     options:
         merge_init_into_class: true
+
+::: rblxopencloud.AssetQuota
+
+::: rblxopencloud.AssetQuotaType
+
+::: rblxopencloud.AssetQuotaPeriod

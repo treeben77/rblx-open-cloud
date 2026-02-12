@@ -131,6 +131,18 @@ class AssetType(Enum):
         EyelashAccessory (141): Only for fetching assets; does not support uploading.
         MoodAnimation (142): Only for fetching assets; does not support uploading.
         DynamicHead (143): Only for fetching assets; does not support uploading.
+        LocalizationTableManifest (149): Only for fetching assets; does not support uploading.
+        LocalizationTableTranslation (150): Only for fetching assets; does not support uploading.
+        TexturePack (151): Only for fetching assets; does not support uploading.
+        FontFace (152): Only for fetching assets; does not support uploading.
+        MeshHiddenSurfaceRemoval (153): Only for fetching assets; does not support uploading.
+        CodeSnippet (154): Only for fetching assets; does not support uploading.
+        AdsVideo (155): Only for fetching assets; does not support uploading.
+        App (156): Only for fetching assets; does not support uploading.
+        Code (157): Only for fetching assets; does not support uploading.
+        Lua (200): Only for fetching assets; does not support uploading.
+        Badge (201): Only for fetching assets; does not support uploading.
+        GamePass (202): Only for fetching assets; does not support uploading.
     """
 
     Unknown = 0
@@ -196,6 +208,16 @@ class AssetType(Enum):
     FaceMakeup = 146
     LipMakeup = 147
     EyeMakeup = 148
+
+    LocalizationTableManifest = 149
+    LocalizationTableTranslation = 150
+    TexturePack = 151
+    FontFace = 152
+    MeshHiddenSurfaceRemoval = 153
+    CodeSnippet = 154
+    AdsVideo = 155
+    App = 156
+    Code = 157
 
     Lua = 200
     Badge = 201
@@ -265,6 +287,78 @@ ASSET_TYPE_ENUMS = {
     "LipMakeup": AssetType.LipMakeup,
     "EyeMakeup": AssetType.EyeMakeup,
     "StorePreviewVideo": AssetType.StorePreviewVideo,
+    "DECAL": AssetType.Decal,
+    "AUDIO": AssetType.Audio,
+    "MODEL": AssetType.Model,
+    "VIDEO": AssetType.Video,
+    "MESH_PART": AssetType.MeshPart,
+    "PLUGIN": AssetType.Plugin,
+    "ASSET_TYPE_UNSPECIFIED": AssetType.Unknown,
+    "IMAGE": AssetType.Image,
+    "TSHIRT": AssetType.ClassicTShirt,
+    "AUDIO": AssetType.Audio,
+    "MESH": AssetType.MeshPart,
+    "LUA": AssetType.Lua,
+    "HAT": AssetType.Hat,
+    "PLACE": AssetType.Place,
+    "MODEL": AssetType.Model,
+    "SHIRT": AssetType.ClassicShirt,
+    "PANTS": AssetType.ClassicPants,
+    "DECAL": AssetType.Decal,
+    "HEAD": AssetType.ClassicHead,
+    "FACE": AssetType.Face,
+    "GEAR": AssetType.Gear,
+    "ANIMATION": AssetType.Animation,
+    "TORSO": AssetType.Torso,
+    "RIGHT_ARM": AssetType.RightArm,
+    "LEFT_ARM": AssetType.LeftArm,
+    "LEFT_LEG": AssetType.LeftLeg,
+    "RIGHT_LEG": AssetType.RightLeg,
+    "YOUTUBE_VIDEO": AssetType.Video,
+    "APP": AssetType.App,
+    "CODE": AssetType.Code,
+    "PLUGIN": AssetType.Plugin,
+    "SOLID_MODEL": AssetType.Model,
+    "MESH_PART": AssetType.MeshPart,
+    "HAIR_ACCESSORY": AssetType.HairAccessory,
+    "FACE_ACCESSORY": AssetType.FaceAccessory,
+    "NECK_ACCESSORY": AssetType.NeckAccessory,
+    "SHOULDER_ACCESSORY": AssetType.ShoulderAccessory,
+    "FRONT_ACCESSORY": AssetType.FrontAccessory,
+    "BACK_ACCESSORY": AssetType.BackAccessory,
+    "WAIST_ACCESSORY": AssetType.WaistAccessory,
+    "CLIMB_ANIMATION": AssetType.ClimbAnimation,
+    "DEATH_ANIMATION": AssetType.DeathAnimation,
+    "FALL_ANIMATION": AssetType.FallAnimation,
+    "IDLE_ANIMATION": AssetType.IdleAnimation,
+    "JUMP_ANIMATION": AssetType.JumpAnimation,
+    "RUN_ANIMATION": AssetType.RunAnimation,
+    "SWIM_ANIMATION": AssetType.SwimAnimation,
+    "WALK_ANIMATION": AssetType.WalkAnimation,
+    "POSE_ANIMATION": AssetType.PoseAnimation,
+    "LOCALIZATION_TABLE_MANIFEST": AssetType.LocalizationTableManifest,
+    "LOCALIZATION_TABLE_TRANSLATION": AssetType.LocalizationTableTranslation,
+    "EMOTE_ANIMATION": AssetType.EmoteAnimation,
+    "VIDEO": AssetType.Video,
+    "TEXTURE_PACK": AssetType.TexturePack,
+    "TSHIRT_ACCESSORY": AssetType.TShirtAccessory,
+    "SHIRT_ACCESSORY": AssetType.ShirtAccessory,
+    "PANTS_ACCESSORY": AssetType.PantsAccessory,
+    "JACKET_ACCESSORY": AssetType.JacketAccessory,
+    "SWEATER_ACCESSORY": AssetType.SweaterAccessory,
+    "SHORTS_ACCESSORY": AssetType.ShortsAccessory,
+    "LEFT_SHOE_ACCESSORY": AssetType.LeftShoeAccessory,
+    "RIGHT_SHOE_ACCESSORY": AssetType.RightShoeAccessory,
+    "DRESS_SKIRT_ACCESSORY": AssetType.DressSkirtAccessory,
+    "FONT_FAMILY": AssetType.FontFamily,
+    "FONT_FACE": AssetType.FontFace,
+    "MESH_HIDDEN_SURFACE_REMOVAL": AssetType.MeshHiddenSurfaceRemoval,
+    "EYEBROW_ACCESSORY": AssetType.EyebrowAccessory,
+    "EYELASH_ACCESSORY": AssetType.EyelashAccessory,
+    "MOOD_ANIMATION": AssetType.MoodAnimation,
+    "DYNAMIC_HEAD": AssetType.DynamicHead,
+    "CODE_SNIPPET": AssetType.CodeSnippet,
+    "ADS_VIDEO": AssetType.AdsVideo,
 }
 
 
