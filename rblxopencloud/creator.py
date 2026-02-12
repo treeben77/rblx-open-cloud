@@ -2463,6 +2463,7 @@ class ToolboxSearchSortCategory(Enum):
     AssetType = 10
     Price = 11
 
+
 class InstanceType(Enum):
     """
     Enum denoting instance type. Used for filtering in the toolbox search.

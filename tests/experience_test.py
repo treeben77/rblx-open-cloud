@@ -102,7 +102,7 @@ class experience_info(unittest.TestCase):
         )
         self.assertEqual(
             experience.age_rating,
-            rblxopencloud.ExperienceAgeRating.ThirteenPlus,
+            rblxopencloud.ExperienceAgeRating.Mild,
         )
         self.assertTrue(experience.desktop_enabled)
 
