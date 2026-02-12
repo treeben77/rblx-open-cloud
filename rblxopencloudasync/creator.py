@@ -2162,10 +2162,23 @@ class ToolboxAsset:
         guilded_social_link (Optional[AssetSocialLink]): The Guilded social link of the asset.
         roblox_social_link (Optional[AssetSocialLink]): The Roblox social link of the asset.
         devforum_social_link (Optional[AssetSocialLink]): The DevForum social link of the asset.
+        is_owned (Optional[bool]): Whether the authenticated user owns the asset. \
+            Only populated when returned by [`list_saved_assets`][rblxopencloud.ApiKey.list_saved_assets].
+        saved_at (Optional[datetime]): When the authenticated user saved the asset.  \
+            Only populated when returned by [`list_saved_assets`][rblxopencloud.ApiKey.list_saved_assets].
     """
 
-    def __init__(self, data, creator, api_key):
+    def __init__(self, data, creator, api_key, extra_save=None):
         self.__api_key = api_key
+
+        self.is_owned: Optional[bool] = (
+            extra_save.get("owned") if extra_save else None
+        )
+        self.saved_at: Optional[datetime] = (
+            parser.parse(extra_save["dateSaved"])
+            if extra_save and extra_save.get("dateSaved")
+            else None
+        )
 
         self.votes_shown: bool = data.get("voting", {}).get("showVotes")
         self.up_votes: int = data.get("voting", {}).get("upVotes")
@@ -2419,16 +2432,21 @@ class ToolboxAsset:
 
 class ToolboxSearchSortCategory(Enum):
     """
-    Enum denoting the category to sort by when searching the toolbox.
+    Enum denoting the category to sort by when searching the toolbox or saved assets.
 
     Attributes:
         Unknown (0): An unknown or invalid sort category. Not used.
-        Relevance (1): Sort by relevance to the search query. This is the default sort category.
-        Trending (2): Sort by how trending the asset is on Roblox.
-        Top (3): Sort by the top rated assets on Roblox.
-        AudioDuration (4): For audio assets, sort by the duration of the audio.
-        CreateTime (5): Sort by when the asset was created.
-        UpdateTime (6): Sort by when the asset was last updated.
+        Relevance (1): For searching by the toolbox, sort by relevance to the search query. This is the default sort category.
+        Trending (2): For searching by the toolbox, sort by how trending the asset is on Roblox.
+        Top (3): For searching the toolbox or saved assets, sort by the top rated assets on Roblox.
+        AudioDuration (4): For searching by the toolbox for audio assets, sort by the duration of the audio.
+        CreateTime (5): For searching by the toolbox, sort by when the asset was created.
+        UpdateTime (6): For searching by the toolbox or saved assets, sort by when the asset was last updated.
+        SaveTime (7): Only for searching saved assets, sort by when the asset was saved.
+        Name (8): Only for searching saved assets, sort alphabetically by name of the asset.
+        Creator (9): Only for searching saved assets, sort alphabetically by creator name of the asset.
+        AssetType (10): Only for searching saved assets, sort by asset type.
+        Price (11): Only for searching saved assets, sort by price of the asset.
     """
 
     Unknown = 0
@@ -2438,6 +2456,11 @@ class ToolboxSearchSortCategory(Enum):
     AudioDuration = 4
     CreateTime = 5
     UpdateTime = 6
+    SaveTime = 7
+    Name = 8
+    Creator = 9
+    AssetType = 10
+    Price = 11
 
 
 class InstanceType(Enum):
@@ -2495,7 +2518,9 @@ class ToolboxSearchContext:
     """
 
     def __init__(self, data):
-        self.total_results: int = data.get("totalResults")
+        self.total_results: int = data.get("totalResults") or data.get(
+            "totalCount"
+        )
         self.filtered_keyword: str = data.get("filteredKeyword")
         self.applied_facets: list[str] = data.get("queryFacets", {}).get(
             "appliedFacets", []

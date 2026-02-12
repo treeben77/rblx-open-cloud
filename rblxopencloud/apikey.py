@@ -160,6 +160,14 @@ operations={self.operations!r}{suffix}>"
                 )
 
 
+SAVED_ASSETS_SEARCH_SORT_CATEGORY_MAPPING = {
+    "Top": "Ratings",
+    "AssetType": "TargetType",
+    "SaveTime": "DateSaved",
+    "UpdateTime": "LastModified",
+}
+
+
 class ApiKey:
     """
     Represents an API key and allows creation of API classes (such as
@@ -524,3 +532,190 @@ class ApiKey:
             yield ToolboxAsset(
                 entry, creator, self.__api_key
             ), ToolboxSearchContext(response)
+
+    def search_saved_assets(
+        self,
+        asset_type: Optional[AssetType] = None,
+        query: Optional[str] = None,
+        asset_id: Optional[int] = None,
+        descending: Optional[bool] = None,
+        limit: Optional[int] = None,
+        sort_by: Optional[ToolboxSearchSortCategory] = None,
+        exclude_owned_assets: Optional[bool] = None,
+    ) -> Iterable[tuple[ToolboxAsset, ToolboxSearchContext]]:
+        """
+        Iterates through the authenticated user's [saved assets](https://create.roblox.com/store/saved) \
+        with various filters and sorting options.
+
+        Requires `creator-store-save:read` on an API key. OAuth2 \
+        authorization is not supported.
+
+        ??? example
+            Iterates through the authenticated user's saved model assets and \
+            prints the first one along with when it was saved and how many more \
+            results there are. Ordered with highest rated first.
+
+            ```python
+            for asset, context in api_key.search_saved_assets(
+                asset_type=AssetType.Model,
+                sort_by=ToolboxSearchSortCategory.Top,
+                descending=True,
+                exclude_owned_assets=True,
+            ):
+                print(asset, "saved at", asset.saved_at, "and", context.total_results - 1, "more...")
+                break
+            >>> <rblxopencloud.ToolboxAsset asset_id=77975161416102> saved at 2026-02-11 11:01:33.495+00:00 and 67 more...
+            ```
+
+        Args:
+            asset_type: The category of the saved assets to search.
+            query: Keywords to filter by.
+            asset_id: The ID of the asset to filter by. Can only be present if \
+            `asset_type` is also present.
+            descending: Whether to sort the results in descending order.
+            limit: The maximum number of results to return.
+            sort_by: The category to sort by. Defaults to saved time.
+            exclude_owned_assets: Whether to exclude assets the authenticated user \
+            owns from the results.
+        
+        Yields:
+            A tuple containing the asset information for each saved toolbox asset \
+            found along with `is_owned` and `saved_at`, and the context for \
+            the search results - limited to `total_results` for this endpoint.
+        """
+
+        sort_by = sort_by.name if sort_by else None
+
+        sort_by = SAVED_ASSETS_SEARCH_SORT_CATEGORY_MAPPING.get(
+            sort_by, sort_by
+        )
+
+        for entry, response in iterate_request(
+            "GET",
+            f"toolbox-service/v1/saves",
+            authorization=self.__api_key,
+            expected_status=[200],
+            params={
+                "keyword": query,
+                "targetType": asset_type.name if asset_type else None,
+                "targetId": asset_id,
+                "sortBy": sort_by,
+                "sortDirection": (
+                    "Descending"
+                    if descending
+                    else "Ascending" if descending is not None else None
+                ),
+                "limit": limit if limit and limit < 100 else 100,
+                "hideOwnedAssets": exclude_owned_assets,
+            },
+            data_key="saves",
+            cursor_key="page",
+            include_raw_response=True,
+            next_cursor_hook=lambda prev_cursor: (
+                prev_cursor + 1 if prev_cursor else 2
+            ),
+        ):
+            if entry.get("creatorStoreAsset") is None:
+                continue
+
+            yield ToolboxAsset(
+                entry["creatorStoreAsset"], None, self.__api_key, entry
+            ), ToolboxSearchContext(response)
+
+    def save_asset(self, asset_id: int, asset_type: AssetType) -> None:
+        """
+        Saves an asset from the toolbox to the authenticated user's [saved \
+        assets](https://create.roblox.com/store/saved).
+
+        Requires `creator-store-save:write` on an API key. OAuth2 \
+        authorization is not supported.
+
+        Args:
+            asset_id: The ID of the asset to save.
+        """
+
+        send_request(
+            "POST",
+            f"toolbox-service/v1/saves",
+            authorization=self.__api_key,
+            expected_status=[200, 201],
+            json={
+                "targetType": asset_type.name,
+                "targetId": asset_id,
+            },
+        )
+
+    def unsave_assets(
+        self, assets: Union[list[tuple[int, AssetType]], tuple[int, AssetType]]
+    ) -> int:
+        """
+        Unsaves one or more assets in the toolbox from the authenticated \
+        user's [saved assets](https://create.roblox.com/store/saved).
+
+        Requires `creator-store-save:write` on an API key. OAuth2 \
+        authorization is not supported.
+
+        ??? example
+            Unsaves a single asset with ID `114376757380093` of type `Audio`.
+            ```python
+            count = api_key.unsave_assets((114376757380093, AssetType.Audio))
+            print("Unsaved", count, "asset!")
+            >>> "Unsaved 1 asset!"
+            ```
+
+            Unsaves multiple assets with IDs `114376757380093` of type `Audio` and \
+            `14903722621` of type `Model`:
+            ```python
+            count = api_key.unsave_assets([
+                (114376757380093, AssetType.Audio),
+                (14903722621, AssetType.Model)
+            ])
+            print("Unsaved", count, "assets!")
+            >>> "Unsaved 2 assets!"
+            ```
+
+        Args:
+            assets: A list of tuples (or a single tuple) comprising of the \
+            asset ID as the first value, and the asset type as the second \
+            value to be unsaved.
+        
+        Returns:
+            The number of assets successfully unsaved.
+        """
+
+        if type(assets) is tuple:
+            assets = [assets]
+
+        if len(assets) == 1:
+            send_request(
+                "DELETE",
+                f"toolbox-service/v1/saves",
+                authorization=self.__api_key,
+                expected_status=[200, 201, 204],
+                params={
+                    "targetType": assets[0][1].name,
+                    "targetId": assets[0][0],
+                },
+            )
+
+            return 1
+        else:
+            targets = []
+
+            for asset_id, asset_type in assets:
+                targets.append(
+                    {
+                        "targetType": asset_type.name,
+                        "targetId": asset_id,
+                    }
+                )
+
+            _, data, _ = send_request(
+                "POST",
+                f"toolbox-service/v1/saves:bulkDelete",
+                authorization=self.__api_key,
+                expected_status=[200, 201, 204],
+                json={"targets": targets},
+            )
+
+            return data.get("deletedCount")

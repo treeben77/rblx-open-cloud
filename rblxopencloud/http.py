@@ -193,6 +193,7 @@ def iterate_request(
     max_yields: int = None,
     post_request_hook: Callable = None,
     include_raw_response: bool = False,
+    next_cursor_hook: Callable[[str], Optional[str]] = None,
     **kwargs,
 ):
 
@@ -222,6 +223,8 @@ def iterate_request(
                 break
 
         data_cursor = data.get("nextPageCursor", data.get("nextPageToken"))
+        if next_cursor_hook:
+            data_cursor = next_cursor_hook(next_cursor)
         if next_cursor == data_cursor or not data_cursor:
             break
 
