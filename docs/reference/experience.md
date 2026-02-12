@@ -14,6 +14,8 @@
 
 ::: rblxopencloud.GamePass
 
+::: rblxopencloud.Badge
+
 ::: rblxopencloud.UserRestriction
 
 ::: rblxopencloud.Secret

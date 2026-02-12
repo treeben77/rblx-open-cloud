@@ -226,7 +226,7 @@ class GroupMember(User):
 
         Args:
             role_id: If provided, updates the member's group role to the \
-                provided [`GroupRole.id`][rblxopencloud.GroupRole.id]. This \
+                provided [`GroupRole.id`][rblxopencloud.GroupRole]. This \
                 role must not be Owner or Guest and must be lower than the \
                 authorizing user's rank.
 

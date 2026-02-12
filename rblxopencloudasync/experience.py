@@ -50,6 +50,7 @@ __all__ = (
     "SubscriptionState",
     "DeveloperProduct",
     "GamePass",
+    "Badge",
     "UserRestriction",
 )
 
@@ -554,6 +555,93 @@ class GamePass:
 
     def __repr__(self) -> str:
         return f'<rblxopencloud.GamePass id={self.id} name="{self.name}">'
+
+
+class Badge:
+    """
+    Represents a badge within an experience on Roblox.
+
+    Attributes:
+        id: The badge's ID.
+        experience: The experience this badge belongs to.
+        name: The badge's name.
+        description: The badge's description.
+        icon_asset_id: The Roblox image asset ID of the badge's \
+        icon.
+        enabled: Whether the badge is currently enabled, meaning it can be \
+        awarded to users and is visible on the experience detail page.
+        created_at: The time the badge was created.
+        updated_at: The time the badge was last updated.
+        awarded_past_day: The number of times this badge was awarded in the \
+        past day.
+        awarded_total: The total number of times this badge has been awarded.
+        win_rate_percentage: The percentage of players awarded this badge as \
+        a number between 0 and 1.
+        experience: The experience this badge belongs to. If the badge \
+        experience is the same as the experience used to fetch it, it will \
+        return the same experience object, otherwise a new experience object \
+        will be created. `name` and `root_place` should be populated.
+    """
+
+    def __init__(self, data, experience, api_key) -> None:
+        self.__api_key = api_key
+
+        self.id: int = data.get("id")
+        self.experience: Experience = experience
+        self.name: str = data.get("name")
+        self.description: str = data.get("description")
+        self.icon_asset_id: int = data.get("iconImageId")
+        self.enabled: bool = data.get("enabled")
+        self.created_at: datetime = (
+            parser.parse(data["created"]) if data.get("created") else None
+        )
+        self.updated_at: datetime = (
+            parser.parse(data["updated"]) if data.get("updated") else None
+        )
+        self.awarded_past_day: int = data.get("statistics", {}).get(
+            "pastDayAwardedCount", None
+        )
+        self.awarded_total: int = data.get("statistics", {}).get(
+            "awardedCount", None
+        )
+        self.win_rate_percentage: float = data.get("statistics", {}).get(
+            "winRatePercentage", None
+        )
+
+        self.experience: Optional[Experience] = None
+
+        awarding_universe = data.get("awardingUniverse")
+        awarding_place = data.get("awarder")
+        if awarding_place and awarding_place.get("type") != "Place":
+            awarding_place = None
+        if awarding_universe and awarding_universe.get("id") == experience.id:
+            self.experience = experience
+            self.experience.name = (
+                awarding_universe.get("name") or self.experience.name
+            )
+            if not self.experience.root_place and awarding_universe.get(
+                "rootPlaceId"
+            ):
+                self.experience.root_place = self.experience.get_place(
+                    awarding_universe["rootPlaceId"]
+                )
+        elif awarding_universe:
+            self.experience = Experience(awarding_universe["id"], api_key)
+            self.experience.name = awarding_universe.get("name")
+            self.experience.root_place = (
+                self.experience.get_place(awarding_universe.get("rootPlaceId"))
+                if awarding_universe.get("rootPlaceId")
+                else None
+            )
+        elif awarding_place and experience:
+            self.experience = experience
+            if not self.experience.root_place and awarding_place.get("id"):
+                self.experience.root_place = Place(
+                    awarding_place["id"], None, api_key, self.experience
+                )
+
+    def __repr__(self) -> str:
+        return f'<rblxopencloud.Badge id={self.id} name="{self.name}">'
 
 
 class Place:
@@ -1958,7 +2046,9 @@ classes/MessagingService).
         ):
             yield DeveloperProduct(developer_product, self, self.__api_key)
 
-    async def fetch_developer_product(self, product_id: int):
+    async def fetch_developer_product(
+        self, product_id: int
+    ) -> DeveloperProduct:
         """
         Fetches a specific developer product within the experience.
 
@@ -1989,6 +2079,20 @@ classes/MessagingService).
         """
         Creates a developer product within the experience.
 
+        ??? example
+            ```python
+            with open("icon.png", "rb") as icon_file:
+                developer_product = await experience.create_developer_product(
+                    name="My Developer Product",
+                    description="This is my developer product.",
+                    price_in_robux=670,
+                    regional_pricing_enabled=True,
+                    icon_file=icon_file,
+                )
+            print(developer_product)
+            >>> <rblxopencloud.DeveloperProduct id=0000000000 name='My Developer Product'>
+            ```
+
         Args:
             name: The name of the developer product. Must be unique within \
             the experience.
@@ -2002,20 +2106,6 @@ classes/MessagingService).
 
         Returns:
             The created developer product information.
-
-        Example:
-            ```python
-            with open("icon.png", "rb") as icon_file:
-                developer_product = experience.create_developer_product(
-                    name="My Developer Product",
-                    description="This is my developer product.",
-                    price_in_robux=670,
-                    regional_pricing_enabled=True,
-                    icon_file=icon_file,
-                )
-            print(developer_product)
-            >>> <rblxopencloud.DeveloperProduct id=0000000000 name='My Developer Product'>
-            ```
         """
 
         payload = {
@@ -2170,7 +2260,7 @@ classes/MessagingService).
         ):
             yield GamePass(game_pass, self, self.__api_key)
 
-    async def fetch_game_pass(self, pass_id: int):
+    async def fetch_game_pass(self, pass_id: int) -> GamePass:
         """
         Fetches a specific game pass within the experience.
 
@@ -2197,12 +2287,19 @@ classes/MessagingService).
         price_in_robux: Optional[int] = None,
         regional_pricing_enabled: bool = False,
         icon_file: io.BytesIO = None,
-    ):
+    ) -> GamePass:
         """
         Creates a game pass within the experience.
 
         Args:
-            pass_id: The game pass ID to fetch.
+            name: The name of the game pass.
+            description: The description of the game pass.
+            price_in_robux: The price in robux of the game pass. Provide \
+            `None` for it to be off sale.
+            regional_pricing_enabled: Whether regional pricing is enabled for \
+            the game pass. Must have a price set to enable.
+            icon_file: The icon file for the game pass as a file \
+            opened with `rb` mode.
 
         Returns:
             The created game pass information.
@@ -2258,7 +2355,16 @@ classes/MessagingService).
         Updates a game pass within the experience.
 
         Args:
-            pass_id: The game pass ID to fetch.
+            pass_id: The game pass ID to update.
+            name: The new name of the game pass.
+            description: The new optional description of the game pass. Set to \
+            `""` to clear any existing description.
+            price_in_robux: The new price in robux of the game pass. Provide \
+            `None` for it to be off sale.
+            regional_pricing_enabled: Whether regional pricing is enabled for \
+            the game pass. Must have a price set to enable.
+            icon_file: An optional new icon file for the game pass as a file \
+            opened with `rb` mode.
         """
 
         payload = {}
@@ -2301,21 +2407,19 @@ classes/MessagingService).
 
         return None
 
-    async def update_badge(
-        self,
-        badge_id: int,
-        enabled: bool = None,
-        name: str = None,
-        description: str = None,
-    ):
+    async def fetch_badge(self, badge_id: int) -> Badge:
         """
-        Updates the badge with the requested badge ID.
+        Fetchs a badge on Roblox. The badge ID does not necessarily have to \
+        be within the experience. `root_place` and `name` for this experience \
+        will also be populated if the badge is within the experience.
+
+        Requires no authorization.
 
         Args:
-            enabled: Whether the badge can be awarded and appears on the game \
-            page.
-            name: The new name for the badge.
-            description: The new description for the badge.
+            badge_id: The ID of the badge to fetch.
+        
+        Returns:
+            The badge information for the requested badge ID.
 
         !!! bug "Legacy API"
             This endpoint uses the legacy Badges API. Roblox has noted [in \
@@ -2328,14 +2432,155 @@ tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
 server](https://discord.gg/zW36pJGFnh).
         """
 
-        await send_request(
-            "PATCH",
-            f"legacy-badges/v1/badges/{badge_id}",
-            authorization=self.__api_key,
+        _, body, _ = await send_request(
+            "GET",
+            f"https://badges.roblox.com/v1/badges/{badge_id}",
             expected_status=[200],
-            json={
-                "name": name,
-                "description": description,
-                "enabled": enabled,
-            },
         )
+
+        return Badge(body, self, self.__api_key)
+
+    async def create_badge(
+        self,
+        name: str,
+        icon_file: io.BytesIO,
+        description: str = None,
+        enabled: bool = True,
+        expected_robux_price: int = 0,
+        use_group_funds: bool = False,
+    ) -> Badge:
+        """
+        Creates a new badge within the experience. `root_place` and `name` \
+        for this experience will also be populated.
+
+        Requires `legacy-universe.badge:manage-and-spend-robux` on an API Key \
+        or OAuth2 authorization.
+
+        Args:
+            name: The name of the new badge
+            icon_file: The icon for the badge as a file opened with `rb` mode.
+            description: The  description for the badge.
+            enabled: Whether the badge can be awarded and appears on the game \
+            page.
+            expected_robux_price: The amount of robux expected to upload the \
+            badge. Will fail if lower than the actual price.
+            use_group_funds: Whether to use group funds to pay for the badge \
+            creation.
+        
+        Returns:
+            The created badge.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Badges API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+        """
+
+        payload = {
+            "name": (None, name),
+            "description": (None, description if description else ""),
+            "paymentSourceType": (None, str(2 if use_group_funds else 1)),
+            "files": (
+                icon_file.name,
+                icon_file.read(),
+                "application/octet-stream",
+            ),
+            "expectedCost": (None, expected_robux_price),
+            "isActive": (None, "true" if enabled else "false"),
+        }
+
+        body, contentType = urllib3.encode_multipart_formdata(payload)
+
+        _, data, _ = await send_request(
+            "POST",
+            f"legacy-badges/v1/universes/{self.id}/badges",
+            authorization=self.__api_key,
+            headers={"content-type": contentType},
+            expected_status=[200],
+            data=body,
+        )
+
+        return Badge(data, self, self.__api_key)
+
+    def update_badge(
+        self,
+        badge_id: int,
+        enabled: bool = None,
+        name: str = None,
+        description: str = None,
+        icon_file: io.BytesIO = None,
+    ):
+        """
+        Updates the badge with the requested badge ID.
+
+        Requires `legacy-universe.badge:write` on an API Key or OAuth2 \
+        authorization to update `enabled`, `name`, and `description`. \
+        Requires `legacy-badge:manage` on an API Key or OAuth2 \
+        authorization to update `icon_file`.
+
+        Args:
+            enabled: Whether the badge can be awarded and appears on the game \
+            page.
+            name: The new name for the badge.
+            description: The new description for the badge.
+            icon_file: The new icon for the badge as a file opened with \
+            `rb` mode.
+
+        !!! bug "Legacy API"
+            This endpoint uses the legacy Badges API. Roblox has noted [in \
+this DevForum post](https://devforum.roblox.com/t/3106190) that these \
+endpoints may change without notice and break your application. Therefore, \
+they should be used with caution.
+
+            Please report issues with this endpoint on the [GitHub issue \
+tracker](https://github.com/treeben77/rblx-open-cloud/issues) or the [Discord \
+server](https://discord.gg/zW36pJGFnh).
+
+        !!! note
+            This function uses seperate endpoints for updating the badge \
+            information and the badge icon. If `icon_file` is provided, it \
+            will make a seperate request to update the icon. This could result \
+            in an exception being raised during the icon update resulting in \
+            badge information being updated but not the icon.
+            
+            To ensure that exceptions are catched seperately for each endpoint, \
+            the information and icon should be updated in seperate requests.
+        """
+
+        if any((name, description, enabled is not None)) or not icon_file:
+            send_request(
+                "PATCH",
+                f"legacy-badges/v1/badges/{badge_id}",
+                authorization=self.__api_key,
+                expected_status=[200],
+                json={
+                    "name": name,
+                    "description": description,
+                    "enabled": enabled,
+                },
+            )
+
+        if icon_file:
+            body, contentType = urllib3.encode_multipart_formdata(
+                {
+                    "Files": (
+                        icon_file.name,
+                        icon_file.read(),
+                        "application/octet-stream",
+                    )
+                }
+            )
+
+            send_request(
+                "POST",
+                f"legacy-publish/v1/badges/{badge_id}/icon",
+                authorization=self.__api_key,
+                headers={"content-type": contentType},
+                expected_status=[200],
+                data=body,
+            )
