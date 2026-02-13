@@ -1208,10 +1208,9 @@ class AssetPermissionSubjectType(Enum):
 
 class AssetPermissionSubject:
     """
-    Data class representing a subject that can be granted permissions for an \
-    asset. For instance, a user, group, group role, experience, or everyone. \
-    When using `All`, the `id` field should be omitted; otherwise, it should \
-    be the ID of the user, group, group role, or experience.
+    Represents a subject when granting permissions with \
+    [`grant_assets_permission`][rblxopencloud.Creator.grant_assets_permission]. \
+    A subject can be a user, group, a group role, experience, or everyone on Roblox.
 
     Where this class is used, a [`User`][rblxopencloud.User],
     [`Group`][rblxopencloud.Group], [`GroupRole`][rblxopencloud.GroupRole], or
@@ -1219,8 +1218,12 @@ class AssetPermissionSubject:
     place.
 
     Args:
-        type (AssetPermissionSubjectType): The type of subject.
-        id (Optional[int]): The ID of the subject, if applicable.
+        type: The type of subject.
+        id: The ID of the subject. Not required when the type is `All`.
+    
+    Attributes:
+        type: The type of subject.
+        id: The ID of the subject. Will be `None` when the type is `All`.
     """
 
     def __init__(
@@ -2163,9 +2166,9 @@ class ToolboxAsset:
         roblox_social_link (Optional[AssetSocialLink]): The Roblox social link of the asset.
         devforum_social_link (Optional[AssetSocialLink]): The DevForum social link of the asset.
         is_owned (Optional[bool]): Whether the authenticated user owns the asset. \
-            Only populated when returned by [`list_saved_assets`][rblxopencloud.ApiKey.list_saved_assets].
+            Only populated when returned by [`search_saved_assets`][rblxopencloud.ApiKey.search_saved_assets].
         saved_at (Optional[datetime]): When the authenticated user saved the asset.  \
-            Only populated when returned by [`list_saved_assets`][rblxopencloud.ApiKey.list_saved_assets].
+            Only populated when returned by [`search_saved_assets`][rblxopencloud.ApiKey.search_saved_assets].
     """
 
     def __init__(self, data, creator, api_key, extra_save=None):

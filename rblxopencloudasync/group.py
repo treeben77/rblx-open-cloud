@@ -219,7 +219,7 @@ class GroupMember(User):
 
         return await self.group.fetch_role(self.role_id, skip_cache=skip_cache)
 
-    async def update(self, role_id: int = None):
+    async def update(self, role_id: int = None) -> "GroupMember":
         """
         Updates the member with the requested information and updates the \
         member object attributes.
@@ -444,9 +444,9 @@ class GroupAuditLogEntryDescription(TypedDict):
     Represents the description of a group audit log entry returned by \
     Roblox. It contains information regarding the change that was made.
     
-    !!! note:
+    !!! note
         This is a TypedDict, meaning the returned type is a dictionary. The \
-        attributed documented below are keys, not class attributes.Note that \
+        attributed documented below are keys, not class attributes. Note that \
         not all fields are present for every entry and that some fields \
         may not be documented here. The following is a best effort based on \
         available documentation.
@@ -708,7 +708,7 @@ class Group(Creator):
             user_id: The user ID to fetch member info for. Must not be the \
                 authorizing user. 
             role_id: If provided, updates the member's group role to the \
-                provided [`GroupRole.id`][rblxopencloud.GroupRole.id]. This \
+                provided [`GroupRole.id`][rblxopencloud.GroupRole]. This \
                 role must not be Owner or Guest and must be lower than the \
                 authorizing user's rank.
 

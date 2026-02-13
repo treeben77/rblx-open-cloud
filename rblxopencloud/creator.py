@@ -1224,6 +1224,25 @@ class AssetPermissionSubjectType(Enum):
 
 
 class AssetPermissionSubject:
+    """
+    Represents a subject when granting permissions with \
+    [`grant_assets_permission`][rblxopencloud.Creator.grant_assets_permission]. \
+    A subject can be a user, group, a group role, experience, or everyone on Roblox.
+
+    Where this class is used, a [`User`][rblxopencloud.User],
+    [`Group`][rblxopencloud.Group], [`GroupRole`][rblxopencloud.GroupRole], or
+    [`Experience`][rblxopencloud.Experience] object can also be used in its \
+    place.
+
+    Args:
+        type: The type of subject.
+        id: The ID of the subject. Not required when the type is `All`.
+    
+    Attributes:
+        type: The type of subject.
+        id: The ID of the subject. Will be `None` when the type is `All`.
+    """
+
     def __init__(
         self,
         type: AssetPermissionSubjectType,
@@ -2164,9 +2183,9 @@ class ToolboxAsset:
         roblox_social_link (Optional[AssetSocialLink]): The Roblox social link of the asset.
         devforum_social_link (Optional[AssetSocialLink]): The DevForum social link of the asset.
         is_owned (Optional[bool]): Whether the authenticated user owns the asset. \
-            Only populated when returned by [`list_saved_assets`][rblxopencloud.ApiKey.list_saved_assets].
+            Only populated when returned by [`search_saved_assets`][rblxopencloud.ApiKey.search_saved_assets].
         saved_at (Optional[datetime]): When the authenticated user saved the asset.  \
-            Only populated when returned by [`list_saved_assets`][rblxopencloud.ApiKey.list_saved_assets].
+            Only populated when returned by [`search_saved_assets`][rblxopencloud.ApiKey.search_saved_assets].
     """
 
     def __init__(self, data, creator, api_key, extra_save=None):

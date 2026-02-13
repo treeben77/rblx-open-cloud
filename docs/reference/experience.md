@@ -1,30 +1,36 @@
 # Experience
 
+This reference documents APIs relating to experiences (also known as *games* and *universes*) and places within experiences. 
+
 ::: rblxopencloud.Experience
     options:
         merge_init_into_class: true
 
-::: rblxopencloud.Place
-
-::: rblxopencloud.ExperienceSocialLink
-
-::: rblxopencloud.ExperienceAgeRating
-
-::: rblxopencloud.DeveloperProduct
-
-::: rblxopencloud.GamePass
+## Non-creatable Dataclasses
 
 ::: rblxopencloud.Badge
 
-::: rblxopencloud.UserRestriction
+::: rblxopencloud.DeveloperProduct
+
+::: rblxopencloud.ExperienceSocialLink
+
+::: rblxopencloud.GamePass
+
+::: rblxopencloud.Place
 
 ::: rblxopencloud.Secret
 
 ::: rblxopencloud.Subscription
 
-::: rblxopencloud.SubscriptionState
+::: rblxopencloud.UserRestriction
+
+## Enums
+
+::: rblxopencloud.ExperienceAgeRating
 
 ::: rblxopencloud.SubscriptionExpirationReason
+
+::: rblxopencloud.SubscriptionState
 
 ::: rblxopencloud.PaymentProvider
 

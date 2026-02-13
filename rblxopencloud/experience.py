@@ -833,7 +833,7 @@ experience={repr(self.experience)}>"
             The asset representing the place.
 
         !!! tip
-            Use [`Place.to_asset`][rblxopencloud.Place.to_asset] to get a \
+            Use [`Place.get_asset`][rblxopencloud.Place.get_asset] to get a \
             partial asset without making additional requests. This is useful \
             if you do not require the additional asset information.
         """
@@ -854,7 +854,6 @@ experience={repr(self.experience)}>"
         authorization.
 
         Args:
-            place_id: Only include user restrictions for this specific place ID.
             limit: The maximum number of user restrictions to return. \
             Defaults to no limit.
         
@@ -1815,7 +1814,7 @@ classes/MessagingService).
         Roblox. This endpoint is not neccessary as the library will handle \
         this when using \
         [`create_secret`][rblxopencloud.Experience.create_secret] and \
-        [`update_secret`][rblxopencloud.Experience.update_asset].
+        [`update_secret`][rblxopencloud.Experience.update_secret].
 
         Returns:
             A tuple with the key ID and the public key encoded.

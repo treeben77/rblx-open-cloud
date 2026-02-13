@@ -205,7 +205,7 @@ class DataStore:
         experience: The experience this DataStore is a part of.
         state: Whether the datastore is active or scheduled for deletion. \
         Will always be `Unknown` if not returned by \
-        [`DataStore.list_datastores`][rblxopencloud.DataStore.list_datastores].
+        [`Experience.list_datastores`][rblxopencloud.Experience.list_datastores].
         created_at: When the datastore was created.
         expires_at: When the datastore is scheduled to be permanently deleted.
     """

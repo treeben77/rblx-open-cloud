@@ -1,3 +1,40 @@
 .injected {
     visibility: hidden !important;
 }
+h3.doc.doc-heading {
+    font-size: 1.25rem;
+}
+
+h3.doc.doc-heading code {
+    font-size: 0.85em;
+}
+
+h4.doc.doc-heading {
+    font-size: 1.15rem;
+    font-weight: 400;
+}
+
+h4.doc.doc-heading code {
+    font-size: 0.85em;
+    font-weight: 400;
+}
+
+[data-md-color-scheme="slate"] {
+    --doc-symbol-parameter-fg-color: #ffa8cc;
+    --doc-symbol-type_parameter-fg-color: #ffa8cc;
+    --doc-symbol-attribute-fg-color: #963fb8;
+    --doc-symbol-function-fg-color: #b2ff6a;
+    --doc-symbol-method-fg-color: #b2ff6a;
+    --doc-symbol-class-fg-color: #6d67e4;
+    --doc-symbol-type_alias-fg-color: #6d67e4;
+    --doc-symbol-module-fg-color: #f2f7a1;
+
+    --doc-symbol-parameter-bg-color: #ffa8cc1a;
+    --doc-symbol-type_parameter-bg-color: #ffa8cc1a;
+    --doc-symbol-attribute-bg-color: #963fb81a;
+    --doc-symbol-function-bg-color: #b2ff6a1a;
+    --doc-symbol-method-bg-color: #b2ff6a1a;
+    --doc-symbol-class-bg-color: #6d67e41a;
+    --doc-symbol-type_alias-bg-color: #6d67e41a;
+    --doc-symbol-module-bg-color: #f2f7a11a;
+}

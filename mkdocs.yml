@@ -20,13 +20,16 @@ extra_css:
   - extra.css
 plugins:
   - search
+  - autorefs
   - mkdocstrings:
       handlers:
         python:
           import:
           - https://docs.python.org/3/objects.inv
           options:
+            heading_level: 3
             show_source: false
+            show_symbol_type_heading: true
             show_root_toc_entry: false
             show_root_heading: true
             members_order: source
@@ -76,7 +79,6 @@ nav:
     - User: reference/user.md
     - OAuth2: reference/oauth2.md
     - Webhook: reference/webhook.md
-    - Data Store: reference/datastore.md
-    - Memory Store: reference/memorystore.md
+    - Data & Memory Stores: reference/datastore.md
     - Exceptions: reference/exceptions.md
     - Creator: reference/creator.md

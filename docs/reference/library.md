@@ -1,7 +1,9 @@
 # rblxopencloud
 
-::: rblxopencloud.send_request
+This reference documents the base API key object, Operation objects as well as the exposed function handling requests internally.
+
+::: rblxopencloud.ApiKey
 
 ::: rblxopencloud.Operation
 
-::: rblxopencloud.ApiKey
+::: rblxopencloud.send_request
