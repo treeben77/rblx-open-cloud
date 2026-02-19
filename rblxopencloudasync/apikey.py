@@ -384,7 +384,7 @@ class ApiKey:
         category_path: Optional[str] = None,
         music_chart_type: Optional[MusicChartType] = None,
         facets: Optional[Sequence[str]] = None,
-    ) -> AsyncGenerator[Any, tuple[ToolboxAsset, ToolboxSearchContext], None]:
+    ) -> AsyncGenerator[tuple[ToolboxAsset, ToolboxSearchContext], None]:
         """
         Searches for assets in the toolbox (or, the creator store) with various \
         filters and sorting options.

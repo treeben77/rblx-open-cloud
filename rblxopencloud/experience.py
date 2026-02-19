@@ -444,10 +444,10 @@ class UserRestriction:
         ]
 
         duration = restriction_info.get("duration")
-        self.duration_seconds: Optional[int] = (
+        self.duration_seconds: Optional[float] = (
             duration
             if not (type(duration) == str and duration.endswith("s"))
-            else int(duration[0:-1])
+            else float(duration[0:-1])
         )
         self.start_timestamp: Optional[datetime] = (
             parser.parse(restriction_info["startTime"])
