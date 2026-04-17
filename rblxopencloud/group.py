@@ -173,16 +173,23 @@ class GroupMember(User):
 
     Attributes:
         id (int): The user ID of the group member.
-        role_id (int): The role ID assigned to the group member.
+        role_ids (list[int]): The IDs of all roles assigned to the member.
+        top_role_id (int): The ID of the highest ranking assigned role to the member.
         group (Group): The group this group member is associated with.
         joined_at (Optional[datetime.datetime]): The time the user joined the group.
         updated_at (Optional[datetime.datetime]): The time the user was last update in \
         the group (Such as rank change).
+        role_id (int): Deprecated in favour of `top_role_id`. The ID of \
+        the highest assigned role to the group member.
     """
 
     def __init__(self, member, api_key, group=None) -> None:
         self.id: int = int(member["user"].split("/")[1])
-        self.role_id: int = int(member["role"].split("/")[-1])
+        self.role_ids: list[int] = [
+            int(role.split("/")[-1]) for role in member["roles"]
+        ]
+        self.top_role_id: int = int(member["role"].split("/")[-1])
+        self.role_id: int = self.top_role_id
         self.group: Group = (
             group
             if group
@@ -205,22 +212,128 @@ class GroupMember(User):
 
     def fetch_role(self, skip_cache: bool = False) -> GroupRole:
         """
+        !!! bug "Deprecated API"
+            This endpoint has been deprecated in favour of [`GroupMember.fetch_top_role`\
+            ][rblxopencloud.GroupMember.fetch_top_role].
+        
         Fetches and returns the user's role info (rank, role name, etc). The \
         roles are cached therefore it runs faster. Shortcut for \
         [`Group.fetch_role`][rblxopencloud.Group.fetch_role]
 
         Args:
-            skip_cache (bool): Wether to forcably refetch role information.
+            skip_cache (bool): Whether to ignore any cached role information \
+                for this group and fetch updated role information.
 
         Returns:
             The [`GroupRole`][rblxopencloud.GroupRole] for the user's current \
             rank.
         """
 
-        return self.group.fetch_role(self.role_id, skip_cache=skip_cache)
+        return self.fetch_top_role(self.role_id, skip_cache=skip_cache)
+
+    def fetch_top_role(self, skip_cache: bool = False) -> GroupRole:
+        """
+        
+        Fetches the role info (rank, role name, etc) for the member's highest \
+        assigned role. Roles are cached on a group object level, therefore \
+        multiple calls for the same group resolve without sending another request.
+
+        Args:
+            skip_cache (bool): Whether to ignore any cached role information \
+                for this group and fetch updated role information.
+
+        Returns:
+            The member's highest role.
+        """
+
+        return self.fetch_top_role(self.role_id, skip_cache=skip_cache)
+
+    def fetch_roles(self, skip_cache: bool = False) -> list[GroupRole]:
+        """
+        Fetches and returns a list of roles assigned to the group member. Roles \
+        are cached on a group object level, therefore multiple calls for the \
+        same group resolve without sending another request.
+
+        ??? example
+            Prints the name of every role assigned to the member with user ID `287113233`.
+            ```python
+            member = group.fetch_member(287113233)
+            for role in member.fetch_roles():
+                print(role.name)
+            ```
+
+        Args:
+            skip_cache (bool): Whether to ignore any cached role information \
+                for this group and fetch updated role information.
+
+        Returns:
+            Role info for each of the member's assigned roles.
+        """
+
+        roles = []
+
+        for role_id in self.role_ids:
+            roles.append(self.group.fetch_role(role_id, skip_cache=skip_cache))
+            skip_cache = False
+
+        return roles
+
+    def assign_role(self, role_id: int) -> "GroupMember":
+        """
+        Assigns a role to the member and updates the member object. If the \
+        member already has the requested role, no action occurs.
+
+        The Owner, Member, and Guest roles cannot be assigned to a member.
+
+        Args:
+            role_id: The ID of the role to assign.
+
+        Returns:
+            The updated member.
+        """
+
+        member = self.group.assign_member_role(self.id, role_id)
+
+        self.role_ids = member.role_ids
+        self.top_role_id = member.top_role_id
+        self.role_id = member.role_id
+        self.joined_at = member.joined_at
+        self.updated_at = member.updated_at
+
+        return self
+
+    def unassign_role(self, role_id: int) -> "GroupMember":
+        """
+        Removes a role from the member and updates the member object. If the \
+        member does not have the requested role, no action occurs.
+
+        The Owner, Member, and Guest roles cannot be unassigned from a member.
+
+        Args:
+            role_id: The ID of the role to unassign.
+
+        Returns:
+            The updated member.
+        """
+
+        member = self.group.unassign_member_role(self.id, role_id)
+
+        self.role_ids = member.role_ids
+        self.top_role_id = member.top_role_id
+        self.role_id = member.role_id
+        self.joined_at = member.joined_at
+        self.updated_at = member.updated_at
+
+        return self
 
     def update(self, role_id: int = None) -> "GroupMember":
         """
+
+        !!! bug "Deprecated API"
+            This endpoint has been deprecated in favour of [`GroupMember.assign_role`\
+            ][rblxopencloud.GroupMember.assign_role] and [`GroupMember.unassign_role`\
+            ][rblxopencloud.GroupMember.unassign_role].
+
         Updates the member with the requested information and updates the \
         member object attributes.
 
@@ -237,6 +350,8 @@ class GroupMember(User):
         member = self.group.update_member(self.id, role_id)
 
         self.role_id: int = member.role_id
+        self.top_role_id: int = member.top_role_id
+        self.role_ids: list[int] = member.role_ids
         self.updated_at: datetime.datetime = member.updated_at
 
         return self
@@ -701,6 +816,11 @@ class Group(Creator):
         self, user_id: int, role_id: int = None
     ) -> Optional[GroupMember]:
         """
+        !!! bug "Deprecated API"
+            This endpoint has been deprecated in favour of [`Group.assign_member_role`\
+            ][rblxopencloud.Group.assign_member_role] and [`Group.unassign_member_role`\
+            ][rblxopencloud.Group.unassign_member_role].
+        
         Updates the member with the requested information and returns the \
         updated member info.
 
@@ -713,8 +833,7 @@ class Group(Creator):
                 authorizing user's rank.
 
         Returns:
-            The updated [`GroupMember`][rblxopencloud.GroupMember] for the \
-            provided user.
+            The updated member.
         """
 
         membership_id = (
@@ -730,6 +849,72 @@ class Group(Creator):
                 "role": (
                     f"groups/{self.id}/roles/{role_id}" if role_id else None
                 ),
+            },
+            expected_status=[200],
+            authorization=self.__api_key,
+        )
+
+        return GroupMember(data, self.__api_key, self)
+
+    def assign_member_role(
+        self, user_id: int, role_id: int
+    ) -> Optional[GroupMember]:
+        """        
+        Assigns a role to the member and updates the member object. If the \
+        member already has the requested role, no action occurs.
+
+        The Owner, Member, and Guest roles cannot be assigned to a member.
+
+        Args:
+            user_id: The user ID to fetch member info for.
+            role_id: The ID of the role to assign.
+
+        Returns:
+            The updated member.
+        """
+
+        membership_id = (
+            urlsafe_b64encode(str(user_id).encode()).strip(b"=").decode()
+        )
+
+        _, data, _ = send_request(
+            "POST",
+            f"/groups/{self.id}/memberships/{membership_id}:assignRole",
+            json={
+                "role": f"groups/{self.id}/roles/{role_id}",
+            },
+            expected_status=[200],
+            authorization=self.__api_key,
+        )
+
+        return GroupMember(data, self.__api_key, self)
+
+    def unassign_member_role(
+        self, user_id: int, role_id: int
+    ) -> Optional[GroupMember]:
+        """        
+        Removes a role from a member and returns the member. If the \
+        member does not have the requested role, no action occurs.
+
+        The Owner, Member, and Guest roles cannot be unassigned from a member.
+
+        Args:
+            user_id: The user ID to fetch member info for.
+            role_id: The ID of the role to unassign.
+
+        Returns:
+            The updated member.
+        """
+
+        membership_id = (
+            urlsafe_b64encode(str(user_id).encode()).strip(b"=").decode()
+        )
+
+        _, data, _ = send_request(
+            "POST",
+            f"/groups/{self.id}/memberships/{membership_id}:unassignRole",
+            json={
+                "role": f"groups/{self.id}/roles/{role_id}",
             },
             expected_status=[200],
             authorization=self.__api_key,
@@ -963,22 +1148,20 @@ server](https://discord.gg/zW36pJGFnh).
         ???+ warning "Edge case with role caching"
             This endpoint caches some basic rank info (e.g. role ID, name, \
             and rank number) for any role found in the audit log. This means \
-            that calls to [`GroupMember.fetch_role`][rblxopencloud.GroupMember.fetch_role] \
-            will use the cached role information. While this means that \
-            additional requests aren't used for these members, it means that \
-            information such as permissions, member counts and descriptions \
+            that calls to [`GroupMember.fetch_roles`][rblxopencloud.GroupMember.fetch_roles] \
+            and similar methods will use the cached role information. While this \
+            means that additional requests aren't used for these members, it \
+            means that information such as permissions, member counts and descriptions \
             are unavailable for these cached roles.
 
-            Furthermore, it means future requests to [`GroupMember.fetch_role`][rblxopencloud.GroupMember.fetch_role] \
-            and [`Group.fetch_role`][rblxopencloud.Group.fetch_role] \
-            for roles not found in the audit log will not be cached, so \
+            Furthermore, it means future requests to the relveant role fetching \
+            methods for roles not found in the audit log will not be cached, so \
             `None` will be returned instead.
 
             If you want to ensure all role information is available and all \
             roles are available, you should either call [`Group.list_roles`][rblxopencloud.Group.list_roles] \
             before calling this method or set `skip_cache=True` for the next \
-            call to [`GroupMember.fetch_role`][rblxopencloud.GroupMember.fetch_role] \
-            or [`Group.fetch_role`][rblxopencloud.Group.fetch_role] afterwards.
+            request for role information.
         """
 
         if limit and limit <= 10:

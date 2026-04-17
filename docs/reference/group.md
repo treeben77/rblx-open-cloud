@@ -15,6 +15,8 @@ This reference documents APIs relating to groups (also known as *communities*).
 ::: rblxopencloud.GroupMember
     options:
         inherited_members: false
+        filters:
+            - "!fetch_role$"
 
 ::: rblxopencloud.GroupRole
 
