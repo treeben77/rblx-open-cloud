@@ -1,6 +1,6 @@
 site_name: rblx-open-cloud
 site_url: https://rblx-open-cloud.readthedocs.io/en/latest/
-copyright: Copyright &copy; treeben77 2022-2024
+copyright: Copyright &copy; treeben77 2022-2026
 repo_name: treeben77/rblx-open-cloud
 repo_url: https://github.com/treeben77/rblx-open-cloud
 edit_uri: tree/main/docs/
@@ -29,7 +29,6 @@ plugins:
           options:
             heading_level: 3
             show_source: false
-            show_symbol_type_heading: true
             show_root_toc_entry: false
             show_root_heading: true
             members_order: source

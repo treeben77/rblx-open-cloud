@@ -181,6 +181,11 @@ class GroupMember(User):
         the group (Such as rank change).
         role_id (int): Deprecated in favour of `top_role_id`. The ID of \
         the highest assigned role to the group member.
+    
+    !!! tip
+        This class bases [`User`][rblxopencloud.User], so all user methods \
+        can be used from this object, such as \
+        [`GroupMember.list_inventory`][rblxopencloud.User.list_inventory].
     """
 
     def __init__(self, member, api_key, group=None) -> None:
@@ -229,14 +234,12 @@ class GroupMember(User):
             rank.
         """
 
-        return self.fetch_top_role(self.role_id, skip_cache=skip_cache)
+        return self.fetch_top_role(skip_cache=skip_cache)
 
     def fetch_top_role(self, skip_cache: bool = False) -> GroupRole:
         """
-        
         Fetches the role info (rank, role name, etc) for the member's highest \
-        assigned role. Roles are cached on a group object level, therefore \
-        multiple calls for the same group resolve without sending another request.
+        assigned role.
 
         Args:
             skip_cache (bool): Whether to ignore any cached role information \
@@ -244,15 +247,19 @@ class GroupMember(User):
 
         Returns:
             The member's highest role.
+
+        !!! tip
+            This endpoint uses a role cache at the [`Group`][rblxopencloud.Group] \
+            level. This means that the library will fetch roles the first time \
+            that role information is request, but further calls for any of the \
+            role fetching methods will resolve  without sending another request.
         """
 
-        return self.fetch_top_role(self.role_id, skip_cache=skip_cache)
+        return self.group.fetch_role(self.role_id, skip_cache=skip_cache)
 
     def fetch_roles(self, skip_cache: bool = False) -> list[GroupRole]:
         """
-        Fetches and returns a list of roles assigned to the group member. Roles \
-        are cached on a group object level, therefore multiple calls for the \
-        same group resolve without sending another request.
+        Fetches and returns a list of roles assigned to the group member.
 
         ??? example
             Prints the name of every role assigned to the member with user ID `287113233`.
@@ -268,6 +275,12 @@ class GroupMember(User):
 
         Returns:
             Role info for each of the member's assigned roles.
+
+        !!! tip
+            This endpoint uses a role cache at the [`Group`][rblxopencloud.Group] \
+            level. This means that the library will fetch roles the first time \
+            that role information is request, but further calls for any of the \
+            role fetching methods will resolve  without sending another request.
         """
 
         roles = []
@@ -284,6 +297,8 @@ class GroupMember(User):
         member already has the requested role, no action occurs.
 
         The Owner, Member, and Guest roles cannot be assigned to a member.
+
+        Requires `group:write` on an API Key or OAuth2 authorization.
 
         Args:
             role_id: The ID of the role to assign.
@@ -308,6 +323,8 @@ class GroupMember(User):
         member does not have the requested role, no action occurs.
 
         The Owner, Member, and Guest roles cannot be unassigned from a member.
+
+        Requires `group:write` on an API Key or OAuth2 authorization.
 
         Args:
             role_id: The ID of the role to unassign.
@@ -368,9 +385,9 @@ class GroupJoinRequest(User):
         join the Group.
     
     !!! tip
-        This class bases [`User`][rblxopencloud.User], so all methods of it \
+        This class bases [`User`][rblxopencloud.User], so all user methods \
         can be used from this object, such as \
-        [`User.list_inventory`][rblxopencloud.User.list_inventory].
+        [`GroupJoinRequest.list_inventory`][rblxopencloud.User.list_inventory].
     """
 
     def __init__(self, member, api_key, group=None) -> None:
@@ -864,6 +881,8 @@ class Group(Creator):
         member already has the requested role, no action occurs.
 
         The Owner, Member, and Guest roles cannot be assigned to a member.
+        
+        Requires `group:write` on an API Key or OAuth2 authorization.
 
         Args:
             user_id: The user ID to fetch member info for.
@@ -898,6 +917,8 @@ class Group(Creator):
 
         The Owner, Member, and Guest roles cannot be unassigned from a member.
 
+        Requires `group:write` on an API Key or OAuth2 authorization.
+
         Args:
             user_id: The user ID to fetch member info for.
             role_id: The ID of the role to unassign.
@@ -931,11 +952,18 @@ class Group(Creator):
 
         Args:
             role_id: The ID of the role to find.
-            skip_cache: Wether to forcably refetch role information.
+            skip_cache: Whether to ignore any cached role information \
+                for this group and fetch updated role information.
 
         Returns:
             The [`GroupRole`][rblxopencloud.GroupRole] for the provided role \
             ID or `None` if the role couldn't be found.
+
+        !!! tip
+            This endpoint uses a role cache at the [`Group`][rblxopencloud.Group] \
+            level. This means that the library will fetch roles the first time \
+            that role information is request, but further calls for any of the \
+            role fetching methods will resolve  without sending another request.
         """
 
         if skip_cache or not list(self.__role_cache.keys()):
@@ -950,6 +978,17 @@ class Group(Creator):
         """
         Iterates each member in the group, optionally limited to a specific \
         role.
+
+        ??? example
+            Prints the first 20 group members to the console along with their \
+            username and the name of their highest role.
+            ```python
+            for member in group.list_members(limit=20):
+                member.fetch_info() # fetch_info is inherited from User - GroupMember bases User.
+                role_info = member.fetch_top_role() # After the first call, roles for the whole group are cached.
+
+                print(f"@{member.name} has role {role_info.name}")
+            ```
                 
         Args:
             limit: The maximum number of members to iterate. \
