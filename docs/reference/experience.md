@@ -10,6 +10,10 @@ This reference documents APIs relating to experiences (also known as *games* and
 
 ::: rblxopencloud.Badge
 
+::: rblxopencloud.CreatorConfig
+
+::: rblxopencloud.CreatorConfigEntry
+
 ::: rblxopencloud.DeveloperProduct
 
 ::: rblxopencloud.ExperienceSocialLink
@@ -25,6 +29,8 @@ This reference documents APIs relating to experiences (also known as *games* and
 ::: rblxopencloud.UserRestriction
 
 ## Enums
+
+::: rblxopencloud.CreatorConfigDeploymentStrategy
 
 ::: rblxopencloud.ExperienceAgeRating
 

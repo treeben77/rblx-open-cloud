@@ -52,6 +52,9 @@ __all__ = (
     "GamePass",
     "Badge",
     "UserRestriction",
+    "CreatorConfig",
+    "CreatorConfigEntry",
+    "CreatorConfigDeploymentStrategy",
 )
 
 
@@ -642,6 +645,134 @@ class Badge:
 
     def __repr__(self) -> str:
         return f'<rblxopencloud.Badge id={self.id} name="{self.name}">'
+
+
+class CreatorConfigEntry:
+    """
+    Represents a single entry in an experience's configuration.
+
+    Attributes:
+        key: The key of this configuration entry.
+        value: The value of this configuration entry.
+        description: The description of this configuration entry, if provided. \
+        The description cannot be updated with Open Cloud, only on the Creator Dashboard.
+        updated_at: The time this configuration entry was last updated.
+        accessed_at: The time this configuration entry was last accessed by a game server.
+    """
+
+    def __init__(self, key: str, data: dict) -> None:
+        self.key: str = key
+        self.value: Union[Union[str, float, bool, dict]] = data.get("value")
+        self.description: Optional[str] = data.get("description")
+        self.updated_at: Optional[datetime] = (
+            parser.parse(data["lastModifiedTime"])
+            if data.get("lastModifiedTime")
+            else None
+        )
+        self.accessed_at: Optional[datetime] = (
+            parser.parse(data["lastAccessedTime"])
+            if data.get("lastAccessedTime")
+            else None
+        )
+
+        if self.accessed_at and self.accessed_at <= datetime(
+            1970,
+            1,
+            1,
+            0,
+            0,
+            0,
+            tzinfo=self.accessed_at.tzinfo if self.accessed_at else None,
+        ):
+            self.accessed_at = None
+
+    def __repr__(self):
+        return f"<rblxopencloud.CreatorConfigEntry key={repr(self.key)} value={repr(self.value)}>"
+
+
+class CreatorConfig(dict):
+    """
+    Represents the creator configuration for an experience on Roblox. Roblox \
+    indicates that these will have further purposes in the future.
+
+    ??? example
+        This example will list all the keys and output their values and when the value was last accessed
+        ```python
+        config = experience.fetch_published_config()
+
+        ### List all the keys and output their values and when they were last accessed
+        for key, entry in config.full_config.items():
+            print(f"The config '{key}' has the value {repr(entry.value)} and was last accessed {entry.accessed_at}")        
+        ```
+        To get only a value of a key, the following dictionary syntaxes are also supported:
+        ```python
+        value = config["key"]
+        value = config.get("key", "default")
+        ```
+        Note this dictionary allows write access, and can be written to and passed to functions that expect a dictionary. For instance
+        ```python
+        import json
+
+        result = json.dumps(config, indent=2)
+        >>> \"""{
+        >>>   "spawn_point": "monster_cave",
+        >>>   "xp_multiplier": 1.5,
+        >>>   "starting_coins": 6700
+        >>> }\"""
+        ```
+
+        Further, `dict` can be used to get only the dictionary object:
+        ```python
+        config_dict = dict(config)
+        ```
+
+    Attributes:
+        version_number: The version number of this configuration.
+        full_config: A key-metadata dictionary with each config value.
+        draft_hash: The hash of the draft configuration, not included if the config is published.
+    
+    Methods:
+        __dict__: A key-value dictionary of the configuration keys and their current values.
+
+    """
+
+    def __init__(self, data) -> None:
+        self.version_number: Optional[int] = data.get("metadata", {}).get(
+            "configVersion"
+        )
+        self.full_config: dict[str, CreatorConfigEntry] = {}
+        self.draft_hash: Optional[str] = data.get("draftHash")
+        self.__partial_config: dict[str, Union[str, float, bool, dict]] = {}
+
+        for key, config_data in data.get("entries", {}).items():
+            self.full_config[key] = CreatorConfigEntry(key, config_data)
+            self.__partial_config[key] = config_data.get("value")
+
+        super().__init__(self.__partial_config)
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.CreatorConfig version_number={repr(self.version_number)} full_config_keys={list(self.full_config.keys())} draft_hash={repr(self.draft_hash)}>"
+
+
+class CreatorConfigDeploymentStrategy(Enum):
+    """
+    Enum representing the deployment strategy to use when publishing a \
+    [`CreatorConfig`][rblxopencloud.CreatorConfig].
+
+    Attributes:
+        Immediate (0): Deploy the new configuration to game servers immediately.
+        GradualRollout (1): Deploy the new configuration to game servers over a \
+        15 minute period.
+    """
+
+    Immediate = 0
+    GradualRollout = 1
+
+
+CREATOR_CONFIG_DEPLOYMENT_STRATEGY_STRINGS = {
+    CreatorConfigDeploymentStrategy.Immediate: "Immediate",
+    CreatorConfigDeploymentStrategy.GradualRollout: "GradualRollout",
+}
 
 
 class Place:
@@ -2648,3 +2779,181 @@ server](https://discord.gg/zW36pJGFnh).
                 expected_status=[200],
                 data=body,
             )
+
+    def fetch_published_config(self) -> CreatorConfig:
+        """
+        Fetches the experience configuration for the experience.
+
+        Requires `universe:read` on API Key or OAuth2 authorization.
+
+        Returns:
+            The experience configuration for the experience.
+
+        """
+
+        repository = "InExperienceConfig"
+
+        _, data, _ = send_request(
+            "GET",
+            f"creator-configs-public-api/v1/configs/universes/{self.id}/repositories/{repository}/full",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return CreatorConfig(data)
+
+    def fetch_draft_config(self) -> CreatorConfig:
+        """
+        Fetches the current draft changes for the experience configuration. A draft \
+        configuration will only contain keys that have changes; unchanged keys in \
+        the published configuration are omitted.
+
+        Requires `universe:read` on API Key or OAuth2 authorization.
+
+        Returns:
+            The draft experience configuration for the experience, if it exists.
+
+        Raises:
+            NotFound: There are no current draft changes.
+
+        """
+
+        repository = "InExperienceConfig"
+
+        _, data, _ = send_request(
+            "GET",
+            f"creator-configs-public-api/v1/configs/universes/{self.id}/repositories/{repository}/draft",
+            authorization=self.__api_key,
+            expected_status=[200],
+        )
+
+        return CreatorConfig(data)
+
+    def publish_draft_config(
+        self,
+        deployment_strategy: CreatorConfigDeploymentStrategy = CreatorConfigDeploymentStrategy.Immediate,
+        message: str = None,
+        draft_hash: str = None,
+    ) -> int:
+        """
+        Publishes the current draft experience configuration. This will make the \
+        draft configuration the new published configuration.
+
+        Requires `universe:write` on API Key or OAuth2 authorization.
+
+        Args:
+            deployment_strategy: The strategy to use when deploying the new \
+            configuration and can allow gradual rollouts of new configuration.
+            message: An optional message describing the changes in this draft.
+            draft_hash: If provided, only publishes if the current draft matches the \
+            provided hash. Used for concurrency control.
+
+        Returns:
+            The new configuration version number after publishing the draft.          
+        """
+
+        repository = "InExperienceConfig"
+
+        _, data, _ = send_request(
+            "POST",
+            f"creator-configs-public-api/v1/configs/universes/{self.id}/repositories/{repository}/publish",
+            authorization=self.__api_key,
+            json={
+                "message": message,
+                "draftHash": draft_hash,
+                "deploymentStrategy": CREATOR_CONFIG_DEPLOYMENT_STRATEGY_STRINGS.get(
+                    deployment_strategy, deployment_strategy
+                ),
+            },
+            expected_status=[200],
+        )
+
+        return data.get("configVersion")
+
+    def update_draft_config(
+        self,
+        entries: dict[str, Union[str, float, bool, dict, None]],
+        draft_hash: str = None,
+        overwrite: bool = False,
+    ) -> str:
+        """
+        Updates the staged changes for the experience configuration with the \
+        provided entries. Changes will not update in game servers until \
+        [`publish_draft_config`][rblxopencloud.Experience.publish_draft_config] is called.
+
+        ??? example
+            Updates `spawn_point` to `vast_plains` and `xp_multiplier` to `2.0`, but \
+            the existing `starting_coins` config remains as-is in the published configuration.
+            ```python
+            experience.update_draft_config(
+                entries={
+                    "spawn_point": "vast_plains",
+                    "xp_multiplier": 2.0
+                },
+                overwrite=False,
+            )
+            ```
+            However, if `overwrite` is set to `True`, the existing `starting_coins` config will be staged for deletion since it is not included in the `entries` update.
+
+        Requires `universe:write` on API Key or OAuth2 authorization.
+
+        Args:
+            entries: A dictionary of configuration keys to update with their \
+            new values. If a value is `None`, the key will be staged to be \
+            deleted.
+            draft_hash: If provided, only updates the draft if the current \
+            draft matches the provided hash. Used for concurrency control.
+            overwrite: If `True`, the `entries` field will update the draft so that \
+            when published, the published configuration will exactly match `entries`. \
+            Any keys excluded from `entries` will be staged to be deleted.
+
+        Returns:
+            The new draft hash after updating the draft.          
+        """
+
+        repository = "InExperienceConfig"
+        appended_path = ":overwrite" if overwrite else ""
+
+        _, data, _ = send_request(
+            "PATCH" if not overwrite else "PUT",
+            f"creator-configs-public-api/v1/configs/universes/{self.id}/repositories/{repository}/draft{appended_path}",
+            authorization=self.__api_key,
+            json={
+                "entries": entries,
+                "draftHash": draft_hash,
+            },
+            expected_status=[200],
+        )
+
+        return data.get("draftHash")
+
+    def delete_draft_config(
+        self,
+        draft_hash: str = None,
+    ) -> str:
+        """
+        Discards any drafted changes for the experience configuration.
+
+        Requires `universe:write` on API Key or OAuth2 authorization.
+
+        Args:
+            draft_hash: If provided, only updates the draft if the current \
+            draft matches the provided hash. Used for concurrency control.
+
+        Returns:
+            The new draft hash after updating the draft.          
+        """
+
+        repository = "InExperienceConfig"
+
+        _, data, _ = send_request(
+            "DELETE",
+            f"creator-configs-public-api/v1/configs/universes/{self.id}/repositories/{repository}/draft",
+            authorization=self.__api_key,
+            json={
+                "draftHash": draft_hash,
+            },
+            expected_status=[200],
+        )
+
+        return data.get("draftHash")
