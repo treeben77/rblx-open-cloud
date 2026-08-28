@@ -492,7 +492,7 @@ class DeveloperProduct:
         self.description: str = data["description"]
         self.icon_asset_id: int = data["iconImageAssetId"]
         self.is_for_sale: bool = data["isForSale"]
-        self.store_page_enabled: bool = data["storePageEnabled"]
+        self.store_page_enabled: bool | None = data.get("storePageEnabled")
         self.regional_pricing_enabled: bool = (
             "RegionalPricing"
             in data["priceInformation"].get("enabledFeatures", [])
