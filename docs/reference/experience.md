@@ -6,6 +6,12 @@ This reference documents APIs relating to experiences (also known as *games* and
     options:
         merge_init_into_class: true
 
+## Creatable Dataclasses
+
+::: rblxopencloud.ExperienceAnalyticsBreakdown
+
+::: rblxopencloud.ExperienceAnalyticsFilter
+
 ## Non-creatable Dataclasses
 
 ::: rblxopencloud.Badge
@@ -15,6 +21,10 @@ This reference documents APIs relating to experiences (also known as *games* and
 ::: rblxopencloud.CreatorConfigEntry
 
 ::: rblxopencloud.DeveloperProduct
+
+::: rblxopencloud.ExperienceAnalyticsDatapoint
+
+::: rblxopencloud.ExperienceAnalyticsResult
 
 ::: rblxopencloud.ExperienceSocialLink
 
@@ -33,6 +43,10 @@ This reference documents APIs relating to experiences (also known as *games* and
 ::: rblxopencloud.CreatorConfigDeploymentStrategy
 
 ::: rblxopencloud.ExperienceAgeRating
+
+::: rblxopencloud.ExperienceAnalyticsFilterOperation
+
+::: rblxopencloud.ExperienceAnalyticsGranularity
 
 ::: rblxopencloud.SubscriptionExpirationReason
 

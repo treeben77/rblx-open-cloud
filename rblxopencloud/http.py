@@ -238,7 +238,7 @@ class Operation(Generic[T]):
 
     Attributes:
         is_done (bool): Wether the operations is known to be complete and \
-        [`wait()`][rblxopencloud.Operation.wait] can provide an immedite \
+        [`wait()`][rblxopencloud.Operation.wait] can provide an immediate \
         response.
     """
 
@@ -248,6 +248,7 @@ class Operation(Generic[T]):
         self_api_key: str,
         return_type: T,
         cached_response: dict = None,
+        response_key: str = "response",
         **return_meta,
     ) -> None:
         self.__path: str = path
@@ -255,6 +256,7 @@ class Operation(Generic[T]):
         self.__return_type: T = return_type
         self.__return_meta: dict = return_meta
         self.__cached_response: dict = cached_response
+        self.__response_key: str = response_key
         self.is_done: bool = cached_response is not None
 
     def __repr__(self) -> str:
@@ -273,7 +275,7 @@ class Operation(Generic[T]):
         """
 
         _, body, _ = send_request(
-            "GET", self.__path, self.__api_key, expected_status=[200]
+            "GET", self.__path, self.__api_key, expected_status=[200, 202]
         )
         if not body.get("done"):
             return None
@@ -281,8 +283,13 @@ class Operation(Generic[T]):
         self.is_done = True
 
         if callable(self.__return_type):
-            self.__cached_response = body["response"]
-            return self.__return_type(body["response"], **self.__return_meta)
+            self.__cached_response = (
+                body[self.__response_key] if self.__response_key else body
+            )
+            return self.__return_type(
+                body[self.__response_key] if self.__response_key else body,
+                **self.__return_meta,
+            )
         else:
             return self.__return_type
 

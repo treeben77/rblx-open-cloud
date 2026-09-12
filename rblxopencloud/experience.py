@@ -55,6 +55,12 @@ __all__ = (
     "CreatorConfig",
     "CreatorConfigEntry",
     "CreatorConfigDeploymentStrategy",
+    "ExperienceAnalyticsGranularity",
+    "ExperienceAnalyticsFilter",
+    "ExperienceAnalyticsFilterOperation",
+    "ExperienceAnalyticsResult",
+    "ExperienceAnalyticsBreakdown",
+    "ExperienceAnalyticsDatapoint",
 )
 
 
@@ -773,6 +779,304 @@ CREATOR_CONFIG_DEPLOYMENT_STRATEGY_STRINGS = {
     CreatorConfigDeploymentStrategy.Immediate: "Immediate",
     CreatorConfigDeploymentStrategy.GradualRollout: "GradualRollout",
 }
+
+
+class ExperienceAnalyticsGranularity(Enum):
+    """
+    Enum representing the granularity of an analytic metric query using [`Experience.query_analytic_metric`][rblxopencloud.Experience.query_analytic_metric].
+
+    Roblox documents the supported granularities for each metric on the [Creator Dashboard](https://create.roblox.com/docs/cloud/guides/analytics/metrics). For date ranges exceeding 2 years, only one week, one month and no granularaity are supported.
+
+    Attributes:
+        NoGranularity (0): Single data point for the entire time range. Supported for most engagement, monetization, and acquisition metrics.
+        Minutely (1): 1 minute buckets are only supported for performance metrics.
+        HalfHourly (2): 30 minute buckets are only supported for performance metrics.
+        Hourly (3): 1 hour buckets are supported for performance metrics and some monetization and recommended event metrics.
+        Daily (4): 1 day buckets are supported for all metrics.
+        Weekly (5): 1 week buckets are supported for most engagement, monetization, and acquisition metrics.
+        Monthly (6): 1 month buckets are supported for most engagement, monetization, and acquisition metrics.
+    """
+
+    NoGranularity = 0
+    Minutely = 1
+    HalfHourly = 2
+    Hourly = 3
+    Daily = 4
+    Weekly = 5
+    Monthly = 6
+
+
+EXPERIENCE_ANALYTIC_GRANULARITY_STRINGS = {
+    ExperienceAnalyticsGranularity.NoGranularity: "None",
+    ExperienceAnalyticsGranularity.Minutely: "OneMinute",
+    ExperienceAnalyticsGranularity.HalfHourly: "HalfHour",
+    ExperienceAnalyticsGranularity.Hourly: "OneHour",
+    ExperienceAnalyticsGranularity.Daily: "OneDay",
+    ExperienceAnalyticsGranularity.Weekly: "OneWeek",
+    ExperienceAnalyticsGranularity.Monthly: "OneMonth",
+}
+
+
+class ExperienceAnalyticsBreakdown:
+    """
+    Represents a breakdown of an analytic metric query using \
+    [`Experience.query_analytic_metric`][rblxopencloud.Experience.query_analytic_metric]. \
+    A breakdown describes how the data is grouped by a particular dimension. \
+    For instance, if breaking down by gender, the dimension would be "Gender" and the value may be "Female."
+
+    Args:
+        dimension: The dimension of the breakdown (e.g. platform, gender).
+        value: The value of breakdown (e.g. computer, female).
+        display_value: The display value of the breakdown. This is typically \
+        populated for funnel analytics.
+
+    Attributes:
+        dimension: The dimension of the breakdown (e.g. platform, gender).
+        value: The value of breakdown (e.g. computer, female).
+        display_value: The display value of the breakdown. This is typically \
+        populated for funnel analytics.
+    """
+
+    def __init__(self, dimension, value, display_value=None) -> None:
+        self.dimension: str = dimension
+        self.value: str = value
+        self.display_value: Optional[str] = display_value
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.ExperienceAnalyticsBreakdown dimension={repr(self.dimension)} value={repr(self.value)}>"
+
+    def __hash__(self) -> int:
+        return hash((self.dimension, self.value))
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ExperienceAnalyticsBreakdown):
+            return NotImplemented
+        return self.dimension == other.dimension and self.value == other.value
+
+    def __ne__(self, other) -> bool:
+        if not isinstance(other, ExperienceAnalyticsBreakdown):
+            return NotImplemented
+        return self.dimension != other.dimension or self.value != other.value
+
+
+class ExperienceAnalyticsDatapoint:
+    """
+    Represents a single data point for an analytic metric query using \
+    [`Experience.query_analytic_metric`][rblxopencloud.Experience.query_analytic_metric].
+
+    Attributes:
+        time: The time of the data point.
+        value: The value of the data point.
+    """
+
+    def __init__(self, data) -> None:
+        self.time: datetime = parser.parse(data.get("time"))
+        self.value: float = data.get("value")
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.ExperienceAnalyticsDatapoint time={repr(self.time)} value={repr(self.value)}>"
+
+
+class ExperienceAnalyticsResult:
+    """
+    Represents the result of an analytic metric query using \
+    [`Experience.query_analytic_metric`][rblxopencloud.Experience.query_analytic_metric].
+
+    If not breakdown is requested, the results will be contained at `data_points[frozenset()]`. That is, the breakdown will be an empty frozen set. \
+    If a breakdown is included, the results will be contained at `data_points[frozenset(breakdowns)]`, where `breakdowns` is a list of \
+    [`ExperienceAnalyticsBreakdown`][rblxopencloud.ExperienceAnalyticsBreakdown] objects. The `breakdowns` property method returns a tuple of all breakdowns in the results. 
+
+    Attributes:
+        created_at (datetime): The time the analytic metric query was created.
+        breakdowns (tuple[frozenset[ExperienceAnalyticsBreakdown]]): A tuple of breakdowns pairs within the results.
+        data_points (dict[frozenset[ExperienceAnalyticsBreakdown], list[ExperienceAnalyticsDatapoint]]): A dictionary mapping breakdowns to their corresponding data points.
+    """
+
+    def __init__(self, data) -> None:
+        self.created_at: datetime = parser.parse(
+            data.get("metadata", {}).get("createdTime")
+        )
+        self.data_points: dict[
+            frozenset[ExperienceAnalyticsBreakdown],
+            list[ExperienceAnalyticsDatapoint],
+        ] = {}
+
+        for value in data["response"]["values"]:
+            breakdown = set()
+            for breakdown_value in value.get("breakdowns", {}):
+                breakdown.add(
+                    ExperienceAnalyticsBreakdown(
+                        breakdown_value["dimension"],
+                        breakdown_value["value"],
+                        breakdown_value.get("displayValue"),
+                    )
+                )
+
+            datapoints = []
+            for datapoint in value.get("dataPoints", []):
+                datapoints.append(ExperienceAnalyticsDatapoint(datapoint))
+
+            self.data_points[frozenset(breakdown)] = datapoints
+
+    @property
+    def breakdowns(self) -> tuple[frozenset[ExperienceAnalyticsBreakdown]]:
+        """
+        Gets the breakdowns for the analytic metric query.
+
+        Returns:
+            A list of breakdowns for the analytic metric query.
+        """
+
+        return tuple(set(self.data_points.keys()))
+
+    def get_datapoints(
+        self, breakdowns: list[ExperienceAnalyticsBreakdown] = None
+    ) -> list[ExperienceAnalyticsDatapoint]:
+        """
+        Gets the data points for a specific breakdown.
+
+        Args:
+            breakdowns: The breakdowns to get the data points for. If not \
+            provided, will return the data points for the default breakdown.
+
+        Returns:
+            A list of data points for the specified breakdown.
+        """
+
+        if breakdowns is None:
+            return self.data_points.get(frozenset(), [])
+
+        return self.data_points.get(frozenset(breakdowns), [])
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.ExperienceAnalyticsResult created_at={repr(self.created_at)}>"
+
+
+class ExperienceAnalyticsFilterOperation(Enum):
+    """
+    Enum representing the operation of an analytic metric query filter.
+
+    Attributes:
+        In (1): The filter only returns values included in the filter values.
+        NotIn (2): The filter only returns values not included in the filter values.
+        GreaterThan (3): The filter only returns values greater than the filter value.
+        GreaterThanOrEqual (4): The filter only returns values greater than or equal to the filter value.
+        LessThan (5): The filter only returns values less than the filter value.
+        LessThanOrEqual (6): The filter only returns values less than or equal to the filter value.
+        Match (7): The filter only returns values that match the string pattern.
+    """
+
+    In = 1
+    NotIn = 2
+    GreaterThan = 3
+    GreaterThanOrEqual = 4
+    LessThan = 5
+    LessThanOrEqual = 6
+    Match = 7
+
+
+EXPERIENCE_ANALYTIC_FILTER_OPERATION_STRINGS = {
+    ExperienceAnalyticsFilterOperation.In: "In",
+    ExperienceAnalyticsFilterOperation.NotIn: "NotIn",
+    ExperienceAnalyticsFilterOperation.GreaterThan: "GreaterThan",
+    ExperienceAnalyticsFilterOperation.GreaterThanOrEqual: "GreaterThanOrEqual",
+    ExperienceAnalyticsFilterOperation.LessThan: "LessThan",
+    ExperienceAnalyticsFilterOperation.LessThanOrEqual: "LessThanOrEqual",
+    ExperienceAnalyticsFilterOperation.Match: "Match",
+}
+
+
+class ExperienceAnalyticsFilter:
+    """
+    Represents a filter for an analytic metric query using \
+    [`Experience.query_analytic_metric`][rblxopencloud.Experience.query_analytic_metric].
+
+    A filter limits the results of an analytic metric query to only include data points that \
+    match a particular dimension value. For instance, if filtering by platform, the \
+    dimension would be "Platform" and the value may be "Computer."
+
+    Attributes:
+        operation: The operation of the filter.
+        dimension: The dimension of the filter (e.g. platform, gender).
+        value: The value of the filter (e.g. computer, female).
+    """
+
+    def __init__(
+        self,
+        operation: ExperienceAnalyticsFilterOperation,
+        dimension: str,
+        value: Union[str, list[str]],
+    ) -> None:
+        self.operation: ExperienceAnalyticsFilterOperation = operation
+        self.dimension: str = dimension
+        self.value: Union[str, list[str]] = value
+
+    @classmethod
+    def in_list(
+        cls, dimension: str, value: list[str]
+    ) -> "ExperienceAnalyticsFilter":
+        return cls(ExperienceAnalyticsFilterOperation.In, dimension, value)
+
+    @classmethod
+    def not_in_list(
+        cls, dimension: str, value: list[str]
+    ) -> "ExperienceAnalyticsFilter":
+        return cls(ExperienceAnalyticsFilterOperation.NotIn, dimension, value)
+
+    @classmethod
+    def equals(cls, dimension: str, value: str) -> "ExperienceAnalyticsFilter":
+        return cls(ExperienceAnalyticsFilterOperation.In, dimension, [value])
+
+    @classmethod
+    def not_equals(
+        cls, dimension: str, value: str
+    ) -> "ExperienceAnalyticsFilter":
+        return cls(
+            ExperienceAnalyticsFilterOperation.NotIn, dimension, [value]
+        )
+
+    @classmethod
+    def greater_than(
+        cls, dimension: str, value: str
+    ) -> "ExperienceAnalyticsFilter":
+        return cls(
+            ExperienceAnalyticsFilterOperation.GreaterThan, dimension, value
+        )
+
+    @classmethod
+    def greater_than_or_equal(
+        cls, dimension: str, value: str
+    ) -> "ExperienceAnalyticsFilter":
+        return cls(
+            ExperienceAnalyticsFilterOperation.GreaterThanOrEqual,
+            dimension,
+            value,
+        )
+
+    @classmethod
+    def less_than(
+        cls, dimension: str, value: str
+    ) -> "ExperienceAnalyticsFilter":
+        return cls(
+            ExperienceAnalyticsFilterOperation.LessThan, dimension, value
+        )
+
+    @classmethod
+    def less_than_or_equal(
+        cls, dimension: str, value: str
+    ) -> "ExperienceAnalyticsFilter":
+        return cls(
+            ExperienceAnalyticsFilterOperation.LessThanOrEqual,
+            dimension,
+            value,
+        )
+
+    @classmethod
+    def match(cls, dimension: str, value: str) -> "ExperienceAnalyticsFilter":
+        return cls(ExperienceAnalyticsFilterOperation.Match, dimension, value)
+
+    def __repr__(self) -> str:
+        return f"<rblxopencloud.ExperienceAnalyticsFilter operation={repr(self.operation)} dimension={repr(self.dimension)} value={repr(self.value)}>"
 
 
 class Place:
@@ -2957,3 +3261,84 @@ server](https://discord.gg/zW36pJGFnh).
         )
 
         return data.get("draftHash")
+
+    def query_analytic_metric(
+        self,
+        metric_name: str,
+        start_time: datetime,
+        end_time: datetime,
+        granularity: Union[
+            ExperienceAnalyticsGranularity, str
+        ] = ExperienceAnalyticsGranularity.Daily,
+        breakdown: Union[list[str], str] = None,
+        filters: list[ExperienceAnalyticsFilter] = None,
+        limit: int = None,
+    ) -> Operation[ExperienceAnalyticsResult]:
+        """
+        Queries the analytic metric for the experience.
+
+        Requires `universe.analytics:read` on an API Key.
+
+        Args:
+            metric_name: The name of the analytic metric to query.
+            start_time: The inclusive start time of the query.
+            end_time: The exclusive end time of the query.
+            granularity: The time bucket size for each data point (i.e. daily, weekly, etc).
+            breakdown: The dimensions to break down the metric by.
+            limit: The maximum number of breakdowns to return.
+
+        Returns:
+            An operation that can be resolved for the analytic metric results.
+        """
+
+        request = {
+            "metric": metric_name,
+            "startTime": start_time.isoformat(),
+            "endTime": end_time.isoformat(),
+            "granularity": EXPERIENCE_ANALYTIC_GRANULARITY_STRINGS.get(
+                granularity, granularity
+            ),
+        }
+
+        if breakdown:
+            request["breakdown"] = (
+                [breakdown] if isinstance(breakdown, str) else breakdown
+            )
+
+        if limit:
+            request["limit"] = limit
+
+        if filters:
+            passed_filters = []
+
+            for filter in filters:
+                passed_filter = {
+                    "dimension": filter.dimension,
+                    "operation": EXPERIENCE_ANALYTIC_FILTER_OPERATION_STRINGS.get(
+                        filter.operation, filter.operation
+                    ),
+                }
+                if isinstance(filter.value, str):
+                    passed_filter["value"] = filter.value
+                else:
+                    passed_filter["values"] = filter.value
+
+                passed_filters.append(passed_filter)
+
+            request["filter"] = passed_filters
+
+        _, data, _ = send_request(
+            "POST",
+            f"analytics-query-api/v1/universes/{self.id}/metrics",
+            authorization=self.__api_key,
+            json=request,
+            expected_status=[200, 202],
+        )
+
+        return Operation(
+            f"analytics-query-api/{data['path']}",
+            self.__api_key,
+            ExperienceAnalyticsResult,
+            data if data.get("done") else None,
+            response_key=None,
+        )

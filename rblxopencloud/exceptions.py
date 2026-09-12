@@ -121,6 +121,7 @@ class HttpException(BaseException):
                 body.get("message")
                 or body.get("title")
                 or body.get("errorMessage")
+                or body.get("error", {}).get("message")
             )
             self.details: Optional[list[dict]] = body.get(
                 "details"
