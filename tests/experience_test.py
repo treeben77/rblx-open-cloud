@@ -72,39 +72,42 @@ class subscriptions(unittest.TestCase):
 
     def test_fetch_subscription(self):
         subscription = experience.fetch_subscription(
-            "EXP-2491104735766773879", 287113233
+            "EXP-1041345807644754497", 287113233
         )
 
         self.assertIsInstance(subscription, rblxopencloud.Subscription)
-        self.assertEqual(subscription.active, False)
-        self.assertEqual(subscription.product_id, "EXP-2491104735766773879")
+        self.assertEqual(subscription.active, True)
+        self.assertEqual(subscription.product_id, "EXP-1041345807644754497")
         self.assertEqual(subscription.user_id, 287113233)
         self.assertEqual(
-            subscription.state, rblxopencloud.SubscriptionState.Expired
+            subscription.state, rblxopencloud.SubscriptionState.Active
         )
         self.assertEqual(
             subscription.expiration_reason,
-            rblxopencloud.SubscriptionExpirationReason.Cancelled,
+            None,
         )
 
 
 class experience_info(unittest.TestCase):
 
     def test_fetch_info(self):
-        result = experience.fetch_info()
+        # Cannot use testing experience as age rating is hidden for 16+ restricted experiences, so we use a different experience for this test.
 
-        self.assertIs(experience, result)
-        self.assertEqual(
-            experience.name, "treeben77's very awesome test experience!"
+        test_experience = rblxopencloud.Experience(
+            13058, os.environ["TEST_USER_CLOUD_KEY"]
         )
-        self.assertEqual(
-            experience.discord_social_link.uri, "https://discord.gg/6Y3bzJ59KU"
+
+        result = test_experience.fetch_info()
+
+        self.assertIs(test_experience, result)
+        self.assertEqual(test_experience.name, "Classic: Crossroads")
+        self.assertEqual(test_experience.root_place.id, 1818)
+
+        self.assertIsInstance(
+            test_experience.age_rating,
+            rblxopencloud.ExperienceAgeRating,
         )
-        self.assertEqual(
-            experience.age_rating,
-            rblxopencloud.ExperienceAgeRating.Mild,
-        )
-        self.assertTrue(experience.desktop_enabled)
+        self.assertTrue(test_experience.desktop_enabled)
 
     def test_update_info(self):
         expected_price = secrets.randbelow(490) + 10
@@ -229,6 +232,8 @@ class developer_products(unittest.TestCase):
             self.assertIs(product.experience, experience)
 
             self.assertIsInstance(product.id, int)
+            self.assertIsInstance(product.immutable, bool)
+
             self.assertIsInstance(product.name, str)
             self.assertIsInstance(product.description, str)
             self.assertIsInstance(
@@ -236,8 +241,9 @@ class developer_products(unittest.TestCase):
                 int if product.icon_asset_id else type(None),
             )
             self.assertIsInstance(product.is_for_sale, bool)
-            self.assertIsInstance(product.store_page_enabled, bool)
             self.assertIsInstance(product.regional_pricing_enabled, bool)
+            self.assertIsInstance(product.price_optimization_enabled, bool)
+            self.assertIsInstance(product.managed_pricing_enabled, bool)
             self.assertTrue(
                 product.price_in_robux is None
                 or isinstance(product.price_in_robux, int)
@@ -256,12 +262,14 @@ class developer_products(unittest.TestCase):
         self.assertIs(product.experience, experience)
 
         self.assertEqual(product.id, 3472883382)
+        self.assertEqual(product.immutable, False)
         self.assertEqual(product.name, "Test Open Cloud Product 5")
         self.assertEqual(product.description, "Hello World!")
         self.assertEqual(product.icon_asset_id, 82396052319080)
         self.assertEqual(product.is_for_sale, True)
-        self.assertEqual(product.store_page_enabled, True)
+        self.assertEqual(product.managed_pricing_enabled, True)
         self.assertEqual(product.regional_pricing_enabled, True)
+        self.assertEqual(product.price_optimization_enabled, False)
         self.assertEqual(product.price_in_robux, 67)
         self.assertIsInstance(product.created_at, datetime)
         self.assertIsInstance(product.updated_at, datetime)
@@ -274,15 +282,13 @@ class developer_products(unittest.TestCase):
         new_description = secrets.token_hex(16)
         new_price = secrets.randbelow(10000)
         new_regional_pricing_enabled = secrets.choice([True, False])
-        new_is_store_page_enabled = secrets.choice([True, False])
 
         experience.update_developer_product(
             3472891726,
             name=new_name,
             description=new_description,
             price_in_robux=new_price,
-            regional_pricing_enabled=new_regional_pricing_enabled,
-            store_page_enabled=new_is_store_page_enabled,
+            managed_pricing_enabled=new_regional_pricing_enabled,
         )
 
         time.sleep(5)  # wait for eventual consistency
@@ -294,12 +300,8 @@ class developer_products(unittest.TestCase):
         self.assertEqual(developer_product.description, new_description)
         self.assertEqual(developer_product.price_in_robux, new_price)
         self.assertEqual(
-            developer_product.regional_pricing_enabled,
+            developer_product.managed_pricing_enabled,
             new_regional_pricing_enabled,
-        )
-        self.assertEqual(
-            developer_product.store_page_enabled,
-            new_is_store_page_enabled,
         )
 
         self.assertIsInstance(developer_product.created_at, datetime)
@@ -330,7 +332,7 @@ class game_passes(unittest.TestCase):
                 int if game_pass.icon_asset_id else type(None),
             )
             self.assertIsInstance(game_pass.price_in_robux, int)
-            self.assertIsInstance(game_pass.regional_pricing_enabled, bool)
+            self.assertIsInstance(game_pass.managed_pricing_enabled, bool)
             self.assertIsInstance(game_pass.created_at, datetime)
             self.assertIsInstance(game_pass.updated_at, datetime)
 
@@ -349,7 +351,7 @@ class game_passes(unittest.TestCase):
         self.assertEqual(game_pass.description, "This is a test game pass.")
         self.assertEqual(game_pass.icon_asset_id, 139446863449203)
         self.assertEqual(game_pass.price_in_robux, 670)
-        self.assertEqual(game_pass.regional_pricing_enabled, False)
+        self.assertEqual(game_pass.managed_pricing_enabled, True)
         self.assertIsInstance(game_pass.created_at, datetime)
         self.assertIsInstance(game_pass.updated_at, datetime)
 
@@ -367,7 +369,7 @@ class game_passes(unittest.TestCase):
             name=new_name,
             description=new_description,
             price_in_robux=new_price,
-            regional_pricing_enabled=new_regional_pricing_enabled,
+            managed_pricing_enabled=new_regional_pricing_enabled,
         )
 
         time.sleep(5)  # wait for eventual consistency
@@ -379,7 +381,7 @@ class game_passes(unittest.TestCase):
         self.assertEqual(game_pass.description, new_description)
         self.assertEqual(game_pass.price_in_robux, new_price)
         self.assertEqual(
-            game_pass.regional_pricing_enabled,
+            game_pass.managed_pricing_enabled,
             new_regional_pricing_enabled,
         )
         self.assertIsInstance(game_pass.created_at, datetime)

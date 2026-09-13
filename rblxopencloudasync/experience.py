@@ -27,6 +27,7 @@ import io
 from nacl import encoding, public
 from typing import Any, AsyncGenerator, Literal, Optional, Union
 import urllib3
+import warnings
 
 from dateutil import parser
 
@@ -322,6 +323,12 @@ class ExperienceAgeRating(Enum):
     """
     Enum representing an experience's age rating.
 
+    !!! bug
+            13 September 2026: [`Experience.fetch_info`][rblxopencloud.Experience.fetch_info] does not \
+            return the correct age rating for experiences. This is not an issue within the library. \
+            It has been reported on the the [DevForum](https://devforum.roblox.com/t/agerating-in-cloudv2universesuniverseid-is-incorrect/4152697/3?u=treeben77). \
+            Any findings and concerns should be directed to that forum post.
+
     Attributes:
         Unknown (0): The experience age rating is unknown or not implemented.
         Unspecified (1): The experience has not provided an age rating.
@@ -475,18 +482,24 @@ class DeveloperProduct:
         icon_asset_id: The Roblox image asset ID of the developer product's \
         icon.
         is_for_sale: Whether the developer product is currently for sale.
-        store_page_enabled: Whether the developer product can be purchased \
+        store_page_enabled: (**Deprecated by Roblox**) Whether the developer product can be purchased \
         on the experience's store page.
         regional_pricing_enabled: Whether the developer product has regional \
         pricing enabled.
+        price_optimization_enabled: Whether the developer product has price \
+        optimization enabled.
+        managed_pricing_enabled: Whether the developer product has managed pricing enabled.
         price_in_robux: The price of the developer product in Robux.
         created_at: The time the developer product was created.
         updated_at: The time the developer product was last updated.
+        immutable: Whether the developer product can be updated. `True` indicates \
+            it cannot be updated, such as a commerce product.
     """
 
     def __init__(self, data, experience, api_key) -> None:
 
         self.id: int = data["productId"]
+        self.immutable: bool = data.get("isImmutable", None)
         self.experience: Experience = experience
         self.name: str = data["name"]
         self.description: str = data["description"]
@@ -498,6 +511,15 @@ class DeveloperProduct:
             in data["priceInformation"].get("enabledFeatures", [])
             if data.get("priceInformation")
             else False
+        )
+        self.price_optimization_enabled: bool = (
+            "PriceOptimization"
+            in data["priceInformation"].get("enabledFeatures", [])
+            if data.get("priceInformation")
+            else False
+        )
+        self.managed_pricing_enabled: bool = data.get(
+            "isManagedPricingEnabled", None
         )
         self.price_in_robux: Optional[int] = (
             data["priceInformation"].get("defaultPriceInRobux")
@@ -528,6 +550,7 @@ class GamePass:
         is_for_sale: Whether the game pass is currently for sale.
         regional_pricing_enabled: Whether the game pass has regional \
         pricing enabled.
+        managed_pricing_enabled: Whether the game pass has managed pricing enabled.
         price_in_robux: The price of the game pass in Robux.
         created_at: The time the game pass was created.
         updated_at: The time the game pass was last updated.
@@ -551,6 +574,9 @@ class GamePass:
             data["priceInformation"].get("defaultPriceInRobux")
             if data.get("priceInformation")
             else None
+        )
+        self.managed_pricing_enabled: bool = data.get(
+            "isManagedPricingEnabled", None
         )
         self.created_at: datetime = parser.parse(data["createdTimestamp"])
         self.updated_at: datetime = parser.parse(data["updatedTimestamp"])
@@ -2340,9 +2366,10 @@ classes/MessagingService).
         name: str = None,
         description: str = None,
         price_in_robux: Union[int, Literal[False]] = None,
-        regional_pricing_enabled: bool = None,
         store_page_enabled: bool = None,
         icon_file: io.BytesIO = None,
+        managed_pricing_enabled: bool = None,
+        regional_pricing_enabled: bool = None,
     ) -> None:
         """
         Updates an existing developer product within the experience.
@@ -2355,7 +2382,7 @@ classes/MessagingService).
             Set to `""` to clear any existing description.
             price_in_robux: The price in robux of the developer product. \
             Provide `None` for it to be off sale.
-            regional_pricing_enabled: Whether regional pricing is enabled for \
+            managed_pricing_enabled: Whether regional pricing is enabled for \
             the developer product. Must have a price set to enable.
             icon_file: An optional icon file for the developer product as a \
             file opened with `rb` mode. 
@@ -2374,6 +2401,30 @@ classes/MessagingService).
                 )
             ```
         """
+
+        if store_page_enabled is not None:
+
+            warnings.warn(
+                "The store_page_enabled parameter has been deprecated by Roblox. It will be ignored for this request.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        if (
+            regional_pricing_enabled is not None
+            and managed_pricing_enabled is not None
+        ):
+            raise ValueError(
+                "You cannot set both regional_pricing_enabled and managed_pricing_enabled. Use only one."
+            )
+
+        if regional_pricing_enabled is not None:
+            warnings.warn(
+                "The regional_pricing_enabled parameter has been deprecated in favor of managed_pricing_enabled.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            managed_pricing_enabled = regional_pricing_enabled
 
         payload = {}
 
@@ -2396,10 +2447,10 @@ classes/MessagingService).
         if description is not None:
             payload["request.Description"] = (None, description)
 
-        if regional_pricing_enabled is not None:
-            payload["request.IsRegionalPricingEnabled"] = (
+        if managed_pricing_enabled is not None:
+            payload["isManagedPricingEnabled"] = (
                 None,
-                "true" if regional_pricing_enabled else "false",
+                "true" if managed_pricing_enabled else "false",
             )
 
         if store_page_enabled is not None:
@@ -2474,8 +2525,9 @@ classes/MessagingService).
         name: str,
         description: str = None,
         price_in_robux: Optional[int] = None,
-        regional_pricing_enabled: bool = False,
+        managed_pricing_enabled: bool = None,
         icon_file: io.BytesIO = None,
+        regional_pricing_enabled: bool = False,
     ) -> GamePass:
         """
         Creates a game pass within the experience.
@@ -2485,7 +2537,7 @@ classes/MessagingService).
             description: The description of the game pass.
             price_in_robux: The price in robux of the game pass. Provide \
             `None` for it to be off sale.
-            regional_pricing_enabled: Whether regional pricing is enabled for \
+            managed_pricing_enabled: Whether managed pricing is enabled for \
             the game pass. Must have a price set to enable.
             icon_file: The icon file for the game pass as a file \
             opened with `rb` mode.
@@ -2493,6 +2545,22 @@ classes/MessagingService).
         Returns:
             The created game pass information.
         """
+
+        if (
+            regional_pricing_enabled is not None
+            and managed_pricing_enabled is True
+        ):
+            raise ValueError(
+                "You cannot set both regional_pricing_enabled and managed_pricing_enabled. Use only one."
+            )
+
+        if regional_pricing_enabled is not None:
+            warnings.warn(
+                "The regional_pricing_enabled parameter has been deprecated in favor of managed_pricing_enabled.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            managed_pricing_enabled = regional_pricing_enabled
 
         payload = {
             "request.Name": (None, name),
@@ -2512,10 +2580,10 @@ classes/MessagingService).
         if price_in_robux is not None:
             payload["request.Price"] = (None, str(price_in_robux))
 
-        if regional_pricing_enabled is not None:
-            payload["request.IsRegionalPricingEnabled"] = (
+        if managed_pricing_enabled is not None:
+            payload["isManagedPricingEnabled"] = (
                 None,
-                "true" if regional_pricing_enabled else "false",
+                "true" if managed_pricing_enabled else "false",
             )
 
         body, contentType = urllib3.encode_multipart_formdata(payload)

@@ -44,7 +44,8 @@ class fetch_asset_information(unittest.TestCase):
         self.assertEqual(
             asset.description, "A simple fire hydrant to keep the flames away!"
         )
-        self.assertEqual(asset.icon_asset_id, 14903722784)
+        # See https://devforum.roblox.com/t/asseticon-not-returned-for-get-asset-endpoint/4868624
+        # self.assertEqual(asset.icon_asset_id, 14903722784)
         self.assertEqual(asset.is_archived, False)
         self.assertIs(asset.creator, creator)
         self.assertIsInstance(asset.revision_time, datetime)
