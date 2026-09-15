@@ -267,7 +267,7 @@ class ApiKey:
         Returns:
             An [`Asset`][rblxopencloud.Asset] representing the asset.
         
-        !!! bug:
+        !!! bug
             13 September 2026: Get assets API does not consistently return `icon`. \
             This is not an issue within the library. It has been reported on the \
             [DevForum](https://devforum.roblox.com/t/asseticon-not-returned-for-get-asset-endpoint/4868624). \

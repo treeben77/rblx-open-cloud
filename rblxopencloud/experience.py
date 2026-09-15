@@ -3344,7 +3344,7 @@ server](https://discord.gg/zW36pJGFnh).
 
     def query_analytic_metric(
         self,
-        metric_name: str,
+        metric: str,
         start_time: datetime,
         end_time: datetime,
         granularity: Union[
@@ -3365,6 +3365,7 @@ server](https://discord.gg/zW36pJGFnh).
             end_time: The exclusive end time of the query.
             granularity: The time bucket size for each data point (i.e. daily, weekly, etc).
             breakdown: The dimensions to break down the metric by.
+            filters: The filters to apply to the metric query.
             limit: The maximum number of breakdowns to return.
 
         Returns:
@@ -3372,7 +3373,7 @@ server](https://discord.gg/zW36pJGFnh).
         """
 
         request = {
-            "metric": metric_name,
+            "metric": metric,
             "startTime": start_time.isoformat(),
             "endTime": end_time.isoformat(),
             "granularity": EXPERIENCE_ANALYTIC_GRANULARITY_STRINGS.get(
@@ -3421,4 +3422,102 @@ server](https://discord.gg/zW36pJGFnh).
             ExperienceAnalyticsResult,
             data if data.get("done") else None,
             response_key=None,
+        )
+
+    def fetch_analytic_dimensions(
+        self,
+        metric: str,
+        start_time: datetime,
+        end_time: datetime,
+        granularity: Union[
+            ExperienceAnalyticsGranularity, str
+        ] = ExperienceAnalyticsGranularity.Daily,
+        dimensions: Union[list[str], str] = None,
+        filters: list[ExperienceAnalyticsFilter] = None,
+        limit: int = None,
+    ) -> Operation[dict[str, list[ExperienceAnalyticsBreakdown]]]:
+        """
+        Fetches the dimension values that the analytic metric could be further \
+        broken down or filtered by. 
+
+        Requires `universe.analytics:read` on an API Key.
+
+        Args:
+            metric: The name of the analytic metric to query.
+            start_time: The inclusive start time of the query.
+            end_time: The exclusive end time of the query.
+            granularity: The time bucket size for each data point (i.e. daily, weekly, etc).
+            dimensions: The dimensions to query.
+            filters: Filters that have been applied to the data.
+            limit: The maximum number of dimensions to return.
+
+        Returns:
+            An operation that can be resolved for the analytic metric results.
+        """
+
+        request = {
+            "metric": metric,
+            "startTime": start_time.isoformat(),
+            "endTime": end_time.isoformat(),
+            "granularity": EXPERIENCE_ANALYTIC_GRANULARITY_STRINGS.get(
+                granularity, granularity
+            ),
+        }
+
+        if dimensions:
+            request["dimensions"] = (
+                [dimensions] if isinstance(dimensions, str) else dimensions
+            )
+
+        if limit:
+            request["limit"] = limit
+
+        if filters:
+            passed_filters = []
+
+            for filter in filters:
+                passed_filter = {
+                    "dimension": filter.dimension,
+                    "operation": EXPERIENCE_ANALYTIC_FILTER_OPERATION_STRINGS.get(
+                        filter.operation, filter.operation
+                    ),
+                }
+                if isinstance(filter.value, str):
+                    passed_filter["value"] = filter.value
+                else:
+                    passed_filter["values"] = filter.value
+
+                passed_filters.append(passed_filter)
+
+            request["filter"] = passed_filters
+
+        _, data, _ = send_request(
+            "POST",
+            f"analytics-query-api/v1/universes/{self.id}/dimension-values",
+            authorization=self.__api_key,
+            json=request,
+            expected_status=[200, 202],
+        )
+
+        def _operation_callback(
+            data: dict,
+        ) -> dict[str, list[ExperienceAnalyticsBreakdown]]:
+            result = {}
+            for dimension in data["values"]:
+                result[dimension["dimension"]] = [
+                    ExperienceAnalyticsBreakdown(
+                        dimension=dimension["dimension"],
+                        value=point["value"],
+                        display_value=point.get("displayValue"),
+                    )
+                    for point in dimension["values"]
+                ]
+
+            return result
+
+        return Operation(
+            f"analytics-query-api/{data['path']}",
+            self.__api_key,
+            _operation_callback,
+            data["response"] if data.get("done") else None,
         )

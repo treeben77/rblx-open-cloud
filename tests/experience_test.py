@@ -1,5 +1,5 @@
 from base64 import b64encode
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import pathlib
 import secrets
@@ -392,3 +392,72 @@ class game_passes(unittest.TestCase):
             time.time(),
             delta=10,
         )
+
+
+class analytics(unittest.TestCase):
+
+    def test_fetch_dimensions(self):
+        operation = experience.fetch_analytic_dimensions(
+            "DailyActiveUsers",
+            start_time=datetime.now() - timedelta(days=15),
+            end_time=datetime.now() - timedelta(days=1),
+            granularity=rblxopencloud.ExperienceAnalyticsGranularity.Daily,
+            dimensions=["Platform", "Country"],
+        )
+
+        dimensions = operation.wait()
+
+        for dimension, breakdowns in dimensions.items():
+            self.assertIsInstance(dimension, str)
+            self.assertIsInstance(breakdowns, list)
+
+            for breakdown in breakdowns:
+                self.assertIsInstance(
+                    breakdown, rblxopencloud.ExperienceAnalyticsBreakdown
+                )
+                self.assertEqual(breakdown.dimension, dimension)
+                self.assertIsInstance(breakdown.value, str)
+                self.assertTrue(
+                    breakdown.display_value is None
+                    or isinstance(breakdown.display_value, str)
+                )
+
+    def test_query_metric(self):
+        operation = experience.query_analytic_metric(
+            "DailyActiveUsers",
+            start_time=datetime.now() - timedelta(days=15),
+            end_time=datetime.now() - timedelta(days=1),
+            granularity=rblxopencloud.ExperienceAnalyticsGranularity.Daily,
+            breakdown=(breakdowns := ["Platform", "Country"]),
+        )
+
+        result = operation.wait()
+
+        self.assertIsInstance(result, rblxopencloud.ExperienceAnalyticsResult)
+        self.assertIsInstance(result.data_points, dict)
+
+        for breakdown, datapoints in result.data_points.items():
+            self.assertIsInstance(breakdown, tuple)
+            self.assertIsInstance(datapoints, list)
+
+            self.assertIsInstance(breakdown, frozenset)
+
+            for dimension in list(breakdown):
+                self.assertIsInstance(
+                    dimension, rblxopencloud.ExperienceAnalyticsBreakdown
+                )
+                self.assertIsInstance(dimension.dimension, str)
+                self.assertIn(dimension.dimension, breakdowns)
+                self.assertIsInstance(dimension.value, str)
+                self.assertIsInstance(dimension.display_value, (None, str))
+                self.assertTrue(
+                    dimension.display_value is None
+                    or isinstance(dimension.display_value, str)
+                )
+
+            for datapoint in datapoints:
+                self.assertIsInstance(
+                    datapoint, rblxopencloud.ExperienceAnalyticsDatapoint
+                )
+                self.assertIsInstance(datapoint.time, datetime)
+                self.assertIsInstance(datapoint.value, (int, float))
